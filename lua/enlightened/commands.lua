@@ -2,6 +2,7 @@ local M = {}
 
 local openai = require("enlightened/openai")
 local config = require("enlightened/config")
+local indicator = require("enlightened/indicator")
 
 ---@param args { args: string, range: integer }
 function M.ai(args)
@@ -47,17 +48,26 @@ function M.ai(args)
 	local end_line_length = vim.api.nvim_buf_get_lines(buffer, end_row, end_row + 1, true)[1]:len()
 	end_col = math.min(end_col, end_line_length)
 
+	local indicator_obj = indicator.create(buffer, start_row, start_col, end_row, end_col)
 	local accumulated_text = ""
 
 	local function on_data(data)
-		accumulated_text = accumulated_text .. data.choices[1].text
+		local completion = data.choices[1]
+		if completion.finish_reason == vim.NIL then
+			-- Ignore code block start and end
+			print(vim.inspect(completion.delta.content))
+			accumulated_text = accumulated_text .. completion.delta.content
+			indicator.set_preview_text(indicator_obj, accumulated_text)
+		end
 	end
 
 	local function on_complete(err)
 		if err then
-			vim.api.nvim_err_writeln("ai.vim: " .. err)
+			vim.api.nvim_err_writeln("enlightened.nvim :" .. err)
 		elseif #accumulated_text > 0 then
+			indicator.set_buffer_text(indicator_obj, accumulated_text)
 		end
+		indicator.finish(indicator_obj)
 	end
 
 	if visual_mode then
@@ -66,12 +76,18 @@ function M.ai(args)
 		if prompt == "" then
 			-- Replace the selected text, also using it as a prompt
 			openai.completions({
-				prompt = selected_text,
+				messages = { {
+					role = "user",
+					content = "Rewrite this code:" .. selected_text,
+				} },
 			}, on_data, on_complete)
 		else
 			-- Edit selected text
 			openai.completions({
-				prompt = prompt .. ": " .. selected_text,
+				messages = { {
+					role = "user",
+					content = prompt .. "\n\n" .. selected_text,
+				} },
 			}, on_data, on_complete)
 		end
 	else
@@ -103,13 +119,20 @@ function M.ai(args)
 			)
 
 			openai.completions({
-				prompt = prefix,
-				suffix = suffix,
+				messages = {
+					{
+						role = "user",
+						content = prefix .. "\nWrite code here that completes the snippet\n" .. suffix,
+					},
+				},
 			}, on_data, on_complete)
 		else
 			-- Insert some text generated using the given prompt
 			openai.completions({
-				prompt = prompt,
+				messages = { {
+					role = "user",
+					content = prompt,
+				} },
 			}, on_data, on_complete)
 		end
 	end

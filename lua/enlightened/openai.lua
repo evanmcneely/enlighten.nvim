@@ -109,7 +109,7 @@ end
 function M.completions(body, on_data, on_complete)
 	body = vim.tbl_extend("keep", body, {
 		model = config.completions_model,
-		max_tokens = 2048,
+		max_tokens = config.tokens,
 		temperature = config.temperature,
 		stream = true,
 	})
