@@ -11,6 +11,8 @@ local function get_var(name, default_value)
 	return value
 end
 
+M.indicator_style = get_var("ai_indicator_style", "sign")
+M.indicator_text = get_var("ai_indicator_text", "🤖")
 M.completions_model = get_var("ai_completions_model", "gpt-4o")
 M.temperature = get_var("ai_temperature", 0)
 M.context_before = get_var("ai_context_before", 20)
