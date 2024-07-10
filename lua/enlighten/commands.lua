@@ -1,8 +1,8 @@
 local M = {}
 
-local openai = require("enlightened/openai")
-local config = require("enlightened/config")
-local indicator = require("enlightened/indicator")
+local openai = require("enlighten/openai")
+local config = require("enlighten/config")
+local indicator = require("enlighten/indicator")
 
 local system_prompt = [[
       Your are a coding assistant helping an software developer edit code in there IDE.

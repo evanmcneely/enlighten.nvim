@@ -1,6 +1,6 @@
 local M = {}
 
-local config = require("enlightened/config")
+local config = require("enlighten/config")
 
 ---@param cmd string
 ---@param args string[]
