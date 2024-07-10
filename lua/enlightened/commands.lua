@@ -4,6 +4,12 @@ local openai = require("enlightened/openai")
 local config = require("enlightened/config")
 local indicator = require("enlightened/indicator")
 
+local system_prompt = [[
+      Your are a coding assistant helping an software developer edit code in there IDE.
+      All of you responses should consist of only the code you want to write. Do not include any
+      explanations or summarys.
+]]
+
 ---@param args { args: string, range: integer }
 function M.ai(args)
 	local prompt = args.args
@@ -76,18 +82,27 @@ function M.ai(args)
 		if prompt == "" then
 			-- Replace the selected text, also using it as a prompt
 			openai.completions({
-				messages = { {
-					role = "user",
-					content = "Rewrite this code:" .. selected_text,
-				} },
+				messages = {
+					{ role = "system", content = system_prompt },
+					{
+						role = "user",
+						content = "Rewrite this code for simplicity and clarity:" .. selected_text,
+					},
+				},
 			}, on_data, on_complete)
 		else
 			-- Edit selected text
 			openai.completions({
-				messages = { {
-					role = "user",
-					content = prompt .. "\n\n" .. selected_text,
-				} },
+				messages = {
+					{ role = "system", content = system_prompt },
+					{
+						role = "user",
+						content = "Rewrite this code following these instructions: "
+							.. prompt
+							.. "\n\n"
+							.. selected_text,
+					},
+				},
 			}, on_data, on_complete)
 		end
 	else
@@ -120,6 +135,7 @@ function M.ai(args)
 
 			openai.completions({
 				messages = {
+					{ role = "system", content = system_prompt },
 					{
 						role = "user",
 						content = prefix .. "\nWrite code here that completes the snippet\n" .. suffix,
@@ -129,10 +145,13 @@ function M.ai(args)
 		else
 			-- Insert some text generated using the given prompt
 			openai.completions({
-				messages = { {
-					role = "user",
-					content = prompt,
-				} },
+				messages = {
+					{ role = "system", content = system_prompt },
+					{
+						role = "user",
+						content = "Write the code for these instructions: " .. prompt,
+					},
+				},
 			}, on_data, on_complete)
 		end
 	end
