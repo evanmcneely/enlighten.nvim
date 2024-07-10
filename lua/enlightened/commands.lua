@@ -7,7 +7,7 @@ local indicator = require("enlightened/indicator")
 local system_prompt = [[
       Your are a coding assistant helping an software developer edit code in there IDE.
       All of you responses should consist of only the code you want to write. Do not include any
-      explanations or summarys.
+      explanations or summarys. Do not include code block markdown starting with ```.
 ]]
 
 ---@param args { args: string, range: integer }
