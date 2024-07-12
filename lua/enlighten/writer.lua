@@ -6,9 +6,10 @@ Writer = {}
 ---@field row_start number
 ---@field col_end number
 ---@field row_end number
----@field accumulated_text string
+---@field accumulated_text string -- stores all accumulated text
+---@field accumulated_line string -- stores text of the current line before it added to the buffer
+---@field focused_line number -- the current line in the buffer we are ready to write too
 ---@field ns_id number
----@field extmark_id number
 ---@field on_complete fun(self: Writer, err: string?): nil
 ---@field on_data fun(self: Writer, data: OpenAIStreamingResponse): nil
 
@@ -24,13 +25,6 @@ Writer = {}
 function Writer:new(buffer, range)
 	local ns_id = vim.api.nvim_create_namespace("Enlighten")
 
-	local extmark_opts = { hl_group = "AIHighlight" }
-	if range.row_end ~= range.row_start or range.col_end ~= range.col_start then
-		extmark_opts.end_row = range.row_end
-		extmark_opts.end_col = range.col_end
-	end
-	local extmark_id = vim.api.nvim_buf_set_extmark(buffer, ns_id, range.row_start, range.col_start, extmark_opts)
-
 	self.__index = self
 	return setmetatable({
 		buffer = buffer,
@@ -38,9 +32,10 @@ function Writer:new(buffer, range)
 		row_start = range.row_start,
 		col_end = range.col_end,
 		row_end = range.row_end,
-		accumulated_text = "", -- stores text for the current line before it is added to the buffer
+		accumulated_text = "",
+		accumulated_line = "",
+		focused_line = range.row_start,
 		ns_id = ns_id,
-		extmark_id = extmark_id,
 	}, self)
 end
 
@@ -48,68 +43,71 @@ end
 function Writer:on_data(data)
 	local completion = data.choices[1]
 	if completion.finish_reason == vim.NIL then
-		print(vim.inspect(completion.delta.content))
-		self.accumulated_text = self.accumulated_text .. completion.delta.content
-		self:set_preview_text()
+		local text = completion.delta.content
+		self.accumulated_line = self.accumulated_line .. text
+		self.accumulated_text = self.accumulated_text .. text
+		local lines = self.split_by_new_line(self.accumulated_line)
+		-- Lines having a length greater than 1 indicates that there are
+		-- complete lines ready to be set in the buffer. We set all of them
+		-- before resetting our current accumulated_line to the last line
+		-- in the table.
+		if #lines > 1 then
+			for i, line in ipairs(lines) do
+				if i ~= #lines then
+					self:set_line(line)
+					self.focused_line = self.focused_line + 1
+				end
+			end
+			self.accumulated_line = lines[#lines]
+		end
 	end
+end
+
+--
+---@param input string
+---@return string[]
+function Writer.split_by_new_line(input)
+	local result = {}
+	-- Matches any text before a new line character \n.
+	-- TODO: what happens to input with double \n\n characters?
+	for line in input:gmatch("([^\n]*)\n?") do
+		-- The last element in the table is always an empty string. This
+		-- is ignored for new but I'm not sure what will happen if the model returns two
+		-- new line characters back-to-back \n\n. Will there be an empty line that
+		-- this improperly ignores?
+		if line ~= "" then
+			table.insert(result, line)
+		end
+	end
+	return result
 end
 
 ---@param err string
 function Writer:on_complete(err)
 	if err then
 		vim.api.nvim_err_writeln("enlighten.nvim :" .. err)
-	elseif #self.accumulated_text > 0 then
-		self:set_buffer_text()
 	end
-	self:finish()
 end
 
-function Writer:set_preview_text()
-	local extmark = vim.api.nvim_buf_get_extmark_by_id(self.buffer, self.ns_id, self.extmark_id, { details = true })
-	local start_row = extmark[1]
-	local start_col = extmark[2]
-
-	if extmark[3].end_row or extmark[3].end_col then
-		return -- We don't support preview text over a range
+---@param line string
+function Writer:set_line(line)
+	-- We want to replace existing text if the command is run on a selection
+	-- and insert new text otherwise. The behaviour of nvim_buf_set_lines is
+	-- controlled in this case by incrementing the focused line number by one
+	-- to trigger replacement instead of insertion.
+	local end_line
+	if self:is_selection() then
+		end_line = self.focused_line + 1
+	else
+		end_line = self.focused_line
 	end
-
-	local extmark_opts = { hl_group = "AIHighlight" }
-	extmark_opts.id = self.extmark_id
-	extmark_opts.virt_text_pos = "overlay"
-
-	local lines = vim.split(self.accumulated_text, "\n")
-	extmark_opts.virt_text = { { lines[1], "Comment" } }
-
-	if #lines > 1 then
-		extmark_opts.virt_lines = vim.tbl_map(function(line)
-			return { { line, "Comment" } }
-		end, vim.list_slice(lines, 2))
-	end
-
-	vim.api.nvim_buf_set_extmark(self.buffer, self.ns_id, start_row, start_col, extmark_opts)
+	vim.api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
 end
 
-function Writer:set_buffer_text()
-	local extmark = vim.api.nvim_buf_get_extmark_by_id(self.buffer, self.ns_id, self.extmark_id, { details = true })
-	local start_row = extmark[1]
-	local start_col = extmark[2]
-
-	local end_row = extmark[3].end_row
-	if not end_row then
-		end_row = start_row
-	end
-
-	local end_col = extmark[3].end_col
-	if not end_col then
-		end_col = start_col
-	end
-
-	local lines = vim.split(self.accumulated_text, "\n")
-	vim.api.nvim_buf_set_text(self.buffer, start_row, start_col, end_row, end_col, lines)
-end
-
-function Writer:finish()
-	vim.api.nvim_buf_del_extmark(self.buffer, self.ns_id, self.extmark_id)
+---@return boolean
+function Writer:is_selection()
+	-- Only consider selections over multiple lines
+	return self.row_start ~= self.row_end
 end
 
 return Writer
