@@ -36,6 +36,7 @@ local function get_selection_range(buffer)
 	return { col_start = col_start, col_end = col_end, row_start = row_start, row_end = row_end }
 end
 
+---@param buffer number
 ---@return Position
 local function get_cursor_position(buffer)
 	-- Get column and row from for the cursor position.
@@ -89,6 +90,32 @@ function M.ai(args)
 	local writer = Writer:new(buffer, range)
 	local file = get_file_extension()
 
+	-- Insert some text generated using surrounding context
+	local prefix = table.concat(
+		vim.api.nvim_buf_get_text(
+			buffer,
+			math.max(0, range.row_start - config.context_before),
+			0,
+			range.row_start,
+			range.col_start,
+			{}
+		),
+		"\n"
+	)
+
+	local line_count = vim.api.nvim_buf_line_count(buffer)
+	local suffix = table.concat(
+		vim.api.nvim_buf_get_text(
+			buffer,
+			range.row_end,
+			range.col_end,
+			math.min(range.row_end + config.context_after, line_count - 1),
+			99999999,
+			{}
+		),
+		"\n"
+	)
+
 	if selection then
 		local selected_text = table.concat(
 			vim.api.nvim_buf_get_text(buffer, range.row_start, range.col_start, range.row_end, range.col_end, {}),
@@ -117,32 +144,6 @@ function M.ai(args)
 		end
 	else
 		if prompt == "" then
-			-- Insert some text generated using surrounding context
-			local prefix = table.concat(
-				vim.api.nvim_buf_get_text(
-					buffer,
-					math.max(0, range.row_start - config.context_before),
-					0,
-					range.row_start,
-					range.col_start,
-					{}
-				),
-				"\n"
-			)
-
-			local line_count = vim.api.nvim_buf_line_count(buffer)
-			local suffix = table.concat(
-				vim.api.nvim_buf_get_text(
-					buffer,
-					range.row_end,
-					range.col_end,
-					math.min(range.row_end + config.context_after, line_count - 1),
-					99999999,
-					{}
-				),
-				"\n"
-			)
-
 			openai.completions(
 				prefix
 					.. "\nWrite code here that completes the snippet."
@@ -155,7 +156,14 @@ function M.ai(args)
 		else
 			-- Insert some text generated using the given prompt
 			openai.completions(
-				"File extension of the buffer is " .. file .. ". Write the code for these instructions: " .. prompt,
+				"File extension of the buffer is "
+					.. file
+					.. ". Write the code for these instructions: "
+					.. prompt
+					.. "\n\nHere is the code before the cursor\n"
+					.. prefix
+					.. "\n\n...and here is the code after the cursor\n"
+					.. suffix,
 				writer
 			)
 		end
