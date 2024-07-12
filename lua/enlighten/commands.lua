@@ -72,6 +72,12 @@ local function get_cursor_position(buffer)
 	return { col_start = col_start, col_end = col_end, row_start = row_start, row_end = row_end }
 end
 
+---@return string
+local function get_file_extension()
+	local filename = vim.api.nvim_buf_get_name(0)
+	return filename:match("^.+(%..+)$")
+end
+
 ---@param args { args: string, range: integer }
 function M.ai(args)
 	local prompt = args.args
@@ -87,6 +93,7 @@ function M.ai(args)
 	end
 
 	local writer = Writer:new(buffer, range.row_start, range.col_start, range.row_end, range.col_end)
+	local file = get_file_extension()
 
 	if selection then
 		local selected_text = table.concat(
@@ -95,11 +102,22 @@ function M.ai(args)
 		)
 		if prompt == "" then
 			-- Replace the selected text, also using it as a prompt
-			openai.completions("Rewrite this code for simplicity and clarity:" .. selected_text, writer)
+			openai.completions(
+				"File extension of the buffer is "
+					.. file
+					.. ". Rewrite this code for simplicity and clarity:"
+					.. selected_text,
+				writer
+			)
 		else
 			-- Edit selected text
 			openai.completions(
-				"Rewrite this code following these instructions: " .. prompt .. "\n\n" .. selected_text,
+				"File extension is of the buffer is "
+					.. file
+					.. ". Rewrite this code following these instructions: "
+					.. prompt
+					.. "\n\n"
+					.. selected_text,
 				writer
 			)
 		end
@@ -131,10 +149,21 @@ function M.ai(args)
 				"\n"
 			)
 
-			openai.completions(prefix .. "\nWrite code here that completes the snippet\n" .. suffix, writer)
+			openai.completions(
+				prefix
+					.. "\nWrite code here that completes the snippet."
+					.. "File extension of the buffer is "
+					.. file
+					.. "\n"
+					.. suffix,
+				writer
+			)
 		else
 			-- Insert some text generated using the given prompt
-			openai.completions("Write the code for these instructions: " .. prompt, writer)
+			openai.completions(
+				"File extension of the buffer is " .. file .. ". Write the code for these instructions: " .. prompt,
+				writer
+			)
 		end
 	end
 end
