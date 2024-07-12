@@ -1,6 +1,6 @@
 local M = {}
 
-local openai = require("enlighten/openai")
+local ai = require("enlighten/ai")
 local config = require("enlighten/config")
 local Writer = require("enlighten/writer")
 local utils = require("enlighten/utils")
@@ -55,7 +55,7 @@ function M.ai(args)
 		)
 		if prompt == "" then
 			-- Replace the selected text, also using it as a prompt
-			openai.completions(
+			ai.complete(
 				"File extension of the buffer is "
 					.. file
 					.. ". Rewrite this code for simplicity and clarity:"
@@ -64,7 +64,7 @@ function M.ai(args)
 			)
 		else
 			-- Edit selected text
-			openai.completions(
+			ai.complete(
 				"File extension is of the buffer is "
 					.. file
 					.. ". Rewrite this code following these instructions: "
@@ -76,7 +76,7 @@ function M.ai(args)
 		end
 	else
 		if prompt == "" then
-			openai.completions(
+			ai.complete(
 				prefix
 					.. "\nWrite code here that completes the snippet."
 					.. "File extension of the buffer is "
@@ -87,7 +87,7 @@ function M.ai(args)
 			)
 		else
 			-- Insert some text generated using the given prompt
-			openai.completions(
+			ai.complete(
 				"File extension of the buffer is "
 					.. file
 					.. ". Write the code for these instructions: "

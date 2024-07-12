@@ -144,7 +144,7 @@ local function request(endpoint, body, writer)
 end
 
 ---@param prompt string
-function M.completions(prompt, writer)
+function M.complete(prompt, writer)
 	local body = {
 		model = config.completions_model,
 		max_tokens = config.tokens,
