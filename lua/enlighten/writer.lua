@@ -12,29 +12,32 @@ Writer = {}
 ---@field on_complete fun(self: Writer, err: string?): nil
 ---@field on_data fun(self: Writer, data: OpenAIStreamingResponse): nil
 
+---@class Position
+---@field col_start number
+---@field row_start number
+---@field col_end number
+---@field row_end number
+
 ---@param buffer number
----@param start_row number
----@param start_col number
----@param end_row number
----@param end_col number
+---@param range Position
 ---@return Writer
-function Writer:new(buffer, start_row, start_col, end_row, end_col)
+function Writer:new(buffer, range)
 	local ns_id = vim.api.nvim_create_namespace("Enlighten")
 
 	local extmark_opts = { hl_group = "AIHighlight" }
-	if end_row ~= start_row or end_col ~= start_col then
-		extmark_opts.end_row = end_row
-		extmark_opts.end_col = end_col
+	if range.row_end ~= range.row_start or range.col_end ~= range.col_start then
+		extmark_opts.end_row = range.row_end
+		extmark_opts.end_col = range.col_end
 	end
-	local extmark_id = vim.api.nvim_buf_set_extmark(buffer, ns_id, start_row, start_col, extmark_opts)
+	local extmark_id = vim.api.nvim_buf_set_extmark(buffer, ns_id, range.row_start, range.col_start, extmark_opts)
 
 	self.__index = self
 	return setmetatable({
 		buffer = buffer,
-		col_start = start_col,
-		row_start = start_row,
-		col_end = end_col,
-		row_end = end_row,
+		col_start = range.col_start,
+		row_start = range.row_start,
+		col_end = range.col_end,
+		row_end = range.row_end,
 		accumulated_text = "", -- stores text for the current line before it is added to the buffer
 		ns_id = ns_id,
 		extmark_id = extmark_id,

@@ -4,12 +4,6 @@ local openai = require("enlighten/openai")
 local config = require("enlighten/config")
 local Writer = require("enlighten/writer")
 
----@class Position
----@field col_start number
----@field row_start number
----@field col_end number
----@field row_end number
-
 ---@param buffer number
 ---@return Position
 local function get_selection_range(buffer)
@@ -92,7 +86,7 @@ function M.ai(args)
 		range = get_cursor_position(buffer)
 	end
 
-	local writer = Writer:new(buffer, range.row_start, range.col_start, range.row_end, range.col_end)
+	local writer = Writer:new(buffer, range)
 	local file = get_file_extension()
 
 	if selection then
