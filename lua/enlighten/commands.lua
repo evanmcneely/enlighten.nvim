@@ -2,13 +2,7 @@ local M = {}
 
 local openai = require("enlighten/openai")
 local config = require("enlighten/config")
-local indicator = require("enlighten/indicator")
-
-local system_prompt = [[
-      Your are a coding assistant helping an software developer edit code in there IDE.
-      All of you responses should consist of only the code you want to write. Do not include any
-      explanations or summarys. Do not include code block markdown starting with ```.
-]]
+local Writer = require("enlighten/writer")
 
 ---@class Position
 ---@field col_start number
@@ -92,27 +86,7 @@ function M.ai(args)
 		range = get_cursor_position(buffer)
 	end
 
-	local indicator_obj = indicator.create(buffer, range.row_start, range.col_start, range.row_end, range.col_end)
-	local accumulated_text = ""
-
-	local function on_data(data)
-		local completion = data.choices[1]
-		if completion.finish_reason == vim.NIL then
-			-- Ignore code block start and end
-			print(vim.inspect(completion.delta.content))
-			accumulated_text = accumulated_text .. completion.delta.content
-			indicator.set_preview_text(indicator_obj, accumulated_text)
-		end
-	end
-
-	local function on_complete(err)
-		if err then
-			vim.api.nvim_err_writeln("enlighten.nvim :" .. err)
-		elseif #accumulated_text > 0 then
-			indicator.set_buffer_text(indicator_obj, accumulated_text)
-		end
-		indicator.finish(indicator_obj)
-	end
+	local writer = Writer:new(buffer, range.row_start, range.col_start, range.row_end, range.col_end)
 
 	if selection then
 		local selected_text = table.concat(
@@ -121,29 +95,13 @@ function M.ai(args)
 		)
 		if prompt == "" then
 			-- Replace the selected text, also using it as a prompt
-			openai.completions({
-				messages = {
-					{ role = "system", content = system_prompt },
-					{
-						role = "user",
-						content = "Rewrite this code for simplicity and clarity:" .. selected_text,
-					},
-				},
-			}, on_data, on_complete)
+			openai.completions("Rewrite this code for simplicity and clarity:" .. selected_text, writer)
 		else
 			-- Edit selected text
-			openai.completions({
-				messages = {
-					{ role = "system", content = system_prompt },
-					{
-						role = "user",
-						content = "Rewrite this code following these instructions: "
-							.. prompt
-							.. "\n\n"
-							.. selected_text,
-					},
-				},
-			}, on_data, on_complete)
+			openai.completions(
+				"Rewrite this code following these instructions: " .. prompt .. "\n\n" .. selected_text,
+				writer
+			)
 		end
 	else
 		if prompt == "" then
@@ -173,26 +131,10 @@ function M.ai(args)
 				"\n"
 			)
 
-			openai.completions({
-				messages = {
-					{ role = "system", content = system_prompt },
-					{
-						role = "user",
-						content = prefix .. "\nWrite code here that completes the snippet\n" .. suffix,
-					},
-				},
-			}, on_data, on_complete)
+			openai.completions(prefix .. "\nWrite code here that completes the snippet\n" .. suffix, writer)
 		else
 			-- Insert some text generated using the given prompt
-			openai.completions({
-				messages = {
-					{ role = "system", content = system_prompt },
-					{
-						role = "user",
-						content = "Write the code for these instructions: " .. prompt,
-					},
-				},
-			}, on_data, on_complete)
+			openai.completions("Write the code for these instructions: " .. prompt, writer)
 		end
 	end
 end

@@ -2,6 +2,39 @@ local M = {}
 
 local config = require("enlighten/config")
 
+---@class OpenAIStreamingResponse
+---@field id string
+---@field object string
+---@field created number
+---@field model string
+---@field system_fingerprint string
+---@field choices OpenAIStreamingChoice[]
+
+---@class OpenAIStreamingChoice
+---@field index number
+---@field delta OpenAIDelta
+---@field logprobs any
+---@field finish_reason any
+
+---@class OpenAIDelta
+---@field role string
+---@field content string
+
+---@class OpenAIError
+---@field error { message:string }
+
+---@class OpenAIRequest
+---@field model string
+---@field prompt string
+---@field max_tokens number
+---@field temperature number
+
+local system_prompt = [[
+      Your are a coding assistant helping an software developer edit code in there IDE.
+      All of you responses should consist of only the code you want to write. Do not include any
+      explanations or summarys. Do not include code block markdown starting with ```.
+]]
+
 ---@param cmd string
 ---@param args string[]
 ---@param on_stdout_chunk fun(chunk: string): nil
@@ -51,10 +84,13 @@ local function exec(cmd, args, on_stdout_chunk, on_complete)
 	end
 end
 
-local function request(endpoint, body, on_data, on_complete)
+---@param endpoint string
+---@param body OpenAIRequest
+---@param writer Writer
+local function request(endpoint, body, writer)
 	local api_key = os.getenv("OPENAI_API_KEY")
 	if not api_key then
-		on_complete("$OPENAI_API_KEY environment variable must be set")
+		writer:on_complete("$OPENAI_API_KEY environment variable must be set")
 		return
 	end
 
@@ -89,31 +125,40 @@ local function request(endpoint, body, on_data, on_complete)
 			-- Remove the "data: " prefix
 			json_str = json_str:gsub("data: ", "")
 
+			---@type OpenAIStreamingResponse | OpenAIError
 			local json = vim.json.decode(json_str)
 			if json.error then
-				on_complete(json.error.message)
+				writer:on_complete(json.error.message)
 			else
-				on_data(json)
+				---@diagnostic disable-next-line: param-type-mismatch
+				writer:on_data(json)
 			end
 
 			json_start, json_end = buffered_chunks:find("}\n")
 		end
 	end
 
-	exec("curl", curl_args, on_stdout_chunk, on_complete)
+	exec("curl", curl_args, on_stdout_chunk, function(err)
+		writer:on_complete(err)
+	end)
 end
 
----@param body table
----@param on_data fun(data: unknown): nil
----@param on_complete fun(err: string?): nil
-function M.completions(body, on_data, on_complete)
-	body = vim.tbl_extend("keep", body, {
+---@param prompt string
+function M.completions(prompt, writer)
+	local body = {
 		model = config.completions_model,
 		max_tokens = config.tokens,
 		temperature = config.temperature,
 		stream = true,
-	})
-	request("chat/completions", body, on_data, on_complete)
+		messages = {
+			{ role = "system", content = system_prompt },
+			{
+				role = "user",
+				content = "Write the code for these instructions: " .. prompt,
+			},
+		},
+	}
+	request("chat/completions", body, writer)
 end
 
 return M
