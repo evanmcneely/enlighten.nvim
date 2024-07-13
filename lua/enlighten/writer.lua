@@ -53,7 +53,7 @@ function Writer:on_data(data)
 		-- in the table.
 		if #lines > 1 then
 			for i, line in ipairs(lines) do
-				if i ~= #lines then
+				if i ~= #lines then -- skip last line, it is not yet complete
 					self:set_line(line)
 					self.focused_line = self.focused_line + 1
 				end
@@ -67,21 +67,15 @@ end
 ---@return string[]
 function Writer.split_by_new_line(input)
 	local result = {}
-	-- Matches any text before a new line character \n.
-	-- TODO: what happens to input with double \n\n characters?
+	-- Matches zero or more characters that are not newline characters optionally
+	-- followed by a newline character.
 	for line in input:gmatch("([^\n]*)\n?") do
-		-- The last element in the table is always an empty string. This
-		-- is ignored for new but I'm not sure what will happen if the model returns two
-		-- new line characters back-to-back \n\n. Will there be an empty line that
-		-- this improperly ignores?
-		if line ~= "" then
-			table.insert(result, line)
-		end
+		table.insert(result, line)
 	end
+	table.remove(result) -- Remove the last element, it's always an empty string
 	return result
 end
 
----@param err string
 function Writer:on_complete(err)
 	if err then
 		vim.api.nvim_err_writeln("enlighten.nvim :" .. err)
