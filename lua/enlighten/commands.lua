@@ -58,7 +58,7 @@ function M.ai(args)
 			ai.complete(
 				"File extension of the buffer is "
 					.. file
-					.. ". Rewrite this code for simplicity and clarity:"
+					.. ". Rewrite this code for simplicity and clarity:\n\n"
 					.. selected_text,
 				writer
 			)
@@ -76,12 +76,13 @@ function M.ai(args)
 		end
 	else
 		if prompt == "" then
+			-- Insert some text to complete surrounding text
 			ai.complete(
-				prefix
-					.. "\nWrite code here that completes the snippet."
-					.. "File extension of the buffer is "
+				"File extension of the buffer is "
 					.. file
-					.. "\n"
+					.. ". Write the code that completes the snippet below at the line -- insert here --. Don't repeat the code before or after this line.\n\n"
+					.. prefix
+					.. "\n-- insert here --\n"
 					.. suffix,
 				writer
 			)
