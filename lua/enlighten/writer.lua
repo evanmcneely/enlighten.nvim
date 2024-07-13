@@ -63,7 +63,6 @@ function Writer:on_data(data)
 	end
 end
 
---
 ---@param input string
 ---@return string[]
 function Writer.split_by_new_line(input)
