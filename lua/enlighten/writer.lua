@@ -87,7 +87,9 @@ function Writer:on_complete(err)
 	if err then
 		vim.api.nvim_err_writeln("enlighten.nvim :" .. err)
 	else
+		-- Set the remaining line before finishing
 		self:set_line(self.accumulated_line)
+		self.accumulated_line = ""
 		self:finish()
 	end
 end
@@ -112,6 +114,8 @@ function Writer:finish()
 		return
 	end
 
+	-- For selections, if we set fewer lines were in the original selection
+	-- we need to delete the remaining lines so only the set ones remain.
 	local selection_range = self.row_end - self.row_start
 	local set_lines = self.focused_line - self.row_start
 	if set_lines < selection_range then
