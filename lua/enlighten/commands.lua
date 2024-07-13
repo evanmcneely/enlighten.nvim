@@ -54,52 +54,24 @@ function M.ai(args)
 			"\n"
 		)
 		if prompt == "" then
-			-- Replace the selected text, also using it as a prompt
-			ai.complete(
-				"File extension of the buffer is "
-					.. file
-					.. ". Rewrite this code for simplicity and clarity:\n\n"
-					.. selected_text,
-				writer
-			)
+			prompt = "Rewrite this code for simplicity and clarity:\n\n"
 		else
-			-- Edit selected text
-			ai.complete(
-				"File extension is of the buffer is "
-					.. file
-					.. ". Rewrite this code following these instructions: "
-					.. prompt
-					.. "\n\n"
-					.. selected_text,
-				writer
-			)
+			prompt = "Rewrite this code following these instructions: " .. prompt .. "\n\n"
 		end
+		ai.complete("File extension of the buffer is " .. file .. ". " .. prompt .. selected_text, writer)
 	else
 		if prompt == "" then
-			-- Insert some text to complete surrounding text
-			ai.complete(
-				"File extension of the buffer is "
-					.. file
-					.. ". Write the code that completes the snippet below at the line -- insert here --. Don't repeat the code before or after this line.\n\n"
-					.. prefix
-					.. "\n-- insert here --\n"
-					.. suffix,
-				writer
-			)
+			prompt =
+				"Write the code that completes the snippet below at the line -- insert here --. Don't repeat the code before or after this line.\n\n"
 		else
-			-- Insert some text generated using the given prompt
-			ai.complete(
-				"File extension of the buffer is "
-					.. file
-					.. ". Write the code for these instructions: "
-					.. prompt
-					.. "\n\nHere is the code before the cursor\n"
-					.. prefix
-					.. "\n\n...and here is the code after the cursor\n"
-					.. suffix,
-				writer
-			)
+			prompt = "Write the code for these instructions: "
+				.. prompt
+				.. ". Your code snippet will be inserted into the buffer at the line -- insert here --. Don't repeat the code before or after this line.\n\n"
 		end
+		ai.complete(
+			"File extension of the buffer is " .. file .. ". " .. prompt .. prefix .. "\n-- insert here --\n" .. suffix,
+			writer
+		)
 	end
 end
 
