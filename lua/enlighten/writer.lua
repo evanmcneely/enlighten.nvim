@@ -86,6 +86,9 @@ end
 function Writer:on_complete(err)
 	if err then
 		vim.api.nvim_err_writeln("enlighten.nvim :" .. err)
+	else
+		self:set_line(self.accumulated_line)
+		self:finish()
 	end
 end
 
@@ -102,6 +105,18 @@ function Writer:set_line(line)
 		end_line = self.focused_line
 	end
 	vim.api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
+end
+
+function Writer:finish()
+	if not self:is_selection() then
+		return
+	end
+
+	local selection_range = self.row_end - self.row_start
+	local set_lines = self.focused_line - self.row_start
+	if set_lines < selection_range then
+		vim.api.nvim_buf_set_lines(self.buffer, self.focused_line + 1, self.row_end + 1, false, {})
+	end
 end
 
 ---@return boolean
