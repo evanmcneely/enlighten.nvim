@@ -13,14 +13,14 @@ Writer = {}
 ---@field on_complete fun(self: Writer, err: string?): nil
 ---@field on_data fun(self: Writer, data: OpenAIStreamingResponse): nil
 
----@class Position
+---@class Range
 ---@field col_start number
 ---@field row_start number
 ---@field col_end number
 ---@field row_end number
 
 ---@param buffer number
----@param range Position
+---@param range Range
 ---@return Writer
 function Writer:new(buffer, range)
 	local ns_id = vim.api.nvim_create_namespace("Enlighten")
@@ -83,16 +83,20 @@ function Writer:on_complete(err)
 	end
 	self:set_line(self.accumulated_line)
 	self.accumulated_line = ""
+	print("completion:\n", self.accumulated_text)
 	self:finish()
 end
 
 ---@param line string
 function Writer:set_line(line)
-	-- We want to replace existing text if the command is run on a selection
-	-- and insert new text otherwise. The behaviour of nvim_buf_set_lines is
-	-- controlled in this case by incrementing the focused line number by one
-	-- to trigger replacement instead of insertion.
-	local end_line = self.focused_line + (self:is_selection() and 1 or 0)
+	-- We want to replace existing text at the focused line if the command is run on
+	-- a selection and fewer lines have been written than than the selection. The
+	-- behaviour of nvim_buf_set_lines is controlled in this case by incrementing the
+	-- focused line number by one to trigger replacement instead of insertion.
+	local set_lines = self.focused_line - self.row_start
+	local selected_lines = self.row_end - self.row_start
+	local replace_focused_line = self:is_selection() and set_lines <= selected_lines
+	local end_line = self.focused_line + (replace_focused_line and 1 or 0)
 	vim.api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
 end
 
@@ -101,8 +105,8 @@ function Writer:finish()
 		-- If we set fewer lines were in the original selection
 		-- we need to delete the remaining lines so only the set ones remain.
 		local set_lines = self.focused_line - self.row_start
-		local selection = self.row_end - self.row_start
-		if set_lines < selection then
+		local selected_lines = self.row_end - self.row_start
+		if set_lines < selected_lines then
 			vim.api.nvim_buf_set_lines(self.buffer, self.focused_line + 1, self.row_end + 1, false, {})
 		end
 	end
