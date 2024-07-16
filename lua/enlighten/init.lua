@@ -1,6 +1,6 @@
-local Log = require("enlighten.logger")
-local Ui = require("enlighten.ui")
-local Config = require("enlighten.config")
+local Log = require("enlighten/logger")
+local Ui = require("enlighten/ui")
+local Config = require("enlighten/config")
 
 ---@class Enlighten
 ---@field config EnlightenConfig

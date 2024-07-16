@@ -1,14 +1,14 @@
 local M = {}
 
 ---@return boolean
-local function is_visual_mode()
+function M.is_visual_mode()
 	local mode = vim.api.nvim_get_mode()
 	return string.lower(mode.mode) == "v"
 end
 
 ---@return Range
 function M.get_range()
-	if is_visual_mode() then
+	if M.is_visual_mode() then
 		return M.get_selection_range()
 	end
 	return M.get_cursor_position()

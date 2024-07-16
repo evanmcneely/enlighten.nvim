@@ -1,3 +1,5 @@
+local Logger = require("enlighten/logger")
+
 Writer = {}
 
 ---@class Writer
@@ -24,6 +26,7 @@ Writer = {}
 ---@return Writer
 function Writer:new(buffer, range)
 	local ns_id = vim.api.nvim_create_namespace("Enlighten")
+	Logger:log("writer:new", { buffer = buffer, range = range, ns_id = ns_id })
 
 	self.__index = self
 	return setmetatable({
@@ -44,6 +47,7 @@ function Writer:on_data(data)
 	local completion = data.choices[1]
 	if completion.finish_reason == vim.NIL then
 		local text = completion.delta.content
+		Logger:log("writer:on_data - delta.content", text)
 		self.accumulated_line = self.accumulated_line .. text
 		self.accumulated_text = self.accumulated_text .. text
 		local lines = self.split_by_new_line(self.accumulated_line)
@@ -78,12 +82,13 @@ end
 
 function Writer:on_complete(err)
 	if err then
-		vim.api.nvim_err_writeln("enlighten.nvim :" .. err)
+		Logger:log("writer:on_complete - error", err)
+		vim.api.nvim_err_writeln("enlighten :" .. err)
 		return
 	end
 	self:set_line(self.accumulated_line)
 	self.accumulated_line = ""
-	print("completion:\n", self.accumulated_text)
+	Logger:log("writer:on_complete - completion", self.accumulated_text)
 	self:finish()
 end
 
@@ -97,6 +102,10 @@ function Writer:set_line(line)
 	local selected_lines = self.row_end - self.row_start
 	local replace_focused_line = self:is_selection() and set_lines <= selected_lines
 	local end_line = self.focused_line + (replace_focused_line and 1 or 0)
+	Logger:log(
+		"writer:set_line - setting line",
+		{ line = line, num = self.focused_line, replacing = replace_focused_line }
+	)
 	vim.api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
 end
 
@@ -107,6 +116,7 @@ function Writer:finish()
 		local set_lines = self.focused_line - self.row_start
 		local selected_lines = self.row_end - self.row_start
 		if set_lines < selected_lines then
+			Logger:log("writer:finish - removing lines", { first = self.focused_line + 1, last = self.row_end + 1 })
 			vim.api.nvim_buf_set_lines(self.buffer, self.focused_line + 1, self.row_end + 1, false, {})
 		end
 	end

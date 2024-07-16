@@ -1,3 +1,5 @@
+local Logger = require("enlighten/logger")
+
 local M = {}
 
 local config = require("enlighten/config")
@@ -90,6 +92,7 @@ end
 local function request(endpoint, body, writer)
 	local api_key = os.getenv("OPENAI_API_KEY")
 	if not api_key then
+		Logger:log("ai:request - no api key")
 		writer:on_complete("$OPENAI_API_KEY environment variable must be set")
 		return
 	end
@@ -154,10 +157,11 @@ function M.complete(prompt, writer)
 			{ role = "system", content = system_prompt },
 			{
 				role = "user",
-				content = "Write the code for these instructions: " .. prompt,
+				content = prompt,
 			},
 		},
 	}
+	Logger:log("ai:complete - request", { body = body })
 	request("chat/completions", body, writer)
 end
 

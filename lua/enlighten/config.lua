@@ -1,3 +1,5 @@
+local Logger = require("enlighten/logger")
+
 local M = {}
 
 ---@class EnlightenAiConfig
@@ -55,6 +57,7 @@ function M.merge_config(partial_config, latest_config)
 			config[k] = vim.tbl_extend("force", config[k] or {}, v)
 		end
 	end
+	Logger:log("config.merge_config - config", config)
 	return config
 end
 
