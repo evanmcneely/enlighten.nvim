@@ -1,10 +1,12 @@
 local M = {}
 
+---@return boolean
 local function is_visual_mode()
 	local mode = vim.api.nvim_get_mode()
 	return string.lower(mode.mode) == "v"
 end
 
+---@return Range
 function M.get_range()
 	if is_visual_mode() then
 		return M.get_selection_range()
@@ -56,6 +58,32 @@ end
 function M.get_file_extension(buffer)
 	local filename = vim.api.nvim_buf_get_name(buffer)
 	return filename:match("^.+(%..+)$")
+end
+
+---@param str string
+function M.trim(str)
+	return str:gsub("^%s+", ""):gsub("%s+$", "")
+end
+function M.remove_duplicate_whitespace(str)
+	return str:gsub("%s+", " ")
+end
+
+---@param str string
+---@param sep string
+function M.split(str, sep)
+	if sep == nil then
+		sep = "%s"
+	end
+	local t = {}
+	for s in string.gmatch(str, "([^" .. sep .. "]+)") do
+		table.insert(t, s)
+	end
+	return t
+end
+
+---@param str string
+function M.is_white_space(str)
+	return str:gsub("%s", "") == ""
 end
 
 return M
