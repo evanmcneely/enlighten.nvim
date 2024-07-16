@@ -60,6 +60,7 @@ function EnlightenUI:_create_window(range)
 	vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
 	vim.api.nvim_buf_set_name(buf, "enlighten-prompt")
 	vim.api.nvim_buf_set_option(buf, "filetype", "enlighten")
+	vim.api.nvim_buf_set_option(buf, "wrap", true)
 
 	Logger:log("ui:_create_window - window and buffer", { win = win, buf = buf })
 
