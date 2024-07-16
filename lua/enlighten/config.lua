@@ -61,6 +61,8 @@ function M.merge_config(partial_config, latest_config)
 	end
 
 	Logger:log("config.merge_config - config", config)
+	M.config = config
+
 	return config
 end
 

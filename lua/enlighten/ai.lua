@@ -1,5 +1,5 @@
 local Logger = require("enlighten/logger")
-local config = require("enlighten/config")
+local config = require("enlighten/config").config
 
 local M = {}
 
@@ -101,7 +101,7 @@ local function request(endpoint, body, writer)
 		"--show-error",
 		"--no-buffer",
 		"--max-time",
-		config.timeout,
+		config.ai.timeout,
 		"-L",
 		"https://api.openai.com/v1/" .. endpoint,
 		"-H",
@@ -148,9 +148,9 @@ end
 ---@param prompt string
 function M.complete(prompt, writer)
 	local body = {
-		model = config.completions_model,
-		max_tokens = config.tokens,
-		temperature = config.temperature,
+		model = config.ai.model,
+		max_tokens = config.ai.tokens,
+		temperature = config.ai.temperature,
 		stream = true,
 		messages = {
 			{ role = "system", content = system_prompt },
