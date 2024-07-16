@@ -42,6 +42,7 @@ function M.get_default_config()
 		},
 	}
 end
+
 M.config = M.get_default_config()
 
 ---@param partial_config EnlightenPartialConfig?
@@ -50,6 +51,7 @@ M.config = M.get_default_config()
 function M.merge_config(partial_config, latest_config)
 	partial_config = partial_config or {}
 	local config = latest_config or M.get_default_config()
+
 	for k, v in pairs(partial_config) do
 		if k == "ai" then
 			config.ai = vim.tbl_extend("force", config.ai, v)
@@ -57,6 +59,7 @@ function M.merge_config(partial_config, latest_config)
 			config[k] = vim.tbl_extend("force", config[k] or {}, v)
 		end
 	end
+
 	Logger:log("config.merge_config - config", config)
 	return config
 end

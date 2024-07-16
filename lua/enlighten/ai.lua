@@ -1,8 +1,7 @@
 local Logger = require("enlighten/logger")
+local config = require("enlighten/config")
 
 local M = {}
-
-local config = require("enlighten/config")
 
 ---@class OpenAIStreamingResponse
 ---@field id string

@@ -45,11 +45,13 @@ end
 ---@param data OpenAIStreamingResponse
 function Writer:on_data(data)
 	local completion = data.choices[1]
+
 	if completion.finish_reason == vim.NIL then
 		local text = completion.delta.content
-		Logger:log("writer:on_data - delta.content", text)
 		self.accumulated_line = self.accumulated_line .. text
 		self.accumulated_text = self.accumulated_text .. text
+		Logger:log("writer:on_data - delta.content", text)
+
 		local lines = self.split_by_new_line(self.accumulated_line)
 
 		-- Lines having a length greater than 1 indicates that there are
@@ -71,11 +73,13 @@ end
 ---@return string[]
 function Writer.split_by_new_line(input)
 	local result = {}
+
 	-- Matches zero or more characters that are not newline characters optionally
 	-- followed by a newline character.
 	for line in input:gmatch("([^\n]*)\n?") do
 		table.insert(result, line)
 	end
+
 	table.remove(result) -- Remove the last element, it's always an empty string
 	return result
 end
@@ -86,10 +90,12 @@ function Writer:on_complete(err)
 		vim.api.nvim_err_writeln("enlighten :" .. err)
 		return
 	end
+
 	self:set_line(self.accumulated_line)
 	self.accumulated_line = ""
-	Logger:log("writer:on_complete - completion", self.accumulated_text)
 	self:finish()
+
+	Logger:log("writer:on_complete - ai completion", self.accumulated_text)
 end
 
 ---@param line string
@@ -102,10 +108,12 @@ function Writer:set_line(line)
 	local selected_lines = self.row_end - self.row_start
 	local replace_focused_line = self:is_selection() and set_lines <= selected_lines
 	local end_line = self.focused_line + (replace_focused_line and 1 or 0)
+
 	Logger:log(
 		"writer:set_line - setting line",
 		{ line = line, num = self.focused_line, replacing = replace_focused_line }
 	)
+
 	vim.api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
 end
 

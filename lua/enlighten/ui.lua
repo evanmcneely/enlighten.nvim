@@ -27,6 +27,7 @@ function EnlightenUI:close_prompt()
 		Logger:log("ui:close_prompt - closing window", { prompt_win = self.prompt_win })
 		vim.api.nvim_win_close(self.prompt_win, true)
 	end
+
 	if self.prompt_buf ~= nil and vim.api.nvim_buf_is_valid(self.prompt_buf) then
 		Logger:log("ui:close_prompt - deleting buffer", { prompt_buf = self.prompt_buf })
 		vim.api.nvim_buf_delete(self.prompt_buf, { force = true })
@@ -42,6 +43,7 @@ end
 ---@return { bufnr:number, win_id:number }
 function EnlightenUI:_create_window(range)
 	Logger:log("ui:_create_window - creating window", { range = range })
+
 	local buf = vim.api.nvim_create_buf(false, true)
 	local win = vim.api.nvim_open_win(buf, true, {
 		relative = "win",
@@ -53,6 +55,7 @@ function EnlightenUI:_create_window(range)
 		border = "single",
 		title = "Prompt",
 	})
+
 	vim.api.nvim_set_option_value("number", false, { win = win })
 	vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
 	vim.api.nvim_buf_set_name(buf, "enlighten-prompt")
@@ -151,6 +154,7 @@ function EnlightenUI:submit()
 		Logger:log("ui:submit - invalid state", { target_buf = self.target_buf, target_range = self.target_range })
 		return
 	end
+
 	local writer = Writer:new(self.target_buf, self.target_range)
 	local prompt = self:build_prompt()
 	ai.complete(prompt, writer)
