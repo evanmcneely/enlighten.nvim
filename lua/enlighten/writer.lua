@@ -50,7 +50,6 @@ function Writer:on_data(data)
 		local text = completion.delta.content
 		self.accumulated_line = self.accumulated_line .. text
 		self.accumulated_text = self.accumulated_text .. text
-		Logger:log("writer:on_data - delta.content", text)
 
 		local lines = self.split_by_new_line(self.accumulated_line)
 

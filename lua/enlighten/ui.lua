@@ -72,7 +72,12 @@ function EnlightenUI:_create_window(range)
 end
 
 function EnlightenUI:focus_prompt()
-	if self.prompt_win and self.prompt_buf then
+	if
+		self.prompt_win ~= nil
+		and self.prompt_buf ~= nil
+		and vim.api.nvim_buf_is_valid(self.prompt_buf)
+		and vim.api.nvim_win_is_valid(self.prompt_win)
+	then
 		Logger:log("ui:focus_prompt - focusing", { prompt_buf = self.prompt_buf, prompt_win = self.prompt_win })
 		vim.api.nvim_set_current_win(self.prompt_win)
 		vim.api.nvim_win_set_buf(self.prompt_win, self.prompt_buf)
