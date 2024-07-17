@@ -1,5 +1,6 @@
 local ai = require("enlighten/ai")
-local utils = require("enlighten/utils")
+local buffer = require("enlighten/buffer")
+local config = require("enlighten/config").config
 local Writer = require("enlighten/writer")
 local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
@@ -85,12 +86,12 @@ function EnlightenUI:toggle_prompt()
 		return
 	end
 
-	Logger:log("ui:toggle_prompt - creating window", { visual_mode = utils.is_visual_mode() })
-	local buffer = vim.api.nvim_get_current_buf()
-	local range = utils.get_range()
+	Logger:log("ui:toggle_prompt - creating window", { visual_mode = buffer.is_visual_mode() })
+	local buf = vim.api.nvim_get_current_buf()
+	local range = buffer.get_range()
 	local prompt_win = self:_create_window(range)
 
-	self.target_buf = buffer
+	self.target_buf = buf
 	self.target_range = range
 	self.prompt_win = prompt_win.win_id
 	self.prompt_buf = prompt_win.bufnr
@@ -134,20 +135,18 @@ function EnlightenUI:build_prompt()
 		return ""
 	end
 
-	local prompt = table.concat(vim.api.nvim_buf_get_lines(self.prompt_buf, 0, -1, false), "\n")
-	local text = table.concat(
-		vim.api.nvim_buf_get_lines(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1, false),
-		"\n"
-	)
-	local file_ext = utils.get_file_extension(self.target_buf)
+	local prompt = buffer.get_content(self.prompt_buf, 0, -1)
+	local snippet = buffer.get_content(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1)
+	local file_ext = buffer.get_file_extension(self.target_buf)
+
 	return "File extension of the buffer is "
 		.. file_ext
 		.. "\n"
-		.. "Rewrite this code following these instructions: "
+		.. "Rewrite the following code snippet following these instructions: "
 		.. prompt
 		.. "\n"
 		.. "\n"
-		.. text
+		.. snippet
 end
 
 function EnlightenUI:submit()
