@@ -1,10 +1,10 @@
-local Log = require("enlighten/logger")
-local Ui = require("enlighten/ui")
+local Logger = require("enlighten/logger")
+local Prompt = require("enlighten/prompt")
 local Config = require("enlighten/config")
 
 ---@class Enlighten
 ---@field config EnlightenConfig
----@field ui EnlightenUI
+---@field prompt EnlightenPrompt
 ---@field logger EnlightenLog
 local Enlighten = {}
 
@@ -16,8 +16,8 @@ function Enlighten:new()
 
 	local enlighten = setmetatable({
 		config = config,
-		logger = Log,
-		ui = Ui:new(),
+		logger = Logger,
+		prompt = nil,
 	}, self)
 
 	return enlighten
@@ -39,6 +39,47 @@ function Enlighten.setup(self, partial_config)
 	self.config = Config.merge_config(partial_config, self.config)
 
 	return self
+end
+
+--- Focus the prompt window if it exists and create a new one otherwise
+function Enlighten:open_prompt()
+	if self.prompt ~= nil then
+		self.logger:log("enlighten:open_prompt - focusing")
+		self:focus_prompt()
+		return
+	end
+
+	self.logger:log("enlighten:open_prompt - new")
+	self.prompt = Prompt:new()
+end
+
+--- Close the prompt window if it exists and open it otherwise
+function Enlighten:toggle_prompt()
+	if self.prompt ~= nil then
+		self.logger:log("enlighten:toggle_prompt - close")
+		self:close_prompt()
+		return
+	end
+
+	self.logger:log("enlighten:toggle_prompt - open")
+	self:open_prompt()
+end
+
+--- Focus the prompt window if it exists
+function Enlighten:focus_prompt()
+	if self.prompt ~= nil then
+		self.logger:log("enlighten:focus_prompt - focusing")
+		self.prompt:focus()
+	end
+end
+
+--- Close the prompt window if it exists
+function Enlighten:close_prompt()
+	if self.prompt ~= nil then
+		self.logger:log("enlighten:close_prompt - closing")
+		self.prompt:close()
+		self.prompt = nil
+	end
 end
 
 return enlighten_me
