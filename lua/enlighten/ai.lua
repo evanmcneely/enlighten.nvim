@@ -31,10 +31,9 @@ local M = {}
 ---@field temperature number
 
 local system_prompt = [[
-      Your are a coding assistant helping an software developer edit code in there IDE.
-      All of you responses should consist of only the code you want to write. Do not include any
-      explanations or summarys. Do not include code block markdown starting with ```. Respect tabs and spaces
-      when rewriting content.
+      You are a coding assistant helping a software developer edit code in their IDE.
+      All of you responses should consist of only the code you want to write. Do not include any explanations or summarys. Do not include code block markdown starting with ```. 
+      Match the current indentation of the code snippet.
 ]]
 
 ---@param cmd string
