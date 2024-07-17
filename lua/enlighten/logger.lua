@@ -1,5 +1,3 @@
-local utils = require("enlighten/utils")
-
 ---@class EnlightenLog
 ---@field lines string[]
 ---@field max_lines number
@@ -8,12 +6,38 @@ local EnlightenLog = {}
 
 EnlightenLog.__index = EnlightenLog
 
+---@param str string
+local function trim(str)
+	return str:gsub("^%s+", ""):gsub("%s+$", "")
+end
+local function remove_duplicate_whitespace(str)
+	return str:gsub("%s+", " ")
+end
+
+---@param str string
+---@param sep string
+local function split(str, sep)
+	if sep == nil then
+		sep = "%s"
+	end
+	local t = {}
+	for s in string.gmatch(str, "([^" .. sep .. "]+)") do
+		table.insert(t, s)
+	end
+	return t
+end
+
+---@param str string
+local function is_white_space(str)
+	return str:gsub("%s", "") == ""
+end
+
 ---@return EnlightenLog
 function EnlightenLog:new()
 	local logger = setmetatable({
 		lines = {},
 		enabled = true,
-		max_lines = 50,
+		max_lines = 100,
 	}, self)
 
 	return logger
@@ -40,10 +64,10 @@ function EnlightenLog:log(...)
 
 	local lines = {}
 	for _, line in ipairs(processed) do
-		local split = utils.split(line, "\n")
-		for _, l in ipairs(split) do
-			if not utils.is_white_space(l) then
-				local ll = utils.trim(utils.remove_duplicate_whitespace(l))
+		local s = split(line, "\n")
+		for _, l in ipairs(s) do
+			if not is_white_space(l) then
+				local ll = trim(remove_duplicate_whitespace(l))
 				table.insert(lines, ll)
 			end
 		end
