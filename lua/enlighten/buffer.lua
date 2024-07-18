@@ -60,6 +60,10 @@ function M.get_file_extension(buffer)
 	return filename:match("^.+(%..+)$")
 end
 
+function M.get_lines(buffer, start, finish)
+	return vim.api.nvim_buf_get_lines(buffer, start, finish, false)
+end
+
 function M.get_content(buffer, start, finish)
 	return table.concat(vim.api.nvim_buf_get_lines(buffer, start, finish, false), "\n")
 end

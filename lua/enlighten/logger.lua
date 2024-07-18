@@ -1,3 +1,5 @@
+local utils = require("enlighten/utils")
+
 ---@class EnlightenLog
 ---@field lines string[]
 ---@field max_lines number
@@ -12,19 +14,6 @@ local function trim(str)
 end
 local function remove_duplicate_whitespace(str)
 	return str:gsub("%s+", " ")
-end
-
----@param str string
----@param sep string
-local function split(str, sep)
-	if sep == nil then
-		sep = "%s"
-	end
-	local t = {}
-	for s in string.gmatch(str, "([^" .. sep .. "]+)") do
-		table.insert(t, s)
-	end
-	return t
 end
 
 ---@param str string
@@ -64,7 +53,7 @@ function EnlightenLog:log(...)
 
 	local lines = {}
 	for _, line in ipairs(processed) do
-		local s = split(line, "\n")
+		local s = utils.split(line, "\n")
 		for _, l in ipairs(s) do
 			if not is_white_space(l) then
 				local ll = trim(remove_duplicate_whitespace(l))

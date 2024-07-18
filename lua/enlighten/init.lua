@@ -1,5 +1,6 @@
 local Logger = require("enlighten/logger")
 local Prompt = require("enlighten/prompt")
+local Chat = require("enlighten/chat")
 local Config = require("enlighten/config")
 
 ---@class Enlighten
@@ -79,6 +80,47 @@ function Enlighten:close_prompt()
 		self.logger:log("enlighten:close_prompt - closing")
 		self.prompt:close()
 		self.prompt = nil
+	end
+end
+
+--- Focus the prompt window if it exists and create a new one otherwise
+function Enlighten:open_chat()
+	if self.chat ~= nil then
+		self.logger:log("enlighten:open_chat - focusing")
+		self:focus_chat()
+		return
+	end
+
+	self.logger:log("enlighten:open_chat - new")
+	self.chat = Chat:new()
+end
+
+--- Close the prompt window if it exists and open it otherwise
+function Enlighten:toggle_chat()
+	if self.chat ~= nil then
+		self.logger:log("enlighten:toggle_chat - close")
+		self:close_chat()
+		return
+	end
+
+	self.logger:log("enlighten:toggle_chat - open")
+	self:open_chat()
+end
+
+--- Focus the prompt window if it exists
+function Enlighten:focus_chat()
+	if self.chat ~= nil then
+		self.logger:log("enlighten:focus_chat - focusing")
+		self.chat:focus()
+	end
+end
+
+--- Close the prompt window if it exists
+function Enlighten:close_chat()
+	if self.chat ~= nil then
+		self.logger:log("enlighten:close_chat - closing")
+		self.chat:close()
+		self.chat = nil
 	end
 end
 

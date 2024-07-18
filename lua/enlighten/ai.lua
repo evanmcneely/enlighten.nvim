@@ -30,10 +30,16 @@ local M = {}
 ---@field max_tokens number
 ---@field temperature number
 
-local system_prompt = [[
+local prompt_system_prompt = [[
       You are a coding assistant helping a software developer edit code in their IDE.
       All of you responses should consist of only the code you want to write. Do not include any explanations or summarys. Do not include code block markdown starting with ```. 
       Match the current indentation of the code snippet.
+]]
+
+local chat_system_prompt = [[
+      You are a coding assistant helping a software developer edit code in their IDE.
+      You are provided a chat transcript between "Developer" and "Assistant" (you). The most recent messages are at the bottom. Messages are seperated by "---"
+      Support the developer by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
 ]]
 
 ---@param cmd string
@@ -153,7 +159,7 @@ function M.complete(prompt, writer)
 		temperature = config.ai.temperature,
 		stream = true,
 		messages = {
-			{ role = "system", content = system_prompt },
+			{ role = "system", content = prompt_system_prompt },
 			{
 				role = "user",
 				content = prompt,
@@ -161,6 +167,25 @@ function M.complete(prompt, writer)
 		},
 	}
 	Logger:log("ai:complete - request", { body = body })
+	request("chat/completions", body, writer)
+end
+
+---@param prompt string
+function M.chat(prompt, writer)
+	local body = {
+		model = config.ai.model,
+		max_tokens = config.ai.tokens,
+		temperature = config.ai.temperature,
+		stream = true,
+		messages = {
+			{ role = "system", content = chat_system_prompt },
+			{
+				role = "user",
+				content = prompt,
+			},
+		},
+	}
+	Logger:log("ai:chat - request", { body = body })
 	request("chat/completions", body, writer)
 end
 
