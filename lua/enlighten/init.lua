@@ -52,8 +52,8 @@ function Enlighten:open_prompt()
 	end
 
 	self.logger:log("enlighten:open_prompt - new")
-	local ai = Ai:new(self.config.ai)
-	self.prompt = Prompt:new(ai, self.config)
+	local ai = Ai:new(self.config.ai.prompt)
+	self.prompt = Prompt:new(ai, self.config.settings.prompt)
 end
 
 --- Close the prompt window if it exists and open it otherwise
@@ -94,8 +94,8 @@ function Enlighten:open_chat()
 	end
 
 	self.logger:log("enlighten:open_chat - new")
-	local ai = Ai:new(self.config.ai)
-	self.chat = Chat:new(ai, self.config)
+	local ai = Ai:new(self.config.ai.chat)
+	self.chat = Chat:new(ai, self.config.settings.chat)
 end
 
 --- Close the chat pane if it exists and open it otherwise

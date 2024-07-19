@@ -6,7 +6,7 @@ local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
 
 ---@class EnlightenPrompt
----@field settings EnlightenConfig
+---@field settings EnlightenPromptSettings
 ---@field prompt_buf number
 ---@field prompt_win number
 ---@field target_buf number
@@ -14,7 +14,7 @@ local Logger = require("enlighten/logger")
 local EnlightenPrompt = {}
 
 ---@param ai AI
----@param settings EnlightenConfig
+---@param settings EnlightenPromptSettings
 ---@return EnlightenPrompt
 function EnlightenPrompt:new(ai, settings)
 	self.__index = self

@@ -6,7 +6,7 @@ local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
 
 ---@class EnlightenChat
----@field settings EnlightenConfig
+---@field settings EnlightenChatSettings
 ---@field prompt_buf number
 ---@field prompt_win number
 ---@field chat_buf number
@@ -16,7 +16,7 @@ local utils = require("enlighten/utils")
 local EnlightenChat = {}
 
 ---@param ai AI
----@param settings EnlightenConfig
+---@param settings EnlightenChatSettings
 ---@return EnlightenChat
 function EnlightenChat:new(ai, settings)
 	self.__index = self
