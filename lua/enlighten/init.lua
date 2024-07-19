@@ -51,7 +51,7 @@ function Enlighten:open_prompt()
 	end
 
 	self.logger:log("enlighten:open_prompt - new")
-	self.prompt = Prompt:new()
+	self.prompt = Prompt:new(self.config)
 end
 
 --- Close the prompt window if it exists and open it otherwise
@@ -92,7 +92,7 @@ function Enlighten:open_chat()
 	end
 
 	self.logger:log("enlighten:open_chat - new")
-	self.chat = Chat:new()
+	self.chat = Chat:new(self.config)
 end
 
 --- Close the prompt window if it exists and open it otherwise

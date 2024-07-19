@@ -7,20 +7,23 @@ local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
 
 ---@class EnlightenPrompt
+---@field config EnlightenConfig
 ---@field prompt_buf number
 ---@field prompt_win number
 ---@field target_buf number
 ---@field target_range Range
 local EnlightenPrompt = {}
 
+---@param config EnlightenConfig
 ---@return EnlightenPrompt
-function EnlightenPrompt:new()
+function EnlightenPrompt:new(config)
 	self.__index = self
 
 	local buf = api.nvim_get_current_buf()
 	local range = buffer.get_range()
 	local prompt_win = self:_create_window(range)
 
+	self.config = config
 	self.prompt_win = prompt_win.win_id
 	self.prompt_buf = prompt_win.bufnr
 	self.target_buf = buf
@@ -119,9 +122,10 @@ function EnlightenPrompt:submit()
 		and api.nvim_buf_is_valid(self.target_buf)
 	then
 		Logger:log("prompt:submit - let's go")
-		local writer = Writer:new(self.target_buf, self.target_range)
 		local prompt = self:_build_prompt()
-		ai.complete(prompt, writer)
+		local writer = Writer:new(self.target_buf, self.target_range)
+		ai:new(self.config.ai, writer)
+		ai:complete(prompt)
 	end
 end
 

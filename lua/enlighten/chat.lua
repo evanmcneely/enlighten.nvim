@@ -7,6 +7,7 @@ local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
 
 ---@class EnlightenChat
+---@field config EnlightenConfig
 ---@field prompt_buf number
 ---@field prompt_win number
 ---@field chat_buf number
@@ -15,8 +16,9 @@ local utils = require("enlighten/utils")
 ---@field target_range Range
 local EnlightenChat = {}
 
+---@param config EnlightenConfig
 ---@return EnlightenChat
-function EnlightenChat:new()
+function EnlightenChat:new(config)
 	self.__index = self
 
 	local buf = api.nvim_get_current_buf()
@@ -31,6 +33,7 @@ function EnlightenChat:new()
 	local chat_win = self:_create_chat_window()
 	local prompt_win = self:_create_prompt_window(chat_win.win_id, snippet)
 
+	self.config = config
 	self.prompt_win = prompt_win.win_id
 	self.prompt_buf = prompt_win.bufnr
 	self.chat_buf = chat_win.bufnr
@@ -216,11 +219,11 @@ function EnlightenChat:submit()
 		self:_add_chat_break()
 		self:_add_assistant()
 
+		local prompt = self:_build_prompt()
 		local chat_lines = buffer.get_lines(self.chat_buf)
 		local writer = Writer:new(self.chat_buf, { #chat_lines, 0 })
-		local prompt = self:_build_prompt()
-
-		ai.chat(prompt, writer)
+		ai:new(self.config.ai, writer)
+		ai:complete(prompt)
 	end
 end
 

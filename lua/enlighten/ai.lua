@@ -1,7 +1,9 @@
 local Logger = require("enlighten/logger")
-local config = require("enlighten/config").config
 
-local M = {}
+---@class AI
+---@field config EnlightenAiConfig
+---@field writer Writer
+local AI = {}
 
 ---@class OpenAIStreamingResponse
 ---@field id string
@@ -42,11 +44,21 @@ local chat_system_prompt = [[
       Support the developer by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
 ]]
 
+---@param config EnlightenAiConfig
+---@param writer Writer
+---@return AI
+function AI:new(config, writer)
+	self.__index = self
+	self.config = config
+	self.writer = writer
+	return self
+end
+
 ---@param cmd string
 ---@param args string[]
 ---@param on_stdout_chunk fun(chunk: string): nil
 ---@param on_complete fun(err: string?, output: string?): nil
-local function exec(cmd, args, on_stdout_chunk, on_complete)
+function AI.exec(cmd, args, on_stdout_chunk, on_complete)
 	local stdout = vim.loop.new_pipe()
 	local function on_stdout_read(_, chunk)
 		if chunk then
@@ -93,13 +105,12 @@ end
 
 ---@param endpoint string
 ---@param body OpenAIRequest
----@param writer Writer
-local function request(endpoint, body, writer)
+function AI:request(endpoint, body)
 	local api_key = os.getenv("OPENAI_API_KEY")
 	if not api_key then
 		Logger:log("ai:request - no api key")
 		---@diagnostic disable-next-line: param-type-mismatch
-		writer:on_complete("$OPENAI_API_KEY environment variable must be set")
+		self.writer:on_complete("$OPENAI_API_KEY environment variable must be set")
 		return
 	end
 
@@ -108,7 +119,7 @@ local function request(endpoint, body, writer)
 		"--show-error",
 		"--no-buffer",
 		"--max-time",
-		config.ai.timeout,
+		self.config.timeout,
 		"-L",
 		"https://api.openai.com/v1/" .. endpoint,
 		"-H",
@@ -138,29 +149,28 @@ local function request(endpoint, body, writer)
 			local json = vim.json.decode(json_str)
 			if json.error then
 				---@diagnostic disable-next-line: param-type-mismatch
-				writer:on_complete(json.error.message)
+				self.writer:on_complete(json.error.message)
 			else
 				---@diagnostic disable-next-line: param-type-mismatch
-				writer:on_data(json)
+				self.writer:on_data(json)
 			end
 
 			json_start, json_end = buffered_chunks:find("}\n")
 		end
 	end
 
-	exec("curl", curl_args, on_stdout_chunk, function(err)
+	self.exec("curl", curl_args, on_stdout_chunk, function(err)
 		---@diagnostic disable-next-line: param-type-mismatch
-		writer:on_complete(err)
+		self.writer:on_complete(err)
 	end)
 end
 
 ---@param prompt string
----@param writer Writer
-function M.complete(prompt, writer)
+function AI:complete(prompt)
 	local body = {
-		model = config.ai.model,
-		max_tokens = config.ai.tokens,
-		temperature = config.ai.temperature,
+		model = self.config.model,
+		max_tokens = self.config.tokens,
+		temperature = self.config.temperature,
 		stream = true,
 		messages = {
 			{ role = "system", content = prompt_system_prompt },
@@ -171,16 +181,15 @@ function M.complete(prompt, writer)
 		},
 	}
 	Logger:log("ai:complete - request", { body = body })
-	request("chat/completions", body, writer)
+	self:request("chat/completions", body)
 end
 
 ---@param prompt string
----@param writer Writer
-function M.chat(prompt, writer)
+function AI:chat(prompt)
 	local body = {
-		model = config.ai.model,
-		max_tokens = config.ai.tokens,
-		temperature = config.ai.temperature,
+		model = self.config.model,
+		max_tokens = self.config.tokens,
+		temperature = self.config.temperature,
 		stream = true,
 		messages = {
 			{ role = "system", content = chat_system_prompt },
@@ -191,7 +200,7 @@ function M.chat(prompt, writer)
 		},
 	}
 	Logger:log("ai:chat - request", { body = body })
-	request("chat/completions", body, writer)
+	self:request("chat/completions", body)
 end
 
-return M
+return AI
