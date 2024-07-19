@@ -1,6 +1,6 @@
 local ai = require("enlighten/ai")
 local buffer = require("enlighten/buffer")
-local Writer = require("enlighten/writer")
+local Writer = require("enlighten/writer/diff")
 local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
 

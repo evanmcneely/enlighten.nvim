@@ -1,6 +1,6 @@
 local ai = require("enlighten/ai")
 local buffer = require("enlighten/buffer")
-local Writer = require("enlighten/writer")
+local Writer = require("enlighten/writer/stream")
 local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
@@ -210,13 +210,8 @@ function EnlightenChat:submit()
 		self:_add_chat_break()
 		self:_add_assistant()
 
-		local function handle_line(line)
-			self:_on_line(line)
-		end
-
 		local chat_lines = buffer.get_lines(self.chat_buf, 0, -1)
-		local range = { row_start = #chat_lines, row_end = #chat_lines, col_start = 0, col_end = 0 }
-		local writer = Writer:new(self.chat_buf, range, handle_line)
+		local writer = Writer:new(self.chat_buf, { #chat_lines, 0 })
 		local prompt = self:_build_prompt()
 
 		ai.chat(prompt, writer)

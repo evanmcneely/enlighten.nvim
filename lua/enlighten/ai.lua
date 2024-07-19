@@ -38,7 +38,7 @@ local prompt_system_prompt = [[
 
 local chat_system_prompt = [[
       You are a coding assistant helping a software developer edit code in their IDE.
-      You are provided a chat transcript between "Developer" and "Assistant" (you). The most recent messages are at the bottom. Messages are seperated by "---"
+      You are provided a chat transcript between "Developer" and "Assistant" (you). The most recent messages are at the bottom. Messages are separated by "---"
       Support the developer by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
 ]]
 
@@ -98,6 +98,7 @@ local function request(endpoint, body, writer)
 	local api_key = os.getenv("OPENAI_API_KEY")
 	if not api_key then
 		Logger:log("ai:request - no api key")
+		---@diagnostic disable-next-line: param-type-mismatch
 		writer:on_complete("$OPENAI_API_KEY environment variable must be set")
 		return
 	end
@@ -136,6 +137,7 @@ local function request(endpoint, body, writer)
 			---@type OpenAIStreamingResponse | OpenAIError
 			local json = vim.json.decode(json_str)
 			if json.error then
+				---@diagnostic disable-next-line: param-type-mismatch
 				writer:on_complete(json.error.message)
 			else
 				---@diagnostic disable-next-line: param-type-mismatch
@@ -147,11 +149,13 @@ local function request(endpoint, body, writer)
 	end
 
 	exec("curl", curl_args, on_stdout_chunk, function(err)
+		---@diagnostic disable-next-line: param-type-mismatch
 		writer:on_complete(err)
 	end)
 end
 
 ---@param prompt string
+---@param writer Writer
 function M.complete(prompt, writer)
 	local body = {
 		model = config.ai.model,
@@ -171,6 +175,7 @@ function M.complete(prompt, writer)
 end
 
 ---@param prompt string
+---@param writer Writer
 function M.chat(prompt, writer)
 	local body = {
 		model = config.ai.model,
