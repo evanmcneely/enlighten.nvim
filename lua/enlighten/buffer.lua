@@ -62,11 +62,29 @@ function M.get_file_extension(buffer)
 	return filename:match("^.+(%..+)$")
 end
 
+---@param buffer number
+---@param start? number
+---@param finish? number
 function M.get_lines(buffer, start, finish)
+	if not start then
+		start = 0
+	end
+	if not finish then
+		finish = -1
+	end
 	return api.nvim_buf_get_lines(buffer, start, finish, false)
 end
 
+---@param buffer number
+---@param start? number
+---@param finish? number
 function M.get_content(buffer, start, finish)
+	if not start then
+		start = 0
+	end
+	if not finish then
+		finish = -1
+	end
 	return table.concat(api.nvim_buf_get_lines(buffer, start, finish, false), "\n")
 end
 

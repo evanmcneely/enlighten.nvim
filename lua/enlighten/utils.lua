@@ -15,4 +15,15 @@ function M.split(str, sep)
 	return t
 end
 
+--- Use in a autocmd to stick the current buffer to the window
+---@param buf number
+---@param win number
+function M.sticky_buffer(buf, win)
+	if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_win_is_valid(win) then
+		-- pcall necessary to avoid erroring with `mark not set` although no mark are set
+		-- this avoid other issues
+		-- TODO: error persists...
+		pcall(vim.api.nvim_win_set_buf, win, buf)
+	end
+end
 return M

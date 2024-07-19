@@ -1,4 +1,5 @@
 local api = vim.api
+local utils = require("enlighten/utils")
 local ai = require("enlighten/ai")
 local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/diff")
@@ -88,12 +89,7 @@ function EnlightenPrompt:_set_prompt_keymaps()
 	api.nvim_buf_set_keymap(self.prompt_buf, "n", "<ESC>", "<Cmd>lua require('enlighten'):close_prompt()<CR>", {})
 	api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
 		callback = function()
-			if api.nvim_buf_is_valid(self.prompt_buf) and api.nvim_win_is_valid(self.prompt_win) then
-				-- pcall necessary to avoid erroring with `mark not set` although no mark are set
-				-- this avoid other issues
-				-- TODO: error persists...
-				pcall(api.nvim_win_set_buf, self.prompt_win, self.prompt_buf)
-			end
+			utils.sticky_buffer(self.prompt_buf, self.prompt_win)
 		end,
 		group = group,
 	})
@@ -101,7 +97,7 @@ end
 
 ---@return string
 function EnlightenPrompt:_build_prompt()
-	local prompt = buffer.get_content(self.prompt_buf, 0, -1)
+	local prompt = buffer.get_content(self.prompt_buf)
 	local snippet = buffer.get_content(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1)
 	local file_ext = buffer.get_file_extension(self.target_buf)
 

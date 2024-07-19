@@ -9,14 +9,21 @@ local EnlightenLog = {}
 EnlightenLog.__index = EnlightenLog
 
 ---@param str string
+---@return string
 local function trim(str)
+	---@diagnostic disable-next-line: redundant-return-value
 	return str:gsub("^%s+", ""):gsub("%s+$", "")
 end
+
+---@param str string
+---@return string
 local function remove_duplicate_whitespace(str)
+	---@diagnostic disable-next-line: redundant-return-value
 	return str:gsub("%s+", " ")
 end
 
 ---@param str string
+---@return boolean
 local function is_white_space(str)
 	return str:gsub("%s", "") == ""
 end

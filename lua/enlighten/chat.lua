@@ -140,12 +140,7 @@ function EnlightenChat:_set_prompt_keymaps()
 	api.nvim_buf_set_keymap(self.prompt_buf, "n", "<ESC>", "<Cmd>lua require('enlighten'):close_chat()<CR>", {})
 	api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
 		callback = function()
-			if api.nvim_buf_is_valid(self.prompt_buf) and api.nvim_win_is_valid(self.prompt_win) then
-				-- pcall necessary to avoid erroring with `mark not set` although no mark are set
-				-- this avoid other issues
-				-- TODO: error persists...
-				pcall(api.nvim_win_set_buf, self.prompt_win, self.prompt_buf)
-			end
+			utils.sticky_buffer(self.prompt_buf, self.prompt_win)
 		end,
 		group = group,
 	})
@@ -156,12 +151,7 @@ function EnlightenChat:_set_chat_keymaps()
 	api.nvim_buf_set_keymap(self.chat_buf, "n", "<ESC>", "<Cmd>lua require('enlighten'):close_chat()<CR>", {})
 	api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
 		callback = function()
-			if api.nvim_buf_is_valid(self.chat_buf) and api.nvim_win_is_valid(self.chat_win) then
-				-- pcall necessary to avoid erroring with `mark not set` although no mark are set
-				-- this avoid other issues
-				-- TODO: error persists...
-				pcall(api.nvim_win_set_buf, self.chat_win, self.chat_buf)
-			end
+			utils.sticky_buffer(self.chat_buf, self.chat_win)
 		end,
 		group = group,
 	})
@@ -169,14 +159,14 @@ end
 
 ---@return string
 function EnlightenChat:_build_prompt()
-	local prompt = buffer.get_content(self.chat_buf, 0, -1)
+	local prompt = buffer.get_content(self.chat_buf)
 	return "Continue this conversation. Be concise Most recent message is at the bottom...\n\n" .. prompt
 end
 
 ---@param from number
 ---@param to number
 function EnlightenChat:_move_content(from, to)
-	local prompt = buffer.get_lines(from, 0, -1)
+	local prompt = buffer.get_lines(from)
 	api.nvim_buf_set_lines(from, 0, #prompt + 1, false, {})
 	api.nvim_buf_set_lines(to, -1, -1, false, prompt)
 end
@@ -186,7 +176,7 @@ function EnlightenChat:_add_chat_break()
 end
 
 function EnlightenChat:_add_user()
-	api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "Developer:", "" })
+	local lines = buffer.get_lines(self.chat_buf)
 end
 
 function EnlightenChat:_add_assistant()
@@ -211,7 +201,7 @@ function EnlightenChat:submit()
 		self:_add_chat_break()
 		self:_add_assistant()
 
-		local chat_lines = buffer.get_lines(self.chat_buf, 0, -1)
+		local chat_lines = buffer.get_lines(self.chat_buf)
 		local writer = Writer:new(self.chat_buf, { #chat_lines, 0 })
 		local prompt = self:_build_prompt()
 
