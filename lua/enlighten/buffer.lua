@@ -1,8 +1,10 @@
+local api = vim.api
+
 local M = {}
 
 ---@return boolean
 function M.is_visual_mode()
-	local mode = vim.api.nvim_get_mode()
+	local mode = api.nvim_get_mode()
 	return string.lower(mode.mode) == "v"
 end
 
@@ -42,7 +44,7 @@ end
 ---@return Range
 function M.get_cursor_position()
 	-- Get column and row from for the cursor position.
-	local start_pos = vim.api.nvim_win_get_cursor(0)
+	local start_pos = api.nvim_win_get_cursor(0)
 	local row_start = start_pos[1] - 1 -- adjust for lua's 1 based indexing
 	local col_start = start_pos[2]
 
@@ -56,16 +58,16 @@ end
 ---@param buffer number
 ---@return string
 function M.get_file_extension(buffer)
-	local filename = vim.api.nvim_buf_get_name(buffer)
+	local filename = api.nvim_buf_get_name(buffer)
 	return filename:match("^.+(%..+)$")
 end
 
 function M.get_lines(buffer, start, finish)
-	return vim.api.nvim_buf_get_lines(buffer, start, finish, false)
+	return api.nvim_buf_get_lines(buffer, start, finish, false)
 end
 
 function M.get_content(buffer, start, finish)
-	return table.concat(vim.api.nvim_buf_get_lines(buffer, start, finish, false), "\n")
+	return table.concat(api.nvim_buf_get_lines(buffer, start, finish, false), "\n")
 end
 
 return M

@@ -1,3 +1,4 @@
+local api = vim.api
 local ai = require("enlighten/ai")
 local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/stream")
@@ -18,7 +19,7 @@ local EnlightenChat = {}
 function EnlightenChat:new()
 	self.__index = self
 
-	local buf = vim.api.nvim_get_current_buf()
+	local buf = api.nvim_get_current_buf()
 	local range = buffer.get_range()
 	local snippet = buffer.get_content(buf, range.row_start, range.row_end + 1)
 	local chat_win = self:_create_chat_window()
@@ -38,24 +39,24 @@ function EnlightenChat:new()
 end
 
 function EnlightenChat:close()
-	if vim.api.nvim_win_is_valid(self.prompt_win) then
+	if api.nvim_win_is_valid(self.prompt_win) then
 		Logger:log("chat:close - closing window", { prompt_win = self.prompt_win })
-		vim.api.nvim_win_close(self.prompt_win, true)
+		api.nvim_win_close(self.prompt_win, true)
 	end
 
-	if vim.api.nvim_buf_is_valid(self.prompt_buf) then
+	if api.nvim_buf_is_valid(self.prompt_buf) then
 		Logger:log("chat:close - deleting buffer", { prompt_buf = self.prompt_buf })
-		vim.api.nvim_buf_delete(self.prompt_buf, { force = true })
+		api.nvim_buf_delete(self.prompt_buf, { force = true })
 	end
 
-	if vim.api.nvim_win_is_valid(self.chat_win) then
+	if api.nvim_win_is_valid(self.chat_win) then
 		Logger:log("chat:close - closing window", { chat_win = self.chat_win })
-		vim.api.nvim_win_close(self.chat_win, true)
+		api.nvim_win_close(self.chat_win, true)
 	end
 
-	if vim.api.nvim_buf_is_valid(self.chat_buf) then
+	if api.nvim_buf_is_valid(self.chat_buf) then
 		Logger:log("chat:close - deleting buffer", { chat_buf = self.chat_buf })
-		vim.api.nvim_buf_delete(self.chat_buf, { force = true })
+		api.nvim_buf_delete(self.chat_buf, { force = true })
 	end
 end
 
@@ -64,32 +65,32 @@ end
 function EnlightenChat:_create_prompt_window(chat_win, snippet)
 	Logger:log("prompt:_create_prompt_window - creating window")
 
-	local buf = vim.api.nvim_create_buf(false, true)
-	local win = vim.api.nvim_open_win(buf, true, {
+	local buf = api.nvim_create_buf(false, true)
+	local win = api.nvim_open_win(buf, true, {
 		relative = "win",
 		win = chat_win,
-		width = vim.api.nvim_win_get_width(chat_win),
+		width = api.nvim_win_get_width(chat_win),
 		height = 6,
-		row = vim.api.nvim_win_get_height(chat_win) - 6,
+		row = api.nvim_win_get_height(chat_win) - 6,
 		col = 0,
 		anchor = "NW",
 		border = "single",
 		title = "Prompt",
 	})
 
-	vim.api.nvim_set_option_value("number", false, { win = win })
-	vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
-	vim.api.nvim_buf_set_name(buf, "enlighten-prompt")
-	vim.api.nvim_buf_set_option(buf, "filetype", "enlighten")
-	vim.api.nvim_buf_set_option(buf, "wrap", true)
+	api.nvim_set_option_value("number", false, { win = win })
+	api.nvim_buf_set_option(buf, "buftype", "nofile")
+	api.nvim_buf_set_name(buf, "enlighten-prompt")
+	api.nvim_buf_set_option(buf, "filetype", "enlighten")
+	api.nvim_buf_set_option(buf, "wrap", true)
 
 	-- Prepopulate the prompt with the snippet text and pad the
 	-- bottom with new lines. Reposition the cursor to last line.
 	local lines = utils.split(snippet, "\n")
 	table.insert(lines, "")
 	table.insert(lines, "")
-	vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
-	vim.api.nvim_win_set_cursor(win, { #lines, 1 })
+	api.nvim_buf_set_lines(buf, 0, -1, true, lines)
+	api.nvim_win_set_cursor(win, { #lines, 1 })
 
 	Logger:log("chat:_create_prompt_window - window and buffer", { win = win, buf = buf })
 
@@ -103,19 +104,19 @@ end
 function EnlightenChat:_create_chat_window()
 	Logger:log("prompt:_create_chat_window - creating window")
 
-	local buf = vim.api.nvim_create_buf(false, true)
-	local win = vim.api.nvim_open_win(buf, true, {
+	local buf = api.nvim_create_buf(false, true)
+	local win = api.nvim_open_win(buf, true, {
 		width = 70,
 		vertical = true,
 		split = "right",
 		style = "minimal",
 	})
 
-	vim.api.nvim_set_option_value("number", false, { win = win })
-	vim.api.nvim_buf_set_option(buf, "buftype", "nofile")
-	vim.api.nvim_buf_set_name(buf, "enlighten-chat")
-	vim.api.nvim_buf_set_option(buf, "filetype", "enlighten")
-	vim.api.nvim_buf_set_option(buf, "wrap", true)
+	api.nvim_set_option_value("number", false, { win = win })
+	api.nvim_buf_set_option(buf, "buftype", "nofile")
+	api.nvim_buf_set_name(buf, "enlighten-chat")
+	api.nvim_buf_set_option(buf, "filetype", "enlighten")
+	api.nvim_buf_set_option(buf, "wrap", true)
 
 	Logger:log("chat:_create_chat_window - window and buffer", { win = win, buf = buf })
 
@@ -126,24 +127,24 @@ function EnlightenChat:_create_chat_window()
 end
 
 function EnlightenChat:focus()
-	if vim.api.nvim_buf_is_valid(self.prompt_buf) and vim.api.nvim_win_is_valid(self.prompt_win) then
+	if api.nvim_buf_is_valid(self.prompt_buf) and api.nvim_win_is_valid(self.prompt_win) then
 		Logger:log("chat:focus - focusing", { prompt_buf = self.prompt_buf, prompt_win = self.prompt_win })
-		vim.api.nvim_set_current_win(self.prompt_win)
-		vim.api.nvim_win_set_buf(self.prompt_win, self.prompt_buf)
+		api.nvim_set_current_win(self.prompt_win)
+		api.nvim_win_set_buf(self.prompt_win, self.prompt_buf)
 	end
 end
 
 function EnlightenChat:_set_prompt_keymaps()
-	vim.api.nvim_buf_set_keymap(self.prompt_buf, "n", "<CR>", "<Cmd>lua require('enlighten').chat:submit()<CR>", {})
-	vim.api.nvim_buf_set_keymap(self.prompt_buf, "n", "q", "<Cmd>lua require('enlighten'):close_chat()<CR>", {})
-	vim.api.nvim_buf_set_keymap(self.prompt_buf, "n", "<ESC>", "<Cmd>lua require('enlighten'):close_chat()<CR>", {})
-	vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
+	api.nvim_buf_set_keymap(self.prompt_buf, "n", "<CR>", "<Cmd>lua require('enlighten').chat:submit()<CR>", {})
+	api.nvim_buf_set_keymap(self.prompt_buf, "n", "q", "<Cmd>lua require('enlighten'):close_chat()<CR>", {})
+	api.nvim_buf_set_keymap(self.prompt_buf, "n", "<ESC>", "<Cmd>lua require('enlighten'):close_chat()<CR>", {})
+	api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
 		callback = function()
-			if vim.api.nvim_buf_is_valid(self.prompt_buf) and vim.api.nvim_win_is_valid(self.prompt_win) then
+			if api.nvim_buf_is_valid(self.prompt_buf) and api.nvim_win_is_valid(self.prompt_win) then
 				-- pcall necessary to avoid erroring with `mark not set` although no mark are set
 				-- this avoid other issues
 				-- TODO: error persists...
-				pcall(vim.api.nvim_win_set_buf, self.prompt_win, self.prompt_buf)
+				pcall(api.nvim_win_set_buf, self.prompt_win, self.prompt_buf)
 			end
 		end,
 		group = group,
@@ -151,15 +152,15 @@ function EnlightenChat:_set_prompt_keymaps()
 end
 
 function EnlightenChat:_set_chat_keymaps()
-	vim.api.nvim_buf_set_keymap(self.chat_buf, "n", "q", "<Cmd>lua require('enlighten'):close_chat()<CR>", {})
-	vim.api.nvim_buf_set_keymap(self.chat_buf, "n", "<ESC>", "<Cmd>lua require('enlighten'):close_chat()<CR>", {})
-	vim.api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
+	api.nvim_buf_set_keymap(self.chat_buf, "n", "q", "<Cmd>lua require('enlighten'):close_chat()<CR>", {})
+	api.nvim_buf_set_keymap(self.chat_buf, "n", "<ESC>", "<Cmd>lua require('enlighten'):close_chat()<CR>", {})
+	api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
 		callback = function()
-			if vim.api.nvim_buf_is_valid(self.chat_buf) and vim.api.nvim_win_is_valid(self.chat_win) then
+			if api.nvim_buf_is_valid(self.chat_buf) and api.nvim_win_is_valid(self.chat_win) then
 				-- pcall necessary to avoid erroring with `mark not set` although no mark are set
 				-- this avoid other issues
 				-- TODO: error persists...
-				pcall(vim.api.nvim_win_set_buf, self.chat_win, self.chat_buf)
+				pcall(api.nvim_win_set_buf, self.chat_win, self.chat_buf)
 			end
 		end,
 		group = group,
@@ -176,33 +177,33 @@ end
 ---@param to number
 function EnlightenChat:_move_content(from, to)
 	local prompt = buffer.get_lines(from, 0, -1)
-	vim.api.nvim_buf_set_lines(from, 0, #prompt + 1, false, {})
-	vim.api.nvim_buf_set_lines(to, -1, -1, false, prompt)
+	api.nvim_buf_set_lines(from, 0, #prompt + 1, false, {})
+	api.nvim_buf_set_lines(to, -1, -1, false, prompt)
 end
 
 function EnlightenChat:_add_chat_break()
-	vim.api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "", "---", "" })
+	api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "", "---", "" })
 end
 
 function EnlightenChat:_add_user()
-	vim.api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "Developer:", "" })
+	api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "Developer:", "" })
 end
 
 function EnlightenChat:_add_assistant()
-	vim.api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "Assistant:", "" })
+	api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "Assistant:", "" })
 end
 
 function EnlightenChat:_on_line(line)
-	if vim.api.nvim_buf_is_valid(self.chat_buf) then
-		vim.api.nvim_buf_set_lines(self.chat_buf, -1, -1, false, { line })
+	if api.nvim_buf_is_valid(self.chat_buf) then
+		api.nvim_buf_set_lines(self.chat_buf, -1, -1, false, { line })
 	end
 end
 
 function EnlightenChat:submit()
 	if
-		vim.api.nvim_buf_is_valid(self.prompt_buf)
-		and vim.api.nvim_win_is_valid(self.prompt_win)
-		and vim.api.nvim_buf_is_valid(self.target_buf)
+		api.nvim_buf_is_valid(self.prompt_buf)
+		and api.nvim_win_is_valid(self.prompt_win)
+		and api.nvim_buf_is_valid(self.target_buf)
 	then
 		Logger:log("chat:submit - let's go")
 		self:_add_user()

@@ -1,3 +1,4 @@
+local api = vim.api
 local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
 
@@ -10,7 +11,7 @@ StreamWriter = {}
 ---@param pos number[]
 ---@return StreamWriter
 function StreamWriter:new(buffer, pos)
-	local ns_id = vim.api.nvim_create_namespace("Enlighten")
+	local ns_id = api.nvim_create_namespace("Enlighten")
 	Logger:log("stream:new", { buffer = buffer, ns_id = ns_id, pos = pos })
 
 	self.__index = self
@@ -31,9 +32,9 @@ function StreamWriter:on_data(data)
 
 		local lines = utils.split(text, "\n")
 
-		-- Insert a new line into the buffer and update the position
+		-- Insert a new line into the buffer and update the positon
 		local function new_line()
-			vim.api.nvim_buf_set_lines(self.buffer, -1, -1, false, { "" })
+			api.nvim_buf_set_lines(self.buffer, -1, -1, false, { "" })
 			self.pos[1] = self.pos[1] + 1
 			self.pos[2] = 0
 		end
@@ -41,7 +42,7 @@ function StreamWriter:on_data(data)
 		-- Set the text at the position and update the position
 		---@param t string
 		local function set_text(t)
-			vim.api.nvim_buf_set_text(self.buffer, self.pos[1] - 1, self.pos[2], self.pos[1] - 1, self.pos[2], { t })
+			api.nvim_buf_set_text(self.buffer, self.pos[1] - 1, self.pos[2], self.pos[1] - 1, self.pos[2], { t })
 			self.pos[2] = self.pos[2] + #t
 		end
 
@@ -65,7 +66,7 @@ end
 function StreamWriter:on_complete(err)
 	if err then
 		Logger:log("stream:on_complete - error", err)
-		vim.api.nvim_err_writeln("enlighten :" .. err)
+		api.nvim_err_writeln("enlighten :" .. err)
 		return
 	end
 

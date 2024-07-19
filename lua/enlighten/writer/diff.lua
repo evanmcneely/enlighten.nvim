@@ -1,3 +1,4 @@
+local api = vim.api
 local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
 
@@ -24,7 +25,7 @@ DiffWriter = {}
 ---@param range Range
 ---@return DiffWriter
 function DiffWriter:new(buffer, range)
-	local ns_id = vim.api.nvim_create_namespace("Enlighten")
+	local ns_id = api.nvim_create_namespace("Enlighten")
 	Logger:log("diff:new", { buffer = buffer, range = range, ns_id = ns_id })
 
 	self.__index = self
@@ -67,7 +68,7 @@ end
 function DiffWriter:on_complete(err)
 	if err then
 		Logger:log("diff:on_complete - error", err)
-		vim.api.nvim_err_writeln("enlighten :" .. err)
+		api.nvim_err_writeln("enlighten :" .. err)
 		return
 	end
 
@@ -94,7 +95,7 @@ function DiffWriter:set_line(line)
 		{ line = line, num = self.focused_line, replacing = replace_focused_line }
 	)
 
-	vim.api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
+	api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
 end
 
 function DiffWriter:finish()
@@ -105,7 +106,7 @@ function DiffWriter:finish()
 		local selected_lines = self.range.row_end - self.range.row_start
 		if set_lines < selected_lines then
 			Logger:log("diff:finish - removing lines", { first = self.focused_line + 1, last = self.range.row_end + 1 })
-			vim.api.nvim_buf_set_lines(self.buffer, self.focused_line + 1, self.range.row_end + 1, false, {})
+			api.nvim_buf_set_lines(self.buffer, self.focused_line + 1, self.range.row_end + 1, false, {})
 		end
 	end
 end
