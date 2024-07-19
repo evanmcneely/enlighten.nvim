@@ -21,7 +21,13 @@ function EnlightenChat:new()
 
 	local buf = api.nvim_get_current_buf()
 	local range = buffer.get_range()
-	local snippet = buffer.get_content(buf, range.row_start, range.row_end + 1)
+
+	-- Getting the current snippet must occur before we create the buffers
+	local snippet
+	if buffer.is_visual_mode() then
+		snippet = buffer.get_content(buf, range.row_start, range.row_end + 1)
+	end
+
 	local chat_win = self:_create_chat_window()
 	local prompt_win = self:_create_prompt_window(chat_win.win_id, snippet)
 
@@ -60,8 +66,9 @@ function EnlightenChat:close()
 	end
 end
 
----@param snippet string
----@return { bufnr:number, win_id:number }
+---@param chat_win number
+---@param snippet? string
+---@return { bufnr: number, win_id: number }
 function EnlightenChat:_create_prompt_window(chat_win, snippet)
 	Logger:log("prompt:_create_prompt_window - creating window")
 
@@ -84,13 +91,15 @@ function EnlightenChat:_create_prompt_window(chat_win, snippet)
 	api.nvim_buf_set_option(buf, "filetype", "enlighten")
 	api.nvim_buf_set_option(buf, "wrap", true)
 
-	-- Prepopulate the prompt with the snippet text and pad the
-	-- bottom with new lines. Reposition the cursor to last line.
-	local lines = utils.split(snippet, "\n")
-	table.insert(lines, "")
-	table.insert(lines, "")
-	api.nvim_buf_set_lines(buf, 0, -1, true, lines)
-	api.nvim_win_set_cursor(win, { #lines, 1 })
+	if snippet ~= nil then
+		-- Prepopulate the prompt with the snippet text and pad the
+		-- bottom with new lines. Reposition the cursor to last line.
+		local lines = utils.split(snippet, "\n")
+		table.insert(lines, "")
+		table.insert(lines, "")
+		api.nvim_buf_set_lines(buf, 0, -1, true, lines)
+		api.nvim_win_set_cursor(win, { #lines, 1 })
+	end
 
 	Logger:log("chat:_create_prompt_window - window and buffer", { win = win, buf = buf })
 
@@ -100,7 +109,7 @@ function EnlightenChat:_create_prompt_window(chat_win, snippet)
 	}
 end
 
----@return { bufnr:number, win_id:number }
+---@return { bufnr: number, win_id: number }
 function EnlightenChat:_create_chat_window()
 	Logger:log("prompt:_create_chat_window - creating window")
 
@@ -177,10 +186,14 @@ end
 
 function EnlightenChat:_add_user()
 	local lines = buffer.get_lines(self.chat_buf)
+	if #lines > 1 then
+		self:_add_chat_break()
+	end
+	api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "Developer:", "", "" })
 end
 
 function EnlightenChat:_add_assistant()
-	api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "Assistant:", "" })
+	api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "Assistant:", "", "" })
 end
 
 function EnlightenChat:_on_line(line)

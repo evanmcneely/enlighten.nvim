@@ -30,9 +30,7 @@ function StreamWriter:on_data(data)
 		local text = completion.delta.content
 		self.accumulated_text = self.accumulated_text .. text
 
-		local lines = utils.split(text, "\n")
-
-		-- Insert a new line into the buffer and update the positon
+		-- Insert a new line into the buffer and update the position
 		local function new_line()
 			api.nvim_buf_set_lines(self.buffer, -1, -1, false, { "" })
 			self.pos[1] = self.pos[1] + 1
@@ -46,17 +44,32 @@ function StreamWriter:on_data(data)
 			self.pos[2] = self.pos[2] + #t
 		end
 
+		-- Handle all new line characters at the start of the string
+		while utils.starts_with(text, "\n") do
+			Logger:log("stream:on_data - new line", { pos = self.pos, text = text })
+			new_line()
+			text = text:sub(2)
+		end
+
+		if text == "" then
+			return
+		end
+
+		local lines = utils.split(text, "\n")
+
 		-- If there is only one line we can set and move on. Multiple lines
 		-- indicate newline characters are in the text and need to be handled
 		-- by inserting new lines into the buffer for every line after the one
 		if #lines > 1 then
 			for i = 1, #lines do
+				Logger:log("stream:on_data - setting", { line = lines[i], pos = self.pos, text = text })
 				if i ~= 1 then
 					new_line()
 				end
 				set_text(lines[i])
 			end
 		elseif lines[1] ~= nil then
+			Logger:log("stream:on_data - setting", { line = lines[1], pos = self.pos, text = text })
 			set_text(lines[1])
 		end
 	end

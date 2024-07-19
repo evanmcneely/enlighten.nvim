@@ -26,4 +26,11 @@ function M.sticky_buffer(buf, win)
 		pcall(vim.api.nvim_win_set_buf, win, buf)
 	end
 end
+
+---@param str string
+---@param start string
+function M.starts_with(str, start)
+	return str:sub(1, #start) == start
+end
+
 return M
