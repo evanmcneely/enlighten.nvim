@@ -1,29 +1,30 @@
 local api = vim.api
 local utils = require("enlighten/utils")
-local ai = require("enlighten/ai")
 local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/diff")
 local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
 
 ---@class EnlightenPrompt
----@field config EnlightenConfig
+---@field settings EnlightenConfig
 ---@field prompt_buf number
 ---@field prompt_win number
 ---@field target_buf number
 ---@field target_range Range
 local EnlightenPrompt = {}
 
----@param config EnlightenConfig
+---@param ai AI
+---@param settings EnlightenConfig
 ---@return EnlightenPrompt
-function EnlightenPrompt:new(config)
+function EnlightenPrompt:new(ai, settings)
 	self.__index = self
 
 	local buf = api.nvim_get_current_buf()
 	local range = buffer.get_range()
 	local prompt_win = self:_create_window(range)
 
-	self.config = config
+	self.ai = ai
+	self.settings = settings
 	self.prompt_win = prompt_win.win_id
 	self.prompt_buf = prompt_win.bufnr
 	self.target_buf = buf
@@ -124,8 +125,7 @@ function EnlightenPrompt:submit()
 		Logger:log("prompt:submit - let's go")
 		local prompt = self:_build_prompt()
 		local writer = Writer:new(self.target_buf, self.target_range)
-		ai:new(self.config.ai, writer)
-		ai:complete(prompt)
+		self.ai:complete(prompt, writer)
 	end
 end
 

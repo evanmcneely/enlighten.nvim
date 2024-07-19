@@ -2,7 +2,6 @@ local Logger = require("enlighten/logger")
 
 ---@class AI
 ---@field config EnlightenAiConfig
----@field writer Writer
 local AI = {}
 
 ---@class OpenAIStreamingResponse
@@ -45,12 +44,10 @@ local chat_system_prompt = [[
 ]]
 
 ---@param config EnlightenAiConfig
----@param writer Writer
 ---@return AI
-function AI:new(config, writer)
+function AI:new(config)
 	self.__index = self
 	self.config = config
-	self.writer = writer
 	return self
 end
 
@@ -103,9 +100,10 @@ function AI.exec(cmd, args, on_stdout_chunk, on_complete)
 	end
 end
 
+---@param writer Writer
 ---@param endpoint string
 ---@param body OpenAIRequest
-function AI:request(endpoint, body)
+function AI:request(endpoint, body, writer)
 	local api_key = os.getenv("OPENAI_API_KEY")
 	if not api_key then
 		Logger:log("ai:request - no api key")
@@ -149,10 +147,10 @@ function AI:request(endpoint, body)
 			local json = vim.json.decode(json_str)
 			if json.error then
 				---@diagnostic disable-next-line: param-type-mismatch
-				self.writer:on_complete(json.error.message)
+				writer:on_complete(json.error.message)
 			else
 				---@diagnostic disable-next-line: param-type-mismatch
-				self.writer:on_data(json)
+				writer:on_data(json)
 			end
 
 			json_start, json_end = buffered_chunks:find("}\n")
@@ -161,12 +159,13 @@ function AI:request(endpoint, body)
 
 	self.exec("curl", curl_args, on_stdout_chunk, function(err)
 		---@diagnostic disable-next-line: param-type-mismatch
-		self.writer:on_complete(err)
+		writer:on_complete(err)
 	end)
 end
 
+---@param writer Writer
 ---@param prompt string
-function AI:complete(prompt)
+function AI:complete(prompt, writer)
 	local body = {
 		model = self.config.model,
 		max_tokens = self.config.tokens,
@@ -181,11 +180,12 @@ function AI:complete(prompt)
 		},
 	}
 	Logger:log("ai:complete - request", { body = body })
-	self:request("chat/completions", body)
+	self:request("chat/completions", body, writer)
 end
 
+---@param writer Writer
 ---@param prompt string
-function AI:chat(prompt)
+function AI:chat(prompt, writer)
 	local body = {
 		model = self.config.model,
 		max_tokens = self.config.tokens,
@@ -200,7 +200,7 @@ function AI:chat(prompt)
 		},
 	}
 	Logger:log("ai:chat - request", { body = body })
-	self:request("chat/completions", body)
+	self:request("chat/completions", body, writer)
 end
 
 return AI
