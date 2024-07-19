@@ -62,6 +62,7 @@ function EnlightenPrompt:_create_window(range)
 	})
 
 	api.nvim_set_option_value("number", false, { win = win })
+	api.nvim_set_option_value("signcolumn", "no", { win = win })
 	api.nvim_buf_set_option(buf, "buftype", "nofile")
 	api.nvim_buf_set_name(buf, "enlighten-prompt")
 	api.nvim_buf_set_option(buf, "filetype", "enlighten")
