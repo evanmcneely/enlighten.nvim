@@ -120,13 +120,11 @@ end
 
 ---@param snippet? string[]
 function EnlightenChat:_add_user(snippet)
-	-- When is 1, we assume that this is a new chat and replace the buffer
-	-- content with the first developer prompt. Otherwise set new lines
-	-- for the developer prompt.
 	local count = api.nvim_buf_line_count(self.chat_buf)
+
 	if count == 1 then
 		local lines = { ">>> Developer", "" }
-		if snippet ~= nil then
+		if snippet then
 			for _, l in pairs(snippet) do
 				table.insert(lines, l)
 			end
@@ -140,7 +138,6 @@ function EnlightenChat:_add_user(snippet)
 		api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "", ">>> Developer", "", "" })
 	end
 
-	-- Always have to set the cursor to the new last line, ready to continue the convo
 	count = api.nvim_buf_line_count(self.chat_buf)
 	vim.api.nvim_win_set_cursor(self.chat_win, { count, 0 })
 	vim.cmd("startinsert")
