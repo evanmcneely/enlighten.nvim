@@ -21,7 +21,7 @@ function EnlightenPrompt:new(ai, settings)
 
 	local buf = api.nvim_get_current_buf()
 	local range = buffer.get_range()
-	local prompt_win = self:_create_window(range)
+	local prompt_win = self:_create_window(range, settings)
 
 	self.ai = ai
 	self.settings = settings
@@ -49,18 +49,18 @@ function EnlightenPrompt:close()
 end
 
 ---@param range Range
+---@param settings EnlightenPromptSettings
 ---@return { bufnr:number, win_id:number }
-function EnlightenPrompt:_create_window(range)
+function EnlightenPrompt:_create_window(range, settings)
 	Logger:log("prompt:_create_window - creating window", { range = range })
 
 	local buf = api.nvim_create_buf(false, true)
 	local win = api.nvim_open_win(buf, true, {
 		relative = "win",
-		width = 70,
-		height = 3,
+		width = settings.width,
+		height = settings.height,
 		bufpos = { range.row_start, 0 }, -- setting column position here was not effective
-		col = 70, -- trial-and-error getting the window out of the sign column
-		anchor = "SE",
+		anchor = "SW",
 		border = "single",
 		title = "Prompt",
 	})

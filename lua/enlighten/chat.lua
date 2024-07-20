@@ -30,8 +30,8 @@ function EnlightenChat:new(ai, settings)
 		snippet = buffer.get_content(buf, range.row_start, range.row_end + 1)
 	end
 
-	local chat_win = self:_create_chat_window()
-	local prompt_win = self:_create_prompt_window(chat_win.win_id, snippet)
+	local chat_win = self:_create_chat_window(settings)
+	local prompt_win = self:_create_prompt_window(chat_win.win_id, snippet, settings)
 
 	self.ai = ai
 	self.settings = settings
@@ -71,9 +71,10 @@ function EnlightenChat:close()
 end
 
 ---@param chat_win number
+---@param settings EnlightenChatSettings
 ---@param snippet? string
 ---@return { bufnr: number, win_id: number }
-function EnlightenChat:_create_prompt_window(chat_win, snippet)
+function EnlightenChat:_create_prompt_window(chat_win, settings, snippet)
 	Logger:log("prompt:_create_prompt_window - creating window")
 
 	local buf = api.nvim_create_buf(false, true)
@@ -81,7 +82,7 @@ function EnlightenChat:_create_prompt_window(chat_win, snippet)
 		relative = "win",
 		win = chat_win,
 		width = api.nvim_win_get_width(chat_win),
-		height = 6,
+		height = settings.height,
 		row = api.nvim_win_get_height(chat_win) - 6,
 		col = 0,
 		anchor = "NW",
@@ -114,13 +115,14 @@ function EnlightenChat:_create_prompt_window(chat_win, snippet)
 	}
 end
 
+---@param settings EnlightenChatSettings
 ---@return { bufnr: number, win_id: number }
-function EnlightenChat:_create_chat_window()
+function EnlightenChat:_create_chat_window(settings)
 	Logger:log("prompt:_create_chat_window - creating window")
 
 	local buf = api.nvim_create_buf(false, true)
 	local win = api.nvim_open_win(buf, true, {
-		width = 70,
+		width = settings.width,
 		vertical = true,
 		split = "right",
 		style = "minimal",
