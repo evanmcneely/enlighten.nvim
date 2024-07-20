@@ -65,8 +65,8 @@ function M.get_default_config()
 				height = 3,
 			},
 			chat = {
-				width = 80,
-				height = 6,
+				width = 60,
+				height = 10,
 			},
 		},
 	}

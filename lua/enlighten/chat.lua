@@ -31,7 +31,7 @@ function EnlightenChat:new(ai, settings)
 	end
 
 	local chat_win = self:_create_chat_window(settings)
-	local prompt_win = self:_create_prompt_window(chat_win.win_id, snippet, settings)
+	local prompt_win = self:_create_prompt_window(chat_win.win_id, settings, snippet)
 
 	self.ai = ai
 	self.settings = settings
@@ -79,15 +79,9 @@ function EnlightenChat:_create_prompt_window(chat_win, settings, snippet)
 
 	local buf = api.nvim_create_buf(false, true)
 	local win = api.nvim_open_win(buf, true, {
-		relative = "win",
-		win = chat_win,
 		width = api.nvim_win_get_width(chat_win),
 		height = settings.height,
-		row = api.nvim_win_get_height(chat_win) - 6,
-		col = 0,
-		anchor = "NW",
-		border = "single",
-		title = "Prompt",
+		split = "below",
 	})
 
 	api.nvim_set_option_value("number", false, { win = win })
@@ -124,7 +118,7 @@ function EnlightenChat:_create_chat_window(settings)
 	local win = api.nvim_open_win(buf, true, {
 		width = settings.width,
 		vertical = true,
-		split = "right",
+		split = "left",
 		style = "minimal",
 	})
 
@@ -134,7 +128,9 @@ function EnlightenChat:_create_chat_window(settings)
 	api.nvim_buf_set_name(buf, "enlighten-chat")
 	api.nvim_buf_set_option(buf, "filetype", "enlighten")
 	api.nvim_buf_set_option(buf, "wrap", true)
-
+	-- The StatusLine highlight was selected because it is usually slightly darker
+	-- or lighter than the buffer background color
+	api.nvim_win_set_option(win, "winhl", "Normal:StatusLine")
 	Logger:log("chat:_create_chat_window - window and buffer", { win = win, buf = buf })
 
 	return {
