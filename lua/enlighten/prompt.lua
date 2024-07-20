@@ -123,8 +123,13 @@ function EnlightenPrompt:submit()
 		and api.nvim_buf_is_valid(self.target_buf)
 	then
 		Logger:log("prompt:submit - let's go")
+
+		local function on_done()
+			vim.cmd("lua require('enlighten'):close_prompt()")
+		end
+
 		local prompt = self:_build_prompt()
-		local writer = Writer:new(self.target_buf, self.target_range)
+		local writer = Writer:new(self.target_buf, self.target_range, on_done)
 		self.ai:complete(prompt, writer)
 	end
 end

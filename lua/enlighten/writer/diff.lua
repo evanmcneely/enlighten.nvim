@@ -24,7 +24,7 @@ DiffWriter = {}
 
 ---@param buffer number
 ---@param range Range
----@param on_done fun():nil
+---@param on_done? fun():nil
 ---@return DiffWriter
 function DiffWriter:new(buffer, range, on_done)
 	local ns_id = api.nvim_create_namespace("Enlighten")
