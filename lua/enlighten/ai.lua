@@ -39,7 +39,7 @@ local prompt_system_prompt = [[
 
 local chat_system_prompt = [[
       You are a coding assistant helping a software developer edit code in their IDE.
-      You are provided a chat transcript between "Developer" and "Assistant" (you). The most recent messages are at the bottom. Messages are separated by "---"
+      You are provided a chat transcript between "Developer" and "Assistant" (you). The most recent messages are at the bottom.
       Support the developer by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
 ]]
 

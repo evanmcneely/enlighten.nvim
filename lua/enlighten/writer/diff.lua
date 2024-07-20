@@ -6,6 +6,7 @@ local utils = require("enlighten/utils")
 ---@field buffer number
 ---@field on_complete fun(self: DiffWriter, err: string?): nil
 ---@field on_data fun(self: DiffWriter, data: OpenAIStreamingResponse): nil
+---@field on_done fun(): nil
 
 ---@class DiffWriter: Writer
 ---@field range Range
@@ -23,8 +24,9 @@ DiffWriter = {}
 
 ---@param buffer number
 ---@param range Range
+---@param on_done fun():nil
 ---@return DiffWriter
-function DiffWriter:new(buffer, range)
+function DiffWriter:new(buffer, range, on_done)
 	local ns_id = api.nvim_create_namespace("Enlighten")
 	Logger:log("diff:new", { buffer = buffer, range = range, ns_id = ns_id })
 
@@ -36,6 +38,7 @@ function DiffWriter:new(buffer, range)
 		accumulated_line = "",
 		focused_line = range.row_start,
 		ns_id = ns_id,
+		on_done = on_done,
 	}, self)
 end
 
@@ -75,6 +78,9 @@ function DiffWriter:on_complete(err)
 	self:set_line(self.accumulated_line)
 	self.accumulated_line = ""
 	self:finish()
+	if self.on_done ~= nil then
+		self:on_done()
+	end
 
 	Logger:log("diff:on_complete - ai completion", self.accumulated_text)
 end

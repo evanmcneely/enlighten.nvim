@@ -9,8 +9,9 @@ StreamWriter = {}
 
 ---@param buffer number
 ---@param pos number[]
+---@param on_done fun(): nil
 ---@return StreamWriter
-function StreamWriter:new(buffer, pos)
+function StreamWriter:new(buffer, pos, on_done)
 	local ns_id = api.nvim_create_namespace("Enlighten")
 	Logger:log("stream:new", { buffer = buffer, ns_id = ns_id, pos = pos })
 
@@ -20,6 +21,7 @@ function StreamWriter:new(buffer, pos)
 		pos = pos,
 		accumulated_text = "",
 		ns_id = ns_id,
+		on_done = on_done,
 	}, self)
 end
 
@@ -81,6 +83,10 @@ function StreamWriter:on_complete(err)
 		Logger:log("stream:on_complete - error", err)
 		api.nvim_err_writeln("enlighten :" .. err)
 		return
+	end
+
+	if self.on_done ~= nil then
+		self:on_done()
 	end
 
 	Logger:log("stream:on_complete - ai completion", self.accumulated_text)
