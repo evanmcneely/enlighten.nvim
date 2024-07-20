@@ -5,19 +5,22 @@ local utils = require("enlighten/utils")
 ---@class StreamWriter: Writer
 ---@field pos number[]
 ---@field ns_id number
+---@field window number
 StreamWriter = {}
 
+---@param window number
 ---@param buffer number
 ---@param pos number[]
 ---@param on_done fun(): nil
 ---@return StreamWriter
-function StreamWriter:new(buffer, pos, on_done)
+function StreamWriter:new(window, buffer, pos, on_done)
 	local ns_id = api.nvim_create_namespace("Enlighten")
 	Logger:log("stream:new", { buffer = buffer, ns_id = ns_id, pos = pos })
 
 	self.__index = self
 	return setmetatable({
 		buffer = buffer,
+		window = window,
 		pos = pos,
 		accumulated_text = "",
 		ns_id = ns_id,
@@ -37,6 +40,7 @@ function StreamWriter:on_data(data)
 			api.nvim_buf_set_lines(self.buffer, -1, -1, false, { "" })
 			self.pos[1] = self.pos[1] + 1
 			self.pos[2] = 0
+			vim.api.nvim_win_set_cursor(self.window, self.pos)
 		end
 
 		-- Set the text at the position and update the position

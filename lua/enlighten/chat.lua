@@ -183,7 +183,7 @@ function EnlightenChat:submit()
 
 		local prompt = self:_build_prompt()
 		local count = api.nvim_buf_line_count(self.chat_buf)
-		local writer = Writer:new(self.chat_buf, { count, 0 }, on_complete)
+		local writer = Writer:new(self.chat_win, self.chat_buf, { count, 0 }, on_complete)
 		self.ai:chat(prompt, writer)
 	end
 end
