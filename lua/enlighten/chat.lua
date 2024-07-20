@@ -134,7 +134,7 @@ function EnlightenChat:_add_user(snippet)
 	local count = api.nvim_buf_line_count(self.chat_buf)
 
 	if count == 1 then
-		insert_line(self.chat_buf, ">>> Developer", "Visual")
+		insert_line(self.chat_buf, ">>> Developer", "Function")
 		insert_line(self.chat_buf, "")
 		if snippet ~= nil then
 			for _, l in pairs(snippet) do
@@ -145,7 +145,7 @@ function EnlightenChat:_add_user(snippet)
 		insert_line(self.chat_buf, "")
 	else
 		insert_line(self.chat_buf, "")
-		insert_line(self.chat_buf, ">>> Developer", "Visual")
+		insert_line(self.chat_buf, ">>> Developer", "Function")
 		insert_line(self.chat_buf, "")
 		insert_line(self.chat_buf, "")
 	end
@@ -157,7 +157,7 @@ end
 
 function EnlightenChat:_add_assistant()
 	insert_line(self.chat_buf, "")
-	insert_line(self.chat_buf, ">>> Assistant", "Visual")
+	insert_line(self.chat_buf, ">>> Assistant", "Function")
 	insert_line(self.chat_buf, "")
 	insert_line(self.chat_buf, "")
 end
