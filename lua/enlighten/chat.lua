@@ -118,24 +118,36 @@ function EnlightenChat:_move_content(from, to)
 	api.nvim_buf_set_lines(to, -1, -1, false, prompt)
 end
 
+---@param buf number
+---@param content string
+---@param highlight? string
+local function insert_line(buf, content, highlight)
+	api.nvim_buf_set_lines(buf, -1, -1, true, { content })
+	if highlight ~= nil then
+		local line = api.nvim_buf_line_count(buf)
+		api.nvim_buf_add_highlight(buf, -1, highlight, line - 1, 0, -1)
+	end
+end
+
 ---@param snippet? string[]
 function EnlightenChat:_add_user(snippet)
 	local count = api.nvim_buf_line_count(self.chat_buf)
 
 	if count == 1 then
-		local lines = { ">>> Developer", "" }
-		if snippet then
+		insert_line(self.chat_buf, ">>> Developer", "Visual")
+		insert_line(self.chat_buf, "")
+		if snippet ~= nil then
 			for _, l in pairs(snippet) do
-				table.insert(lines, l)
+				insert_line(self.chat_buf, l)
 			end
-			table.insert(lines, "")
-			table.insert(lines, "")
-		else
-			table.insert(lines, "")
+			insert_line(self.chat_buf, "")
 		end
-		api.nvim_buf_set_lines(self.chat_buf, -2, -1, true, lines)
+		insert_line(self.chat_buf, "")
 	else
-		api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "", ">>> Developer", "", "" })
+		insert_line(self.chat_buf, "")
+		insert_line(self.chat_buf, ">>> Developer", "Visual")
+		insert_line(self.chat_buf, "")
+		insert_line(self.chat_buf, "")
 	end
 
 	count = api.nvim_buf_line_count(self.chat_buf)
@@ -144,7 +156,10 @@ function EnlightenChat:_add_user(snippet)
 end
 
 function EnlightenChat:_add_assistant()
-	api.nvim_buf_set_lines(self.chat_buf, -1, -1, true, { "", ">>> Assistant", "", "" })
+	insert_line(self.chat_buf, "")
+	insert_line(self.chat_buf, ">>> Assistant", "Visual")
+	insert_line(self.chat_buf, "")
+	insert_line(self.chat_buf, "")
 end
 
 function EnlightenChat:_on_line(line)
