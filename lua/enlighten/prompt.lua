@@ -59,7 +59,7 @@ function EnlightenPrompt:_create_window(range, settings)
 		relative = "win",
 		width = settings.width,
 		height = settings.height,
-		bufpos = { range.row_start, 0 }, -- setting column position here was not effective
+		bufpos = { range.row_start, 0 },
 		anchor = "SW",
 		border = "single",
 		title = "Prompt",
