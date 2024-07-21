@@ -22,7 +22,6 @@ local M = {}
 
 ---@class EnlightenChatSettings
 ---@field width number -- chat pane width (number of columns)
----@field height number -- chat input pnompt window height (number of lines)
 
 ---@class EnlightenPartialPromptSettings
 ---@field width? number
@@ -30,7 +29,6 @@ local M = {}
 
 ---@class EnlightenPartialChatSettings
 ---@field width? number
----@field height? number
 
 ---@class EnlightenConfig
 ---@field ai { prompt: EnlightenAiConfig, chat: EnlightenAiConfig }
@@ -66,7 +64,6 @@ function M.get_default_config()
 			},
 			chat = {
 				width = 60,
-				height = 10,
 			},
 		},
 	}
