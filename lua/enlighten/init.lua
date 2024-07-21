@@ -40,6 +40,8 @@ function Enlighten.setup(self, partial_config)
 	---@diagnostic disable-next-line: param-type-mismatch
 	self.config = Config.merge_config(partial_config, self.config)
 
+	Config.validate_environment()
+
 	return self
 end
 
