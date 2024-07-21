@@ -108,7 +108,7 @@ function AI:request(endpoint, body, writer)
 	if not api_key then
 		Logger:log("ai:request - no api key")
 		---@diagnostic disable-next-line: param-type-mismatch
-		self.writer:on_complete("$OPENAI_API_KEY environment variable must be set")
+		writer:on_complete("$OPENAI_API_KEY environment variable must be set")
 		return
 	end
 
