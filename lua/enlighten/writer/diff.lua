@@ -14,7 +14,7 @@ local utils = require("enlighten/utils")
 ---@field accumulated_line string -- stores text of the current line before it added to the buffer
 ---@field focused_line number -- the current line in the buffer we are ready to write too
 ---@field ns_id number
-DiffWriter = {}
+local DiffWriter = {}
 
 ---@class Range
 ---@field col_start number

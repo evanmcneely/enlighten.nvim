@@ -6,7 +6,7 @@ local utils = require("enlighten/utils")
 ---@field pos number[]
 ---@field ns_id number
 ---@field window number
-StreamWriter = {}
+local StreamWriter = {}
 
 ---@param window number
 ---@param buffer number

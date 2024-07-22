@@ -1,3 +1,5 @@
+---@diagnostic disable: undefined-field
+
 local utils = require("enlighten.utils")
 
 describe("utils", function()

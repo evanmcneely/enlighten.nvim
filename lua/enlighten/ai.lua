@@ -32,9 +32,10 @@ local AI = {}
 ---@field max_tokens number
 ---@field temperature number
 
+-- luacheck: push ignore
 local prompt_system_prompt = [[
       You are a coding assistant helping a software developer edit code in their IDE.
-      All of you responses should consist of only the code you want to write. Do not include any explanations or summarys. Do not include code block markdown starting with ```. 
+      All of you responses should consist of only the code you want to write. Do not include any explanations or summarys. Do not include code block markdown starting with ```.
       Match the current indentation of the code snippet.
 ]]
 
@@ -43,12 +44,8 @@ local chat_system_prompt = [[
       You are provided a chat transcript between "Developer" and "Assistant" (you). The most recent messages are at the bottom.
       Support the developer by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
 ]]
----@param str string
----@return string
-local function trim(str)
-	---@diagnostic disable-next-line: redundant-return-value
-	return str:gsub("^%s+", ""):gsub("%s+$", "")
-end
+-- luacheck: pop
+
 ---@param config EnlightenAiConfig
 ---@return AI
 function AI:new(config)
