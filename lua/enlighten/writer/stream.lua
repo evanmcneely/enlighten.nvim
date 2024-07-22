@@ -85,7 +85,7 @@ end
 function StreamWriter:on_complete(err)
 	if err then
 		Logger:log("stream:on_complete - error", err)
-		api.nvim_err_writeln("enlighten :" .. err)
+		api.nvim_err_writeln("Enlighten: " .. err)
 		return
 	end
 

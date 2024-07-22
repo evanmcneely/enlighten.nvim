@@ -1,4 +1,5 @@
 local Logger = require("enlighten/logger")
+local utils = require("enlighten/utils")
 
 ---@class AI
 ---@field config EnlightenAiConfig
@@ -42,7 +43,12 @@ local chat_system_prompt = [[
       You are provided a chat transcript between "Developer" and "Assistant" (you). The most recent messages are at the bottom.
       Support the developer by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
 ]]
-
+---@param str string
+---@return string
+local function trim(str)
+	---@diagnostic disable-next-line: redundant-return-value
+	return str:gsub("^%s+", ""):gsub("%s+$", "")
+end
 ---@param config EnlightenAiConfig
 ---@return AI
 function AI:new(config)
@@ -130,21 +136,33 @@ function AI:request(endpoint, body, writer)
 		vim.json.encode(body),
 	}
 
-	local buffered_chunks = ""
+	-- A queue of JSON object strings to handle. Add to the end and take from the front.
+	local buffered_chunks = {}
+
 	local function on_stdout_chunk(chunk)
-		buffered_chunks = buffered_chunks .. chunk
+		-- A chunk here can look like three known things
+		--  1. "data: {...} data: [done]" : a single JSON object with data and prefix/suffix
+		--  2. "data: {...} data: {...} data: {...} ... data: [done]" : multiple JSON objects with data and prefix/suffix
+		--  3. {...} : a single JSON object with no prefix or suffix
+		--
+		--  This first case handles chunks that start with "data" and iterates over
+		--  all possible JSON objects in the string. The else case assumes the chunk is
+		--  valid JSON already.
+		if utils.starts_with(chunk, "data:") then
+			for json_str in chunk:gmatch("data:%s*(%b{})") do
+				table.insert(buffered_chunks, json_str)
+			end
+		else
+			table.insert(buffered_chunks, chunk)
+		end
 
-		-- Extract complete JSON objects from the buffered_chunks
-		local json_start, json_end = buffered_chunks:find("}\n")
-		while json_start do
-			local json_str = buffered_chunks:sub(1, json_end)
-			buffered_chunks = buffered_chunks:sub(json_end + 1)
-
-			-- Remove the "data: " prefix
-			json_str = json_str:gsub("data: ", "")
+		-- Decode and use all JSON objects here until none remain.
+		while buffered_chunks[1] ~= nil do
+			local json_str = table.remove(buffered_chunks, 1)
 
 			---@type OpenAIStreamingResponse | OpenAIError
 			local json = vim.json.decode(json_str)
+
 			if json.error then
 				---@diagnostic disable-next-line: param-type-mismatch
 				writer:on_complete(json.error.message)
@@ -152,8 +170,6 @@ function AI:request(endpoint, body, writer)
 				---@diagnostic disable-next-line: param-type-mismatch
 				writer:on_data(json)
 			end
-
-			json_start, json_end = buffered_chunks:find("}\n")
 		end
 	end
 
@@ -180,6 +196,7 @@ function AI:complete(prompt, writer)
 		},
 	}
 	Logger:log("ai:complete - request", { body = body })
+
 	self:request("chat/completions", body, writer)
 end
 

@@ -71,7 +71,7 @@ end
 function DiffWriter:on_complete(err)
 	if err then
 		Logger:log("diff:on_complete - error", err)
-		api.nvim_err_writeln("enlighten :" .. err)
+		api.nvim_err_writeln("Enlighten: " .. err)
 		return
 	end
 
