@@ -75,20 +75,14 @@ function StreamWriter:on_data(data)
     -- by inserting new lines into the buffer for every line after the one
     if #lines > 1 then
       for i = 1, #lines do
-        Logger:log(
-          "stream:on_data - setting",
-          { line = lines[i], pos = self.pos, text = text }
-        )
+        Logger:log("stream:on_data - setting", { line = lines[i], pos = self.pos, text = text })
         if i ~= 1 then
           new_line()
         end
         set_text(lines[i])
       end
     elseif lines[1] ~= nil then
-      Logger:log(
-        "stream:on_data - setting",
-        { line = lines[1], pos = self.pos, text = text }
-      )
+      Logger:log("stream:on_data - setting", { line = lines[1], pos = self.pos, text = text })
       set_text(lines[1])
     end
   end

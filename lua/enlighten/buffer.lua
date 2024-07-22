@@ -95,10 +95,7 @@ function M.get_content(buffer, start, finish)
   if not finish then
     finish = -1
   end
-  return table.concat(
-    api.nvim_buf_get_lines(buffer, start, finish, false),
-    "\n"
-  )
+  return table.concat(api.nvim_buf_get_lines(buffer, start, finish, false), "\n")
 end
 
 return M

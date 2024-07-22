@@ -93,8 +93,7 @@ function DiffWriter:set_line(line)
   -- focused line number by one to trigger replacement instead of insertion.
   local set_lines = self.focused_line - self.range.row_start
   local selected_lines = self.range.row_end - self.range.row_start
-  local replace_focused_line = self:is_selection()
-    and set_lines <= selected_lines
+  local replace_focused_line = self:is_selection() and set_lines <= selected_lines
   local end_line = self.focused_line + (replace_focused_line and 1 or 0)
 
   Logger:log(
@@ -102,13 +101,7 @@ function DiffWriter:set_line(line)
     { line = line, num = self.focused_line, replacing = replace_focused_line }
   )
 
-  api.nvim_buf_set_lines(
-    self.buffer,
-    self.focused_line,
-    end_line,
-    false,
-    { line }
-  )
+  api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
 end
 
 function DiffWriter:finish()
@@ -122,13 +115,7 @@ function DiffWriter:finish()
         "diff:finish - removing lines",
         { first = self.focused_line + 1, last = self.range.row_end + 1 }
       )
-      api.nvim_buf_set_lines(
-        self.buffer,
-        self.focused_line + 1,
-        self.range.row_end + 1,
-        false,
-        {}
-      )
+      api.nvim_buf_set_lines(self.buffer, self.focused_line + 1, self.range.row_end + 1, false, {})
     end
   end
 end

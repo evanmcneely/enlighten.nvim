@@ -38,18 +38,12 @@ end
 
 function EnlightenPrompt:close()
   if api.nvim_win_is_valid(self.prompt_win) then
-    Logger:log(
-      "prompt:close - closing window",
-      { prompt_win = self.prompt_win }
-    )
+    Logger:log("prompt:close - closing window", { prompt_win = self.prompt_win })
     api.nvim_win_close(self.prompt_win, true)
   end
 
   if api.nvim_buf_is_valid(self.prompt_buf) then
-    Logger:log(
-      "prompt:close - deleting buffer",
-      { prompt_buf = self.prompt_buf }
-    )
+    Logger:log("prompt:close - deleting buffer", { prompt_buf = self.prompt_buf })
     api.nvim_buf_delete(self.prompt_buf, { force = true })
   end
 end
@@ -78,10 +72,7 @@ function EnlightenPrompt:_create_window(range, settings)
   api.nvim_buf_set_option(buf, "filetype", "enlighten")
   api.nvim_buf_set_option(buf, "wrap", true)
 
-  Logger:log(
-    "prompt:_create_window - window and buffer",
-    { win = win, buf = buf }
-  )
+  Logger:log("prompt:_create_window - window and buffer", { win = win, buf = buf })
 
   return {
     bufnr = buf,
@@ -90,10 +81,7 @@ function EnlightenPrompt:_create_window(range, settings)
 end
 
 function EnlightenPrompt:focus()
-  if
-    api.nvim_buf_is_valid(self.prompt_buf)
-    and api.nvim_win_is_valid(self.prompt_win)
-  then
+  if api.nvim_buf_is_valid(self.prompt_buf) and api.nvim_win_is_valid(self.prompt_win) then
     Logger:log(
       "prompt:focus - focusing",
       { prompt_buf = self.prompt_buf, prompt_win = self.prompt_win }
@@ -136,11 +124,8 @@ end
 ---@return string
 function EnlightenPrompt:_build_prompt()
   local prompt = buffer.get_content(self.prompt_buf)
-  local snippet = buffer.get_content(
-    self.target_buf,
-    self.target_range.row_start,
-    self.target_range.row_end + 1
-  )
+  local snippet =
+    buffer.get_content(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1)
   local file_ext = buffer.get_file_extension(self.target_buf)
 
   return "File extension of the buffer is "

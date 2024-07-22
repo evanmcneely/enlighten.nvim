@@ -76,10 +76,7 @@ function EnlightenChat:_create_chat_window(settings)
   api.nvim_buf_set_option(buf, "filetype", "enlighten")
   api.nvim_buf_set_option(buf, "wrap", true)
 
-  Logger:log(
-    "chat:_create_chat_window - window and buffer",
-    { win = win, buf = buf }
-  )
+  Logger:log("chat:_create_chat_window - window and buffer", { win = win, buf = buf })
 
   return {
     bufnr = buf,
@@ -88,14 +85,8 @@ function EnlightenChat:_create_chat_window(settings)
 end
 
 function EnlightenChat:focus()
-  if
-    api.nvim_buf_is_valid(self.chat_buf)
-    and api.nvim_win_is_valid(self.chat_win)
-  then
-    Logger:log(
-      "chat:focus - focusing",
-      { buf = self.chat_buf, win = self.chat_win }
-    )
+  if api.nvim_buf_is_valid(self.chat_buf) and api.nvim_win_is_valid(self.chat_win) then
+    Logger:log("chat:focus - focusing", { buf = self.chat_buf, win = self.chat_win })
     api.nvim_set_current_win(self.chat_win)
     api.nvim_win_set_buf(self.chat_win, self.chat_buf)
   end
@@ -211,8 +202,7 @@ function EnlightenChat:submit()
 
     local prompt = self:_build_prompt()
     local count = api.nvim_buf_line_count(self.chat_buf)
-    local writer =
-      Writer:new(self.chat_win, self.chat_buf, { count, 0 }, on_complete)
+    local writer = Writer:new(self.chat_win, self.chat_buf, { count, 0 }, on_complete)
     self.ai:chat(prompt, writer)
   end
 end
