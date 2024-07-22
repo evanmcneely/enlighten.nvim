@@ -3,14 +3,16 @@ prepare:
 
 lint:
 	luacheck lua/enlighten tests/
+
+fmt:
+	stylua lua/enlighten tests/ --config-path=.stylua.toml
+
 unit:
-	@echo "Running unit tests..."
+	echo "Running unit tests..."
 	nvim --headless --noplugin  -c "PlenaryBustedDirectory tests/unit" -u "tests/minimal_init.vim"
-	@echo
 
 integration:
-	@echo "Running integration tests..."
+	echo "Running integration tests..."
 	nvim --headless --noplugin -c "PlenaryBustedDirectory tests/integration"
-	@echo
 
 test: unit integration
