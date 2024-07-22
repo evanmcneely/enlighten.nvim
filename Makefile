@@ -1,6 +1,7 @@
 prepare:
 	git clone git@github.com:nvim-lua/plenary.nvim.git
 	git config blame.ignoreRevsFile .git-blame-ignore-revs
+	echo "You will also need to install stylua and luacheck"
 
 lint:
 	luacheck lua/enlighten tests/
@@ -14,6 +15,6 @@ unit:
 
 integration:
 	echo "Running integration tests..."
-	nvim --headless --noplugin -c "PlenaryBustedDirectory tests/integration"
+	nvim --headless --noplugin -c "PlenaryBustedDirectory tests/integration" -u "tests/minimal_init.vim"
 
 test: unit integration
