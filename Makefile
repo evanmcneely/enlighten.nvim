@@ -1,5 +1,6 @@
 prepare:
 	git clone git@github.com:nvim-lua/plenary.nvim.git
+	git config blame.ignoreRevsFile .git-blame-ignore-revs
 
 lint:
 	luacheck lua/enlighten tests/
