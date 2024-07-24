@@ -1,5 +1,3 @@
----@diagnostic disable: undefined-field
-
 local Ai = require("enlighten.ai")
 local tu = require("tests.testutils")
 local MockWriter = require("tests.mock_writer")

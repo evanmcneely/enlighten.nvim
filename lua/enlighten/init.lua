@@ -6,8 +6,10 @@ local Config = require("enlighten/config")
 
 ---@class Enlighten
 ---@field config EnlightenConfig
----@field prompt EnlightenPrompt
 ---@field logger EnlightenLog
+---@field prompt EnlightenPrompt
+---@field chat EnlightenChat
+---@field ai AI
 local Enlighten = {}
 
 Enlighten.__index = Enlighten
@@ -20,6 +22,7 @@ function Enlighten:new()
     config = config,
     logger = Logger,
     prompt = nil,
+    chat = nil,
   }, self)
 
   return enlighten
@@ -39,6 +42,7 @@ function Enlighten.setup(self, partial_config)
 
   ---@diagnostic disable-next-line: param-type-mismatch
   self.config = Config.merge_config(partial_config, self.config)
+  self.ai = Ai:new(self.config.ai)
 
   Config.validate_environment()
 
@@ -54,8 +58,7 @@ function Enlighten:open_prompt()
   end
 
   self.logger:log("enlighten:open_prompt - new")
-  local ai = Ai:new(self.config.ai.prompt)
-  self.prompt = Prompt:new(ai, self.config.settings.prompt)
+  self.prompt = Prompt:new(self.ai, self.config.settings.prompt)
 end
 
 --- Close the prompt window if it exists and open it otherwise
@@ -96,8 +99,7 @@ function Enlighten:open_chat()
   end
 
   self.logger:log("enlighten:open_chat - new")
-  local ai = Ai:new(self.config.ai.chat)
-  self.chat = Chat:new(ai, self.config.settings.chat)
+  self.chat = Chat:new(self.ai, self.config.settings.chat)
 end
 
 --- Close the chat pane if it exists and open it otherwise

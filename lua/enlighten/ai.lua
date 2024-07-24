@@ -217,9 +217,9 @@ end
 ---@param prompt string
 function AI:complete(prompt, writer)
   local body = {
-    model = self.config.model,
-    max_tokens = self.config.tokens,
-    temperature = self.config.temperature,
+    model = self.config.prompt.model,
+    max_tokens = self.config.prompt.tokens,
+    temperature = self.config.prompt.temperature,
     stream = true,
     messages = {
       { role = "system", content = prompt_system_prompt },
@@ -238,9 +238,9 @@ end
 ---@param prompt string
 function AI:chat(prompt, writer)
   local body = {
-    model = self.config.model,
-    max_tokens = self.config.tokens,
-    temperature = self.config.temperature,
+    model = self.config.chat.model,
+    max_tokens = self.config.chat.tokens,
+    temperature = self.config.chat.temperature,
     stream = true,
     messages = {
       { role = "system", content = chat_system_prompt },

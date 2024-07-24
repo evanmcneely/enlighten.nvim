@@ -2,19 +2,27 @@ local Logger = require("enlighten/logger")
 
 local M = {}
 
----@class EnlightenAiConfig
+---@class EnlightenAiProviderConfig
 ---@field provider string -- AI model provider
 ---@field model string -- model used for completions
 ---@field temperature number
----@field timeout number
 ---@field tokens number -- token limit for completions
 
----@class EnlightenPartialAiConfig
+---@class EnlightenPartialAiProviderConfig
 ---@field provider? string
 ---@field model? string
 ---@field temperature? number
----@field timeout? number
 ---@field tokens? number
+
+---@class EnlightenAiConfig
+---@field chat EnlightenAiProviderConfig
+---@field prompt EnlightenAiProviderConfig
+---@field timeout number
+
+---@class EnlightenPartialAiConfig
+---@field chat? EnlightenPartialAiProviderConfig
+---@field prompt? EnlightenPartialAiProviderConfig
+---@field timeout? number
 
 ---@class EnlightenPromptSettings
 ---@field width number -- prompt window width (number of columns)
@@ -31,11 +39,11 @@ local M = {}
 ---@field width? number
 
 ---@class EnlightenConfig
----@field ai { prompt: EnlightenAiConfig, chat: EnlightenAiConfig }
+---@field ai EnlightenAiConfig
 ---@field settings { prompt: EnlightenPromptSettings, chat: EnlightenChatSettings }
 
 ---@class EnlightenPartialConfig
----@field ai { prompt: EnlightenPartialAiConfig, chat: EnlightenPartialAiConfig }
+---@field ai EnlightenPartialAiConfig
 ---@field settings { prompt: EnlightenPartialPromptSettings, chat: EnlightenPartialChatSettings }
 
 ---@return EnlightenConfig
@@ -46,16 +54,15 @@ function M.get_default_config()
         provider = "openai",
         model = "gpt-4o",
         temperature = 0,
-        timeout = 60,
         tokens = 4096,
       },
       chat = {
         provider = "openai",
         model = "gpt-4o",
         temperature = 0,
-        timeout = 60,
         tokens = 4096,
       },
+      timeout = 60,
     },
     settings = {
       prompt = {
