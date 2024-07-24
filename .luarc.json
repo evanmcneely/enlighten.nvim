@@ -1,0 +1,4 @@
+{
+  "diagnostics.disable": ["undefined-global"],
+  "format.enable": false
+}
