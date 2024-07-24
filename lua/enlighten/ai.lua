@@ -200,7 +200,6 @@ function AI:request(endpoint, body, writer)
       local json = vim.json.decode(json_str)
 
       if json.error then
-        ---@diagnostic disable-next-line: param-type-mismatch
         writer:on_complete(json.error.message)
       else
         ---@diagnostic disable-next-line: param-type-mismatch
@@ -210,7 +209,6 @@ function AI:request(endpoint, body, writer)
   end
 
   self.exec("curl", curl_args, on_stdout_chunk, function(err)
-    ---@diagnostic disable-next-line: param-type-mismatch
     writer:on_complete(err)
   end)
 end

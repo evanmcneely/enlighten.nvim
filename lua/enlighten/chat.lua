@@ -22,12 +22,13 @@ function EnlightenChat:new(ai, settings)
   local range = buffer.get_range()
 
   -- Getting the current snippet must occur before we create the buffers
+  ---@type string[]
   local snippet
   if buffer.is_visual_mode() then
     snippet = buffer.get_lines(buf, range.row_start, range.row_end + 1)
   end
 
-  local chat_win = self:_create_chat_window(settings)
+  local chat_win = self._create_chat_window(settings)
 
   self.ai = ai
   self.settings = settings
@@ -57,7 +58,7 @@ end
 
 ---@param settings EnlightenChatSettings
 ---@return { bufnr: number, win_id: number }
-function EnlightenChat:_create_chat_window(settings)
+function EnlightenChat._create_chat_window(settings)
   Logger:log("prompt:_create_chat_window - creating window")
 
   local buf = api.nvim_create_buf(false, true)
@@ -126,14 +127,6 @@ function EnlightenChat:_build_prompt()
   local prompt = buffer.get_content(self.chat_buf)
   return "Continue this conversation. Be concise. Most recent message is at the bottom...\n\n"
     .. prompt
-end
-
----@param from number
----@param to number
-function EnlightenChat:_move_content(from, to)
-  local prompt = buffer.get_lines(from)
-  api.nvim_buf_set_lines(from, 0, #prompt + 1, false, {})
-  api.nvim_buf_set_lines(to, -1, -1, false, prompt)
 end
 
 ---@param buf number

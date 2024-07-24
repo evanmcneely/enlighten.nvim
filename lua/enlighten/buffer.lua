@@ -68,6 +68,7 @@ end
 ---@param buffer number
 ---@param start? number
 ---@param finish? number
+---@return string[]
 function M.get_lines(buffer, start, finish)
   if not start then
     start = 0
@@ -81,6 +82,7 @@ end
 ---@param buffer number
 ---@param start? number
 ---@param finish? number
+---@return string
 function M.get_content(buffer, start, finish)
   if not start then
     start = 0

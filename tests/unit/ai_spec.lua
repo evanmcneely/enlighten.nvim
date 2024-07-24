@@ -16,7 +16,7 @@ describe("ai", function()
     ai = Ai:new(config.get_default_config().ai)
 
     -- Override the exec method so we can capture the stdout handler.
-    -- The exec method wont be tested here...
+    -- The exec method won't be tested here...
     ---@diagnostic disable-next-line: duplicate-set-field
     ai.exec = function(_, _, on_stdout_chunk)
       buffer_chunk = on_stdout_chunk

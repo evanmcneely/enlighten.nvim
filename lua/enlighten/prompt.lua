@@ -20,7 +20,7 @@ function EnlightenPrompt:new(ai, settings)
 
   local buf = api.nvim_get_current_buf()
   local range = buffer.get_range()
-  local prompt_win = self:_create_window(range, settings)
+  local prompt_win = self._create_window(range, settings)
 
   self.ai = ai
   self.settings = settings
@@ -50,7 +50,7 @@ end
 ---@param range Range
 ---@param settings EnlightenPromptSettings
 ---@return { bufnr:number, win_id:number }
-function EnlightenPrompt:_create_window(range, settings)
+function EnlightenPrompt._create_window(range, settings)
   Logger:log("prompt:_create_window - creating window", { range = range })
 
   local buf = api.nvim_create_buf(false, true)
