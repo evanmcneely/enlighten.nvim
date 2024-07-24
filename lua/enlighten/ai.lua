@@ -1,5 +1,4 @@
 local Logger = require("enlighten/logger")
-local utils = require("enlighten/utils")
 
 ---@class AI
 ---@field config EnlightenAiConfig
