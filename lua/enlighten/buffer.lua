@@ -66,13 +66,6 @@ function M.get_cursor_position()
 end
 
 ---@param buffer number
----@return string
-function M.get_file_extension(buffer)
-  local filename = api.nvim_buf_get_name(buffer)
-  return filename:match("^.+(%..+)$")
-end
-
----@param buffer number
 ---@param start? number
 ---@param finish? number
 function M.get_lines(buffer, start, finish)
@@ -96,6 +89,18 @@ function M.get_content(buffer, start, finish)
     finish = -1
   end
   return table.concat(api.nvim_buf_get_lines(buffer, start, finish, false), "\n")
+end
+
+--- Use in a autocmd to stick the current buffer to the window
+---@param buf number
+---@param win number
+function M.sticky_buffer(buf, win)
+  if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_win_is_valid(win) then
+    -- pcall necessary to avoid erroring with `mark not set` although no mark are set
+    -- this avoid other issues
+    -- TODO: error persists...
+    pcall(vim.api.nvim_win_set_buf, win, buf)
+  end
 end
 
 return M

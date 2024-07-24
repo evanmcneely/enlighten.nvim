@@ -11,7 +11,7 @@ local StreamWriter = {}
 ---@param window number
 ---@param buffer number
 ---@param pos number[]
----@param on_done fun(): nil
+---@param on_done? fun(): nil
 ---@return StreamWriter
 function StreamWriter:new(window, buffer, pos, on_done)
   local ns_id = api.nvim_create_namespace("Enlighten")
@@ -31,13 +31,15 @@ end
 ---@param data OpenAIStreamingResponse
 function StreamWriter:on_data(data)
   local completion = data.choices[1]
-  if completion.finish_reason == vim.NIL then
+  Logger:log("debug", data)
+  if not completion.finish_reason or completion.finish_reason == vim.NIL then
     local text = completion.delta.content
+    Logger:log("debug", text)
     self.accumulated_text = self.accumulated_text .. text
 
     -- Insert a new line into the buffer and update the position
     local function new_line()
-      api.nvim_buf_set_lines(self.buffer, -1, -1, false, { "" })
+      api.nvim_buf_set_lines(self.buffer, self.pos[1], self.pos[1], false, { "" })
       self.pos[1] = self.pos[1] + 1
       self.pos[2] = 0
       vim.api.nvim_win_set_cursor(self.window, self.pos)
@@ -68,7 +70,7 @@ function StreamWriter:on_data(data)
       return
     end
 
-    local lines = utils.split(text, "\n")
+    local lines = vim.split(text, "\n")
 
     -- If there is only one line we can set and move on. Multiple lines
     -- indicate newline characters are in the text and need to be handled

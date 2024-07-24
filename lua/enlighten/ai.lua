@@ -46,6 +46,41 @@ local chat_system_prompt = [[
 ]]
 -- luacheck: pop
 
+-- Try's to extract as many complete JSON strings out of the input
+-- string and returns them along with whatever junk si left over.
+---@param s string
+---@return string[], string
+local function extract_json(s)
+  local open = 0
+  local complete_json_strings = {}
+  local json_start = nil
+
+  for i = 1, #s do
+    local char = s:sub(i, i)
+    if char == "{" then
+      if open == 0 then
+        json_start = i -- Mark the start of a JSON string when we see the first '{'
+      end
+      open = open + 1
+    elseif char == "}" then
+      open = open - 1
+      if open == 0 and json_start then
+        local json_string = s:sub(json_start, i)
+        table.insert(complete_json_strings, json_string)
+        json_start = nil -- Reset the start marker for the next JSON string
+      end
+    end
+  end
+
+  -- Handle any remaining part of the string that might be an incomplete JSON string
+  local remaining_string = ""
+  if json_start then
+    remaining_string = s:sub(json_start) -- Unhandled part starts from the last JSON start
+  end
+
+  return complete_json_strings, remaining_string
+end
+
 ---@param config EnlightenAiConfig
 ---@return AI
 function AI:new(config)
@@ -133,29 +168,33 @@ function AI:request(endpoint, body, writer)
     vim.json.encode(body),
   }
 
+  -- Chunks of text to be processed. Can be incomplete JSON strings mixed with "data:" prefixes.
+  local buffered_chunks = ""
   -- A queue of JSON object strings to handle. Add to the end and take from the front.
-  local buffered_chunks = {}
+  local processed_chunks = {}
 
+  ---@param chunk string
   local function on_stdout_chunk(chunk)
     -- A chunk here can look like three known things
     --  1. "data: {...} data: [done]" : a single JSON object with data and prefix/suffix
     --  2. "data: {...} data: {...} data: {...} ... data: [done]" : multiple JSON objects with data and prefix/suffix
     --  3. {...} : a single JSON object with no prefix or suffix
+    --  4. "data: {.." : an incomplete string of text
     --
-    --  This first case handles chunks that start with "data" and iterates over
-    --  all possible JSON objects in the string. The else case assumes the chunk is
-    --  valid JSON already.
-    if utils.starts_with(chunk, "data:") then
-      for json_str in chunk:gmatch("data:%s*(%b{})") do
-        table.insert(buffered_chunks, json_str)
-      end
-    else
-      table.insert(buffered_chunks, chunk)
+    --  To handle incomplete chunks (a rarity) we assemble all the text we have in
+    --  buffered_chunks before trying to extract as many complete JSON strings out
+    --  of it as we can. Those get processed, leaving the rest for next time.
+    buffered_chunks = buffered_chunks .. chunk
+    local c, s = extract_json(buffered_chunks)
+    buffered_chunks = s
+
+    for _, json_str in ipairs(c) do
+      table.insert(processed_chunks, json_str)
     end
 
     -- Decode and use all JSON objects here until none remain.
-    while buffered_chunks[1] ~= nil do
-      local json_str = table.remove(buffered_chunks, 1)
+    while processed_chunks[1] ~= nil do
+      local json_str = table.remove(processed_chunks, 1)
 
       ---@type OpenAIStreamingResponse | OpenAIError
       local json = vim.json.decode(json_str)

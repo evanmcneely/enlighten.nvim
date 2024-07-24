@@ -3,7 +3,6 @@ local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/stream")
 local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
-local utils = require("enlighten/utils")
 
 ---@class EnlightenChat
 ---@field settings EnlightenChatSettings
@@ -116,7 +115,7 @@ function EnlightenChat:_set_chat_keymaps()
   )
   api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
     callback = function()
-      utils.sticky_buffer(self.chat_buf, self.chat_win)
+      buffer.sticky_buffer(self.chat_buf, self.chat_win)
     end,
     group = group,
   })

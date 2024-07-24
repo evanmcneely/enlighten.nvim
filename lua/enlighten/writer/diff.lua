@@ -1,11 +1,10 @@
 local api = vim.api
 local Logger = require("enlighten/logger")
-local utils = require("enlighten/utils")
 
 ---@class Writer
 ---@field buffer number
----@field on_complete fun(self: DiffWriter, err: string?): nil
----@field on_data fun(self: DiffWriter, data: OpenAIStreamingResponse): nil
+---@field on_complete fun(self: Writer, err: string?): nil
+---@field on_data fun(self: Writer, data: OpenAIStreamingResponse): nil
 ---@field on_done fun(): nil
 
 ---@class DiffWriter: Writer
@@ -46,12 +45,12 @@ end
 function DiffWriter:on_data(data)
   local completion = data.choices[1]
 
-  if completion.finish_reason == vim.NIL then
+  if not completion.finish_reason or completion.finish_reason == vim.NIL then
     local text = completion.delta.content
     self.accumulated_line = self.accumulated_line .. text
     self.accumulated_text = self.accumulated_text .. text
 
-    local lines = utils.split(self.accumulated_line, "\n")
+    local lines = vim.split(self.accumulated_line, "\n")
 
     -- Lines having a length greater than 1 indicates that there are
     -- complete lines ready to be set in the buffer. We set all of them

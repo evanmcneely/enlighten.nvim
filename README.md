@@ -65,6 +65,7 @@ Shout out to [Cursor](https://www.cursor.com/) the AI Code Editor which [in my o
 
 ## 🏎️ Roadmap
 
+- [ ] Allow cancelling/stopping generation.
 - [ ] Prompt: Show a diff of generated text against existing text so a developer can review the modified code and allow approve or decline it.
 - [ ] Prompt: Retry completion with another prompt so a developer can iteratively refine the models output before approving.
 - [ ] Chat: @use directive to edit buffer with context from the chat.

@@ -1,5 +1,4 @@
 local api = vim.api
-local utils = require("enlighten/utils")
 local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/diff")
 local group = require("enlighten/autocmd")
@@ -115,7 +114,7 @@ function EnlightenPrompt:_set_prompt_keymaps()
   )
   api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
     callback = function()
-      utils.sticky_buffer(self.prompt_buf, self.prompt_win)
+      buffer.sticky_buffer(self.prompt_buf, self.prompt_win)
     end,
     group = group,
   })
@@ -126,10 +125,10 @@ function EnlightenPrompt:_build_prompt()
   local prompt = buffer.get_content(self.prompt_buf)
   local snippet =
     buffer.get_content(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1)
-  local file_ext = buffer.get_file_extension(self.target_buf)
+  local file_name = api.nvim_buf_get_name(self.target_buf)
 
-  return "File extension of the buffer is "
-    .. file_ext
+  return "File name of the file in the buffer is "
+    .. file_name
     .. "\n"
     .. "Rewrite the following code snippet following these instructions: "
     .. prompt

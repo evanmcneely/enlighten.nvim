@@ -1,5 +1,3 @@
-local utils = require("enlighten/utils")
-
 ---@class EnlightenLog
 ---@field lines string[]
 ---@field max_lines number
@@ -60,7 +58,7 @@ function EnlightenLog:log(...)
 
   local lines = {}
   for _, line in ipairs(processed) do
-    local s = utils.split(line, "\n")
+    local s = vim.split(line, "\n")
     for _, l in ipairs(s) do
       if not is_white_space(l) then
         local ll = trim(remove_duplicate_whitespace(l))
