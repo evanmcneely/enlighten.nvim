@@ -112,6 +112,7 @@ function AI.exec(cmd, args, on_stdout_chunk, on_complete)
 
   local handle
 
+  -- luacheck: ignore
   handle, error = vim.loop.spawn(cmd, {
     args = args,
     stdio = { nil, stdout, stderr },

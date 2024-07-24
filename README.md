@@ -69,6 +69,7 @@ Shout out to [Cursor](https://www.cursor.com/) the AI Code Editor which [in my o
 - [ ] Prompt: Show a diff of generated text against existing text so a developer can review the modified code and allow approve or decline it.
 - [ ] Prompt: Retry completion with another prompt so a developer can iteratively refine the models output before approving.
 - [ ] Chat: @use directive to edit buffer with context from the chat.
+- [ ] Chat: history
 - [ ] Completion without prompt - just use code context to try and generate code (inserting at the cursor).
 - [ ] Add Anthropic as a provider for generating content (abstraction to allow adding more model providers and local models in the future).
 - [ ] Prompt and Chat: @ directive for searching code base for functions, classes, etc. to be added to context when generating a completion. Create codebase embeddings.

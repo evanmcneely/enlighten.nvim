@@ -10,11 +10,9 @@ fmt:
 	stylua lua/enlighten tests/ --config-path=.stylua.toml
 
 unit:
-	echo "Running unit tests..."
 	nvim --headless --noplugin  -c "PlenaryBustedDirectory tests/unit" -u "tests/minimal_init.vim"
 
 integration:
-	echo "Running integration tests..."
 	nvim --headless --noplugin -c "PlenaryBustedDirectory tests/integration" -u "tests/minimal_init.vim"
 
 test: unit integration
