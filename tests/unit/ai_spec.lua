@@ -24,12 +24,31 @@ describe("ai", function()
     ai:complete("prompt", writer)
   end)
 
+  it("should not call writer:on_data when completion is ''", function()
+    local obj = tu.openai_response("")
+
+    buffer_chunk(vim.json.encode(obj))
+
+    equals(0, #writer.data)
+    equals(0, writer.on_complete_calls)
+  end)
+
+  it("should not call writer:on_data when completion is ''", function()
+    local obj = tu.openai_response("")
+
+    buffer_chunk(vim.json.encode(obj))
+
+    equals(0, #writer.data)
+    equals(0, writer.on_complete_calls)
+  end)
+
   it("should call writer:on_data when a chunk is received", function()
-    local obj = tu.openai_response("wassup")
+    local text = "wassup"
+    local obj = tu.openai_response(text)
 
     -- When a response streams in, it should get buffered into the writer:on_data method
     buffer_chunk(vim.json.encode(obj))
-    equals(obj, writer.data[1])
+    equals(text, writer.data[1])
 
     -- And the writer:on_complete should not be called
     equals(1, #writer.data)
@@ -37,11 +56,12 @@ describe("ai", function()
   end)
 
   it("should process chunks with 'data:' prefix", function()
-    local obj = tu.openai_response("wassup")
+    local text = "wassup"
+    local obj = tu.openai_response(text)
 
     -- When a response streams in, it should get buffered into the writer:on_data method
     buffer_chunk("data: " .. vim.json.encode(obj))
-    equals(obj, writer.data[1])
+    equals(text, writer.data[1])
 
     -- And the writer:on_complete should not be called
     equals(1, #writer.data)
@@ -49,14 +69,15 @@ describe("ai", function()
   end)
 
   it("should process multiple incoming chunks with 'data:' prefix", function()
-    local res = tu.openai_response("wassup")
+    local text = "wassup"
+    local res = tu.openai_response(text)
     local chunk = vim.json.encode(res)
 
     -- When a response streams in, it should get buffered into the writer:on_data method
     buffer_chunk("data: " .. chunk .. " data: " .. chunk .. " data: " .. chunk)
-    equals(res, writer.data[1])
-    equals(res, writer.data[2])
-    equals(res, writer.data[3])
+    equals(text, writer.data[1])
+    equals(text, writer.data[2])
+    equals(text, writer.data[3])
 
     -- And the writer:on_complete should not be called
     equals(3, #writer.data)
@@ -64,7 +85,8 @@ describe("ai", function()
   end)
 
   it("should process incomplete json chunks", function()
-    local response = tu.openai_response("wassup")
+    local text = "wassup"
+    local response = tu.openai_response(text)
     local chunk = vim.json.encode(response) or ""
     local chunk_1 = chunk:sub(1, #chunk / 2)
     local chunk_2 = chunk:sub(#chunk / 2 + 1)
@@ -76,7 +98,7 @@ describe("ai", function()
     -- When the second half comes in, completing the first, the response is processed
     buffer_chunk(chunk_2)
     equals(1, #writer.data)
-    equals(response, writer.data[1])
+    equals(text, writer.data[1])
 
     -- And writer:on_complete should not be called
     equals(0, writer.on_complete_calls)
@@ -85,11 +107,11 @@ describe("ai", function()
   it("should process open and close {} in completion content", function()
     local open = tu.openai_response("{")
     buffer_chunk(vim.json.encode(open))
-    equals(open, writer.data[1])
+    equals("{", writer.data[1])
 
-    local close = tu.openai_response("{")
+    local close = tu.openai_response("}")
     buffer_chunk(vim.json.encode(close))
-    equals(close, writer.data[1])
+    equals("}", writer.data[2])
   end)
 
   it("should call writer:on_complete when an error is received", function()

@@ -211,8 +211,13 @@ function AI:request(endpoint, body, writer)
       if json.error then
         writer:on_complete(json.error.message)
       else
-        ---@diagnostic disable-next-line: param-type-mismatch
-        writer:on_data(json)
+        local completion = json.choices[1]
+        if not completion.finish_reason or completion.finish_reason == vim.NIL then
+          local text = completion.delta.content
+          if #text > 0 then
+            writer:on_data(text)
+          end
+        end
       end
     end
   end

@@ -4,7 +4,7 @@ local Logger = require("enlighten/logger")
 ---@class Writer
 ---@field buffer number
 ---@field on_complete fun(self: Writer, err: string?): nil
----@field on_data fun(self: Writer, data: OpenAIStreamingResponse): nil
+---@field on_data fun(self: Writer, data: string): nil
 ---@field on_done fun(): nil
 
 ---@class DiffWriter: Writer
@@ -41,29 +41,24 @@ function DiffWriter:new(buffer, range, on_done)
   }, self)
 end
 
----@param data OpenAIStreamingResponse
-function DiffWriter:on_data(data)
-  local completion = data.choices[1]
+---@param text string
+function DiffWriter:on_data(text)
+  self.accumulated_line = self.accumulated_line .. text
+  self.accumulated_text = self.accumulated_text .. text
 
-  if not completion.finish_reason or completion.finish_reason == vim.NIL then
-    local text = completion.delta.content
-    self.accumulated_line = self.accumulated_line .. text
-    self.accumulated_text = self.accumulated_text .. text
+  local lines = vim.split(self.accumulated_line, "\n")
 
-    local lines = vim.split(self.accumulated_line, "\n")
-
-    -- Lines having a length greater than 1 indicates that there are
-    -- complete lines ready to be set in the buffer. We set all of them
-    -- before resetting our current accumulated_line to the last line
-    -- in the table._by_new_line(self.accumulated_line)
-    if #lines > 1 then
-      -- Skip last line as it is not complete yet
-      for i = 1, #lines - 1 do
-        self:set_line(lines[i])
-        self.focused_line = self.focused_line + 1
-      end
-      self.accumulated_line = lines[#lines]
+  -- Lines having a length greater than 1 indicates that there are
+  -- complete lines ready to be set in the buffer. We set all of them
+  -- before resetting our current accumulated_line to the last line
+  -- in the table._by_new_line(self.accumulated_line)
+  if #lines > 1 then
+    -- Skip last line as it is not complete yet
+    for i = 1, #lines - 1 do
+      self:set_line(lines[i])
+      self.focused_line = self.focused_line + 1
     end
+    self.accumulated_line = lines[#lines]
   end
 end
 

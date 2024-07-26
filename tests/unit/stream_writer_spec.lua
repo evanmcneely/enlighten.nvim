@@ -20,13 +20,6 @@ describe("StreamWriter", function()
     pos = { 3, 3 }
   end)
 
-  it("should ignore 'stop' finish reason", function()
-    local writer = StreamWriter:new(win, buf, pos)
-
-    writer:on_data(tu.openai_response("", "stop"))
-    equals(buffer.get_content(buf), content)
-  end)
-
   it("should call on_done when complete", function()
     local done = false
     local function on_done()
@@ -42,49 +35,49 @@ describe("StreamWriter", function()
   it("should write text to the middle of a buffer", function()
     local writer = StreamWriter:new(win, buf, pos)
 
-    writer:on_data(tu.openai_response("stuff"))
+    writer:on_data("stuff")
     equals("aaa\nbbb\ncccstuff\nddd\neee", buffer.get_content(buf))
   end)
 
   it("should write text to the start of a buffer", function()
     local writer = StreamWriter:new(win, buf, { 1, 0 })
 
-    writer:on_data(tu.openai_response("stuff"))
+    writer:on_data("stuff")
     equals("stuffaaa\nbbb\nccc\nddd\neee", buffer.get_content(buf))
   end)
 
   it("should write text to the end of a buffer", function()
     local writer = StreamWriter:new(win, buf, { 5, 3 })
 
-    writer:on_data(tu.openai_response("stuff"))
+    writer:on_data("stuff")
     equals("aaa\nbbb\nccc\nddd\neeestuff", buffer.get_content(buf))
   end)
 
   it("should write new line characters in the middle of a buffer", function()
     local writer = StreamWriter:new(win, buf, pos)
 
-    writer:on_data(tu.openai_response("\n"))
+    writer:on_data("\n")
     equals("aaa\nbbb\nccc\n\nddd\neee", buffer.get_content(buf))
   end)
 
   it("should write multiple new line characters in the middle of a buffer", function()
     local writer = StreamWriter:new(win, buf, pos)
 
-    writer:on_data(tu.openai_response("\n\n"))
+    writer:on_data("\n\n")
     equals("aaa\nbbb\nccc\n\n\nddd\neee", buffer.get_content(buf))
   end)
 
   it("should write new line characters at the end of a buffer", function()
     local writer = StreamWriter:new(win, buf, { 5, 3 })
 
-    writer:on_data(tu.openai_response("\n"))
+    writer:on_data("\n")
     equals("aaa\nbbb\nccc\nddd\neee\n", buffer.get_content(buf))
   end)
 
   it("should write a mix of text and new line characters", function()
     local writer = StreamWriter:new(win, buf, pos)
 
-    writer:on_data(tu.openai_response("\nstuff\n"))
+    writer:on_data("\nstuff\n")
     equals("aaa\nbbb\nccc\nstuff\n\nddd\neee", buffer.get_content(buf))
   end)
 end)

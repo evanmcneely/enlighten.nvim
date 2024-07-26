@@ -20,13 +20,6 @@ describe("DiffWriter", function()
     }
   end)
 
-  it("should ignore 'stop' finish reason", function()
-    local writer = DiffWriter:new(buf, range)
-
-    writer:on_data(tu.openai_response("", "stop"))
-    equals(buffer.get_content(buf), content)
-  end)
-
   it("should call on_done when complete", function()
     local done = false
     local function on_done()
@@ -43,29 +36,29 @@ describe("DiffWriter", function()
     local writer = DiffWriter:new(buf, range)
 
     -- Text is streaming in
-    writer:on_data(tu.openai_response("hello"))
-    writer:on_data(tu.openai_response(" "))
-    writer:on_data(tu.openai_response("world"))
+    writer:on_data("hello")
+    writer:on_data(" ")
+    writer:on_data("world")
 
     -- No text should be written/changed yet
     equals(buffer.get_content(buf), content)
 
     -- Text should be written after new line
-    writer:on_data(tu.openai_response("\n"))
+    writer:on_data("\n")
     equals("aaa\nbbb\nhello world\nccc\nddd\neee", buffer.get_content(buf))
   end)
 
   it("should handle double new line characters as input", function()
     local writer = DiffWriter:new(buf, range)
 
-    writer:on_data(tu.openai_response("\n\n"))
+    writer:on_data("\n\n")
     equals("aaa\nbbb\n\n\nccc\nddd\neee", buffer.get_content(buf))
   end)
 
   it("should handle double new line characters separated by text as input", function()
     local writer = DiffWriter:new(buf, range)
 
-    writer:on_data(tu.openai_response("\nhere\n"))
+    writer:on_data("\nhere\n")
     equals("aaa\nbbb\n\nhere\nccc\nddd\neee", buffer.get_content(buf))
   end)
 
@@ -73,7 +66,7 @@ describe("DiffWriter", function()
     local writer = DiffWriter:new(buf, range)
 
     -- The text "here" remains to accumulate on new line
-    writer:on_data(tu.openai_response("\nhere"))
+    writer:on_data("\nhere")
     equals("aaa\nbbb\n\nccc\nddd\neee", buffer.get_content(buf))
   end)
 
@@ -81,7 +74,7 @@ describe("DiffWriter", function()
     local writer = DiffWriter:new(buf, range)
 
     -- Text is received that is unwritten
-    writer:on_data(tu.openai_response("hello world"))
+    writer:on_data("hello world")
     equals(buffer.get_content(buf), content)
 
     -- Now text get written
@@ -93,7 +86,7 @@ describe("DiffWriter", function()
     it("should write to the middle of the buffer", function()
       local writer = DiffWriter:new(buf, range)
 
-      writer:on_data(tu.openai_response("hello\n"))
+      writer:on_data("hello\n")
       equals("aaa\nbbb\nhello\nccc\nddd\neee", buffer.get_content(buf))
     end)
 
@@ -102,7 +95,7 @@ describe("DiffWriter", function()
       range.row_end = 5
       local writer = DiffWriter:new(buf, range)
 
-      writer:on_data(tu.openai_response("hello\n"))
+      writer:on_data("hello\n")
       equals("aaa\nbbb\nccc\nddd\neee\nhello", buffer.get_content(buf))
     end)
 
@@ -111,7 +104,7 @@ describe("DiffWriter", function()
       range.row_end = 0
       local writer = DiffWriter:new(buf, range)
 
-      writer:on_data(tu.openai_response("hello\n"))
+      writer:on_data("hello\n")
       equals("hello\naaa\nbbb\nccc\nddd\neee", buffer.get_content(buf))
     end)
 
@@ -120,7 +113,7 @@ describe("DiffWriter", function()
       range.col_end = 2
       local writer = DiffWriter:new(buf, range)
 
-      writer:on_data(tu.openai_response("hello\n"))
+      writer:on_data("hello\n")
       equals("aaa\nbbb\nhello\nccc\nddd\neee", buffer.get_content(buf))
     end)
   end)
@@ -138,20 +131,20 @@ describe("DiffWriter", function()
     it("should replace lines with new content", function()
       local writer = DiffWriter:new(buf, range)
 
-      writer:on_data(tu.openai_response("hello\n"))
+      writer:on_data("hello\n")
       equals("aaa\nbbb\nhello\nddd\neee", buffer.get_content(buf))
     end)
 
     it("should replace multiple lines with new content until end of range", function()
       local writer = DiffWriter:new(buf, range)
 
-      writer:on_data(tu.openai_response("one\n"))
+      writer:on_data("one\n")
       equals("aaa\nbbb\none\nddd\neee", buffer.get_content(buf))
-      writer:on_data(tu.openai_response("two\n"))
+      writer:on_data("two\n")
       equals("aaa\nbbb\none\ntwo\neee", buffer.get_content(buf))
 
       -- Insterts new text now
-      writer:on_data(tu.openai_response("three\n"))
+      writer:on_data("three\n")
       equals("aaa\nbbb\none\ntwo\nthree\neee", buffer.get_content(buf))
     end)
 
@@ -159,7 +152,7 @@ describe("DiffWriter", function()
       range.row_start = 1
       local writer = DiffWriter:new(buf, range)
 
-      writer:on_data(tu.openai_response("one\n"))
+      writer:on_data("one\n")
       writer:on_complete()
 
       -- This is current behaviour
