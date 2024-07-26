@@ -12,8 +12,11 @@ describe("StreamWriter", function()
   local pos
 
   before_each(function()
+    vim.cmd("vsplit")
+    win = vim.api.nvim_get_current_win()
     buf = tu.prepare_buffer(content)
-    win = vim.api.nvim_open_win(buf, true, { split = "left" })
+    vim.api.nvim_win_set_buf(win, buf)
+
     pos = { 3, 3 }
   end)
 

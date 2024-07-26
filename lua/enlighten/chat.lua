@@ -61,20 +61,18 @@ end
 function EnlightenChat._create_chat_window(settings)
   Logger:log("prompt:_create_chat_window - creating window")
 
-  local buf = api.nvim_create_buf(false, true)
-  local win = api.nvim_open_win(buf, true, {
-    width = settings.width,
-    vertical = true,
-    split = "left",
-    style = "minimal",
-  })
+  vim.cmd("leftabove vsplit")
+  local win = vim.api.nvim_get_current_win()
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_win_set_buf(win, buf)
+  vim.api.nvim_win_set_width(win, settings.width)
 
   api.nvim_set_option_value("number", false, { win = win })
   api.nvim_set_option_value("signcolumn", "no", { win = win })
-  api.nvim_buf_set_option(buf, "buftype", "nofile")
+  api.nvim_set_option_value("buftype", "nofile", { buf = buf })
   api.nvim_buf_set_name(buf, "enlighten-chat")
-  api.nvim_buf_set_option(buf, "filetype", "enlighten")
-  api.nvim_buf_set_option(buf, "wrap", true)
+  api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
+  api.nvim_set_option_value("wrap", true, { win = win })
 
   Logger:log("chat:_create_chat_window - window and buffer", { win = win, buf = buf })
 
