@@ -55,6 +55,7 @@ function StreamWriter:on_data(data)
         { t }
       )
       self.pos[2] = self.pos[2] + #t
+      vim.api.nvim_win_set_cursor(self.window, self.pos)
     end
 
     -- Handle all new line characters at the start of the string
