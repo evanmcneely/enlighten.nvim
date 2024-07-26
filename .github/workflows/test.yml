@@ -13,6 +13,8 @@ jobs:
           - os: ubuntu-22.04
             rev: nightly/nvim-linux64.tar.gz
           - os: ubuntu-22.04
+            rev: v0.8.0/nvim-linux64.tar.gz
+          - os: ubuntu-22.04
             rev: v0.9.0/nvim-linux64.tar.gz
           - os: ubuntu-22.04
             rev: v0.10.0/nvim-linux64.tar.gz

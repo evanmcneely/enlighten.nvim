@@ -61,9 +61,12 @@ function EnlightenPrompt._create_window(range, settings)
     bufpos = { range.row_start, 0 },
     anchor = "SW",
     border = "single",
-    title = "Prompt",
   })
 
+  -- nvim 0.8.0+ get's a title
+  if vim.version().minor > 8 or vim.version().major > 0 then
+    api.nvim_win_set_config(win, { title = "Prompt" })
+  end
   api.nvim_set_option_value("number", false, { win = win })
   api.nvim_set_option_value("signcolumn", "no", { win = win })
   api.nvim_set_option_value("buftype", "nofile", { buf = buf })
