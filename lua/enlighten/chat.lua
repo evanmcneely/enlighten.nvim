@@ -61,7 +61,11 @@ end
 function EnlightenChat._create_chat_window(settings)
   Logger:log("prompt:_create_chat_window - creating window")
 
-  vim.cmd("leftabove vsplit")
+  if settings.split == "left" then
+    vim.cmd("leftabove vsplit")
+  else
+    vim.cmd("vsplit")
+  end
   local win = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_win_set_buf(win, buf)

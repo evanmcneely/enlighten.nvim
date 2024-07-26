@@ -30,6 +30,7 @@ local M = {}
 
 ---@class EnlightenChatSettings
 ---@field width number -- chat pane width (number of columns)
+---@field split string -- side to vsplit that into (default right)
 
 ---@class EnlightenPartialPromptSettings
 ---@field width? number
@@ -71,6 +72,7 @@ function M.get_default_config()
       },
       chat = {
         width = 60,
+        split = "right",
       },
     },
   }
