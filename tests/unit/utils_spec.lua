@@ -1,5 +1,3 @@
----@diagnostic disable: undefined-field
-
 local utils = require("enlighten.utils")
 
 local equals = assert.are.same

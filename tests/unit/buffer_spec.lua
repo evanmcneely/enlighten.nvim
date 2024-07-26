@@ -1,5 +1,3 @@
----@diagnostic disable: undefined-field
-
 local buffer = require("enlighten.buffer")
 local tu = require("tests.testutils")
 

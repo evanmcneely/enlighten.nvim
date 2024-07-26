@@ -82,6 +82,16 @@ describe("ai", function()
     equals(0, writer.on_complete_calls)
   end)
 
+  it("should process open and close {} in completion content", function()
+    local open = tu.openai_response("{")
+    buffer_chunk(vim.json.encode(open))
+    equals(open, writer.data[1])
+
+    local close = tu.openai_response("{")
+    buffer_chunk(vim.json.encode(close))
+    equals(close, writer.data[1])
+  end)
+
   it("should call writer:on_complete when an error is received", function()
     local obj = tu.openai_error()
 

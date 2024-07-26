@@ -42,4 +42,4 @@ jobs:
           export OPENAI_API_KEY="not-real" # something needs to exist
           export PATH="${PWD}/_neovim/bin:${PATH}"
           nvim --version
-          make unit
+          make test

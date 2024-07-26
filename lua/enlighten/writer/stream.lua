@@ -31,10 +31,8 @@ end
 ---@param data OpenAIStreamingResponse
 function StreamWriter:on_data(data)
   local completion = data.choices[1]
-  Logger:log("debug", data)
   if not completion.finish_reason or completion.finish_reason == vim.NIL then
     local text = completion.delta.content
-    Logger:log("debug", text)
     self.accumulated_text = self.accumulated_text .. text
 
     -- Insert a new line into the buffer and update the position

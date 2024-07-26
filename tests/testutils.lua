@@ -41,4 +41,14 @@ function M.openai_error()
   }
 end
 
+---@param keys string
+local function escape_keys(keys)
+  return vim.api.nvim_replace_termcodes(keys, true, false, true)
+end
+
+---@param keys string
+function M.feedkeys(keys)
+  vim.api.nvim_feedkeys(escape_keys(keys), "xm", true)
+end
+
 return M

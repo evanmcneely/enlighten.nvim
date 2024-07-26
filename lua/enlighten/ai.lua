@@ -53,22 +53,31 @@ local function extract_json(s)
   local open = 0
   local complete_json_strings = {}
   local json_start = nil
+  local in_quotes = false
+  local escape = false
 
   for i = 1, #s do
     local char = s:sub(i, i)
-    if char == "{" then
-      if open == 0 then
-        json_start = i -- Mark the start of a JSON string when we see the first '{'
-      end
-      open = open + 1
-    elseif char == "}" then
-      open = open - 1
-      if open == 0 and json_start then
-        local json_string = s:sub(json_start, i)
-        table.insert(complete_json_strings, json_string)
-        json_start = nil -- Reset the start marker for the next JSON string
+    if not escape then
+      if char == '"' then
+        in_quotes = not in_quotes -- Flip the in_quotes flag when we see a quote, unless it's escaped
+      elseif not in_quotes then
+        if char == "{" then
+          if open == 0 then
+            json_start = i -- Mark the start of a JSON string when we see the first '{'
+          end
+          open = open + 1
+        elseif char == "}" then
+          open = open - 1
+          if open == 0 and json_start then
+            local json_string = s:sub(json_start, i)
+            table.insert(complete_json_strings, json_string)
+            json_start = nil -- Reset the start marker for the next JSON string
+          end
+        end
       end
     end
+    escape = (char == "\\" and not escape) -- Handle escape characters
   end
 
   -- Handle any remaining part of the string that might be an incomplete JSON string

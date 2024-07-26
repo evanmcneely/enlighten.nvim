@@ -1,5 +1,3 @@
----@diagnostic disable: undefined-field
-
 local DiffWriter = require("enlighten.writer.diff")
 local tu = require("tests.testutils")
 local buffer = require("enlighten.buffer")

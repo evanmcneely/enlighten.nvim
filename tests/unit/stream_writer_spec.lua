@@ -1,5 +1,3 @@
----@diagnostic disable: undefined-field
-
 local StreamWriter = require("enlighten.writer.stream")
 local tu = require("tests.testutils")
 local buffer = require("enlighten.buffer")
