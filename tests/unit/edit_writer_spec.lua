@@ -1,10 +1,10 @@
-local DiffWriter = require("enlighten.writer.diff")
+local EditWriter = require("enlighten.writer.edit")
 local tu = require("tests.testutils")
 local buffer = require("enlighten.buffer")
 
 local equals = assert.are.same
 
-describe("DiffWriter", function()
+describe("EditWriter", function()
   local content = "aaa\nbbb\nccc\nddd\neee"
   local buf
   ---@type Range
@@ -25,7 +25,7 @@ describe("DiffWriter", function()
     local function on_done()
       done = true
     end
-    local writer = DiffWriter:new(buf, range, on_done)
+    local writer = EditWriter:new(buf, range, on_done)
 
     writer:on_complete()
 
@@ -33,7 +33,7 @@ describe("DiffWriter", function()
   end)
 
   it("should not write to buffer until there is a complete line", function()
-    local writer = DiffWriter:new(buf, range)
+    local writer = EditWriter:new(buf, range)
 
     -- Text is streaming in
     writer:on_data("hello")
@@ -49,21 +49,21 @@ describe("DiffWriter", function()
   end)
 
   it("should handle double new line characters as input", function()
-    local writer = DiffWriter:new(buf, range)
+    local writer = EditWriter:new(buf, range)
 
     writer:on_data("\n\n")
     equals("aaa\nbbb\n\n\nccc\nddd\neee", buffer.get_content(buf))
   end)
 
   it("should handle double new line characters separated by text as input", function()
-    local writer = DiffWriter:new(buf, range)
+    local writer = EditWriter:new(buf, range)
 
     writer:on_data("\nhere\n")
     equals("aaa\nbbb\n\nhere\nccc\nddd\neee", buffer.get_content(buf))
   end)
 
   it("should not write characters after a new line character", function()
-    local writer = DiffWriter:new(buf, range)
+    local writer = EditWriter:new(buf, range)
 
     -- The text "here" remains to accumulate on new line
     writer:on_data("\nhere")
@@ -71,7 +71,7 @@ describe("DiffWriter", function()
   end)
 
   it("should write all unwritten text on complete", function()
-    local writer = DiffWriter:new(buf, range)
+    local writer = EditWriter:new(buf, range)
 
     -- Text is received that is unwritten
     writer:on_data("hello world")
@@ -84,7 +84,7 @@ describe("DiffWriter", function()
 
   describe("normal", function()
     it("should write to the middle of the buffer", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = EditWriter:new(buf, range)
 
       writer:on_data("hello\n")
       equals("aaa\nbbb\nhello\nccc\nddd\neee", buffer.get_content(buf))
@@ -93,7 +93,7 @@ describe("DiffWriter", function()
     it("should write to the end of the buffer", function()
       range.row_start = 5
       range.row_end = 5
-      local writer = DiffWriter:new(buf, range)
+      local writer = EditWriter:new(buf, range)
 
       writer:on_data("hello\n")
       equals("aaa\nbbb\nccc\nddd\neee\nhello", buffer.get_content(buf))
@@ -102,7 +102,7 @@ describe("DiffWriter", function()
     it("should write to the beginning of the buffer", function()
       range.row_start = 0
       range.row_end = 0
-      local writer = DiffWriter:new(buf, range)
+      local writer = EditWriter:new(buf, range)
 
       writer:on_data("hello\n")
       equals("hello\naaa\nbbb\nccc\nddd\neee", buffer.get_content(buf))
@@ -111,7 +111,7 @@ describe("DiffWriter", function()
     it("should ignore columns in range (only write lines)", function()
       range.col_start = 2
       range.col_end = 2
-      local writer = DiffWriter:new(buf, range)
+      local writer = EditWriter:new(buf, range)
 
       writer:on_data("hello\n")
       equals("aaa\nbbb\nhello\nccc\nddd\neee", buffer.get_content(buf))
@@ -129,14 +129,14 @@ describe("DiffWriter", function()
     end)
 
     it("should replace lines with new content", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = EditWriter:new(buf, range)
 
       writer:on_data("hello\n")
       equals("aaa\nbbb\nhello\nddd\neee", buffer.get_content(buf))
     end)
 
     it("should replace multiple lines with new content until end of range", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = EditWriter:new(buf, range)
 
       writer:on_data("one\n")
       equals("aaa\nbbb\none\nddd\neee", buffer.get_content(buf))
@@ -150,7 +150,7 @@ describe("DiffWriter", function()
 
     it("should remove excess selected lines on complete", function()
       range.row_start = 1
-      local writer = DiffWriter:new(buf, range)
+      local writer = EditWriter:new(buf, range)
 
       writer:on_data("one\n")
       writer:on_complete()

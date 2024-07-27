@@ -1,6 +1,6 @@
 local api = vim.api
 local buffer = require("enlighten/buffer")
-local Writer = require("enlighten/writer/diff")
+local Writer = require("enlighten/writer/edit")
 local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
 

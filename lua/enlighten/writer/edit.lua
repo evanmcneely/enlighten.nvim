@@ -7,13 +7,13 @@ local Logger = require("enlighten/logger")
 ---@field on_data fun(self: Writer, data: string): nil
 ---@field on_done fun(): nil
 
----@class DiffWriter: Writer
+---@class EditWriter: Writer
 ---@field range Range
 ---@field accumulated_text string -- stores all accumulated text
 ---@field accumulated_line string -- stores text of the current line before it added to the buffer
 ---@field focused_line number -- the current line in the buffer we are ready to write too
 ---@field ns_id number
-local DiffWriter = {}
+local EditWriter = {}
 
 ---@class Range
 ---@field col_start number
@@ -24,10 +24,10 @@ local DiffWriter = {}
 ---@param buffer number
 ---@param range Range
 ---@param on_done? fun():nil
----@return DiffWriter
-function DiffWriter:new(buffer, range, on_done)
+---@return EditWriter
+function EditWriter:new(buffer, range, on_done)
   local ns_id = api.nvim_create_namespace("Enlighten")
-  Logger:log("diff:new", { buffer = buffer, range = range, ns_id = ns_id })
+  Logger:log("edit:new", { buffer = buffer, range = range, ns_id = ns_id })
 
   self.__index = self
   return setmetatable({
@@ -42,7 +42,7 @@ function DiffWriter:new(buffer, range, on_done)
 end
 
 ---@param text string
-function DiffWriter:on_data(text)
+function EditWriter:on_data(text)
   self.accumulated_line = self.accumulated_line .. text
   self.accumulated_text = self.accumulated_text .. text
 
@@ -62,9 +62,9 @@ function DiffWriter:on_data(text)
   end
 end
 
-function DiffWriter:on_complete(err)
+function EditWriter:on_complete(err)
   if err then
-    Logger:log("diff:on_complete - error", err)
+    Logger:log("edit:on_complete - error", err)
     api.nvim_err_writeln("Enlighten: " .. err)
     return
   end
@@ -76,11 +76,11 @@ function DiffWriter:on_complete(err)
     self:on_done()
   end
 
-  Logger:log("diff:on_complete - ai completion", self.accumulated_text)
+  Logger:log("edit:on_complete - ai completion", self.accumulated_text)
 end
 
 ---@param line string
-function DiffWriter:set_line(line)
+function EditWriter:set_line(line)
   -- We want to replace existing text at the focused line if the command is run on
   -- a selection and fewer lines have been written than than the selection. The
   -- behaviour of nvim_buf_set_lines is controlled in this case by incrementing the
@@ -91,14 +91,14 @@ function DiffWriter:set_line(line)
   local end_line = self.focused_line + (replace_focused_line and 1 or 0)
 
   Logger:log(
-    "diff:set_line - setting line",
+    "edit:set_line - setting line",
     { line = line, num = self.focused_line, replacing = replace_focused_line }
   )
 
   api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
 end
 
-function DiffWriter:finish()
+function EditWriter:finish()
   if self:is_selection() then
     -- If we set fewer lines were in the original selection
     -- we need to delete the remaining lines so only the set ones remain.
@@ -106,7 +106,7 @@ function DiffWriter:finish()
     local selected_lines = self.range.row_end - self.range.row_start
     if set_lines < selected_lines then
       Logger:log(
-        "diff:finish - removing lines",
+        "edit:finish - removing lines",
         { first = self.focused_line + 1, last = self.range.row_end + 1 }
       )
       api.nvim_buf_set_lines(self.buffer, self.focused_line + 1, self.range.row_end + 1, false, {})
@@ -115,9 +115,9 @@ function DiffWriter:finish()
 end
 
 ---@return boolean
-function DiffWriter:is_selection()
+function EditWriter:is_selection()
   -- Only consider selections over multiple lines
   return self.range.row_start ~= self.range.row_end
 end
 
-return DiffWriter
+return EditWriter
