@@ -1,3 +1,5 @@
+-- Copied from https://github.com/ThePrimeagen/harpoon/blob/harpoon2/lua/harpoon/logger.lua
+
 ---@class EnlightenLog
 ---@field lines string[]
 ---@field max_lines number

@@ -12,6 +12,8 @@ local Logger = require("enlighten/logger")
 ---@field target_range Range
 local EnlightenChat = {}
 
+-- Initial gateway into the chat feature. Initialize all data, windows, keymaps
+-- and autocommands that the feature depend on.
 ---@param ai AI
 ---@param settings EnlightenChatSettings
 ---@return EnlightenChat
@@ -44,6 +46,7 @@ function EnlightenChat:new(ai, settings)
   return self
 end
 
+-- Close the chat buffer. Any generated content will be LOST!
 function EnlightenChat:close()
   if api.nvim_win_is_valid(self.chat_win) then
     Logger:log("chat:close - closing window", { chat_win = self.chat_win })
@@ -56,6 +59,38 @@ function EnlightenChat:close()
   end
 end
 
+-- Focus the chat buffer.
+function EnlightenChat:focus()
+  if api.nvim_buf_is_valid(self.chat_buf) and api.nvim_win_is_valid(self.chat_win) then
+    Logger:log("chat:focus - focusing", { buf = self.chat_buf, win = self.chat_win })
+    api.nvim_set_current_win(self.chat_win)
+    api.nvim_win_set_buf(self.chat_win, self.chat_buf)
+  end
+end
+
+-- Submit the user question for a response. The user and assistant markers
+-- will also be added to the buffer in the appropriate places.
+function EnlightenChat:submit()
+  if
+    api.nvim_buf_is_valid(self.chat_buf)
+    and api.nvim_win_is_valid(self.chat_win)
+    and api.nvim_buf_is_valid(self.target_buf)
+  then
+    Logger:log("chat:submit - let's go")
+    self:_add_assistant()
+
+    local function on_complete()
+      self:_add_user()
+    end
+
+    local prompt = self:_build_prompt()
+    local count = api.nvim_buf_line_count(self.chat_buf)
+    local writer = Writer:new(self.chat_win, self.chat_buf, { count, 0 }, on_complete)
+    self.ai:chat(prompt, writer)
+  end
+end
+
+-- Create the chat buffer and popup window
 ---@param settings EnlightenChatSettings
 ---@return { bufnr: number, win_id: number }
 function EnlightenChat._create_chat_window(settings)
@@ -66,6 +101,7 @@ function EnlightenChat._create_chat_window(settings)
   else
     vim.cmd("vsplit")
   end
+
   local win = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_win_set_buf(win, buf)
@@ -86,14 +122,11 @@ function EnlightenChat._create_chat_window(settings)
   }
 end
 
-function EnlightenChat:focus()
-  if api.nvim_buf_is_valid(self.chat_buf) and api.nvim_win_is_valid(self.chat_win) then
-    Logger:log("chat:focus - focusing", { buf = self.chat_buf, win = self.chat_win })
-    api.nvim_set_current_win(self.chat_win)
-    api.nvim_win_set_buf(self.chat_win, self.chat_buf)
-  end
-end
-
+-- Set all keymaps for the chat buffer needed for user interactions. This
+-- is the primary UX for the prompt feature.
+--
+-- - q and <Esc> : close the prompt buffer
+-- - <cr>        : submit prompt for generation
 function EnlightenChat:_set_chat_keymaps()
   api.nvim_buf_set_keymap(
     self.chat_buf,
@@ -124,6 +157,9 @@ function EnlightenChat:_set_chat_keymaps()
   })
 end
 
+-- Format the prompt for generating a response. The conversation is not broken up
+-- into user/assistant roles when passed to the AI provider for completion. Instead the buffer,
+-- with user/assistant markers, donote the conversation history.
 ---@return string
 function EnlightenChat:_build_prompt()
   local prompt = buffer.get_content(self.chat_buf)
@@ -131,6 +167,7 @@ function EnlightenChat:_build_prompt()
     .. prompt
 end
 
+-- Insert the content at the end of the buffer with the specified highlight.
 ---@param buf number
 ---@param content string
 ---@param highlight? string
@@ -142,6 +179,8 @@ local function insert_line(buf, content, highlight)
   end
 end
 
+-- Add the "User" role to the buffer and prepopulate the prompt
+-- with the provided snippet (if any).
 ---@param snippet? string[]
 function EnlightenChat:_add_user(snippet)
   local count = api.nvim_buf_line_count(self.chat_buf)
@@ -168,37 +207,12 @@ function EnlightenChat:_add_user(snippet)
   vim.cmd("startinsert")
 end
 
+-- Add the "Assistant" role to the buffer.
 function EnlightenChat:_add_assistant()
   insert_line(self.chat_buf, "")
   insert_line(self.chat_buf, ">>> Assistant", "Function")
   insert_line(self.chat_buf, "")
   insert_line(self.chat_buf, "")
-end
-
-function EnlightenChat:_on_line(line)
-  if api.nvim_buf_is_valid(self.chat_buf) then
-    api.nvim_buf_set_lines(self.chat_buf, -1, -1, false, { line })
-  end
-end
-
-function EnlightenChat:submit()
-  if
-    api.nvim_buf_is_valid(self.chat_buf)
-    and api.nvim_win_is_valid(self.chat_win)
-    and api.nvim_buf_is_valid(self.target_buf)
-  then
-    Logger:log("chat:submit - let's go")
-    self:_add_assistant()
-
-    local function on_complete()
-      self:_add_user()
-    end
-
-    local prompt = self:_build_prompt()
-    local count = api.nvim_buf_line_count(self.chat_buf)
-    local writer = Writer:new(self.chat_win, self.chat_buf, { count, 0 }, on_complete)
-    self.ai:chat(prompt, writer)
-  end
 end
 
 return EnlightenChat

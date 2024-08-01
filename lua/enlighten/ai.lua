@@ -1,3 +1,5 @@
+-- Modified from https://github.com/aduros/ai.vim/blob/main/lua/_ai/openai.lua
+
 local Logger = require("enlighten/logger")
 
 ---@class AI

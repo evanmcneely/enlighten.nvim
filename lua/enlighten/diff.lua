@@ -33,6 +33,11 @@ end
 
 ---@alias LineDiff {type: string, value: string}[]
 
+-- Compute the diff for two sets of lines.
+--
+-- Ported to lua from:
+--   https://github.com/florian/diff-tool
+--   https://florian.github.io/diffing/
 ---@param left string[]
 ---@param right string[]
 ---@return LineDiff
@@ -76,6 +81,9 @@ end
 ---@field add string[]
 ---@field remove string[]
 
+-- Extract information about hunks from a computed diff. Hunks are
+-- groups of added or removed lines (or both).Hunk row numbers are
+-- for the first added line, computed from the provided start line.
 ---@param start_row number
 ---@param diff LineDiff
 ---@return table<number, Hunk>

@@ -13,6 +13,8 @@ local Logger = require("enlighten/logger")
 ---@field writer DiffWriter
 local EnlightenPrompt = {}
 
+-- Initial gateway into the "prompt" feature. Initialize all data, windows,
+-- keymaps and autocammonds that the feature depends on.
 ---@param ai AI
 ---@param settings EnlightenPromptSettings
 ---@return EnlightenPrompt
@@ -39,6 +41,8 @@ function EnlightenPrompt:new(ai, settings)
   return self
 end
 
+-- Reset the buffer to the state it was in before AI content was generated (if any)
+-- and close the popup window.
 function EnlightenPrompt:close()
   self.writer:reset()
 
@@ -53,6 +57,46 @@ function EnlightenPrompt:close()
   end
 end
 
+-- Focus the popup window
+function EnlightenPrompt:focus()
+  if api.nvim_buf_is_valid(self.prompt_buf) and api.nvim_win_is_valid(self.prompt_win) then
+    Logger:log(
+      "prompt:focus - focusing",
+      { prompt_buf = self.prompt_buf, prompt_win = self.prompt_win }
+    )
+    api.nvim_set_current_win(self.prompt_win)
+    api.nvim_win_set_buf(self.prompt_win, self.prompt_buf)
+  end
+end
+
+-- Submit the current prompt for generation. Any previously generated content
+-- will be cleared. This is mapped to a key on the prompt buffer.
+function EnlightenPrompt:submit()
+  if
+    api.nvim_buf_is_valid(self.prompt_buf)
+    and api.nvim_win_is_valid(self.prompt_win)
+    and api.nvim_buf_is_valid(self.target_buf)
+  then
+    Logger:log("prompt:submit - let's go")
+
+    self.writer:reset()
+
+    local prompt = self:_build_prompt()
+
+    self.ai:complete(prompt, self.writer)
+  end
+end
+
+-- Keep (approve) AI generated content and close the buffer. If no content
+-- has been generated, this will do nothing. this is mapped to a key on the prompt buffer.
+function EnlightenPrompt:keep()
+  if self.writer.accumulated_text ~= "" then
+    self.writer:keep()
+    vim.cmd("lua require('enlighten'):close_prompt()")
+  end
+end
+
+-- Create the prompt buffer and popup window
 ---@param range Range
 ---@param settings EnlightenPromptSettings
 ---@return { bufnr:number, win_id:number }
@@ -64,6 +108,8 @@ function EnlightenPrompt._create_window(range, settings)
     relative = "win",
     width = settings.width,
     height = settings.height,
+    -- Open he window one line above the current one so that removed
+    -- lines shown as virtual text are still visible below the popup.
     bufpos = { range.row_start - 1, 0 },
     anchor = "SW",
     border = "single",
@@ -73,6 +119,7 @@ function EnlightenPrompt._create_window(range, settings)
   if vim.version().minor > 8 or vim.version().major > 0 then
     api.nvim_win_set_config(win, { title = "Prompt" })
   end
+
   api.nvim_set_option_value("number", false, { win = win })
   api.nvim_set_option_value("signcolumn", "no", { win = win })
   api.nvim_set_option_value("buftype", "nofile", { buf = buf })
@@ -88,17 +135,12 @@ function EnlightenPrompt._create_window(range, settings)
   }
 end
 
-function EnlightenPrompt:focus()
-  if api.nvim_buf_is_valid(self.prompt_buf) and api.nvim_win_is_valid(self.prompt_win) then
-    Logger:log(
-      "prompt:focus - focusing",
-      { prompt_buf = self.prompt_buf, prompt_win = self.prompt_win }
-    )
-    api.nvim_set_current_win(self.prompt_win)
-    api.nvim_win_set_buf(self.prompt_win, self.prompt_buf)
-  end
-end
-
+-- Set all keymaps for the prompt buffer needed for user interactions. This
+-- is the primary UX for the prompt feature.
+--
+-- - q and <Esc> : close the prompt buffer
+-- - <cr>        : submit prompt for generation
+-- - <C-y>       : approve generated content
 function EnlightenPrompt:_set_keymaps()
   api.nvim_buf_set_keymap(
     self.prompt_buf,
@@ -130,6 +172,7 @@ function EnlightenPrompt:_set_keymaps()
   )
 end
 
+-- Set all autocmds for the prompt buffer
 function EnlightenPrompt:_set_autocmds()
   api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
     callback = function()
@@ -139,6 +182,10 @@ function EnlightenPrompt:_set_autocmds()
   })
 end
 
+-- Format the prompt generating content. The prompt includes the prompt buffer
+-- content (user command), code snippet that was selected when engaging with this
+-- feature (if any) as well as the current file name so that the model can know what
+-- file type this is and what language to write code in.
 ---@return string
 function EnlightenPrompt:_build_prompt()
   local prompt = buffer.get_content(self.prompt_buf)
@@ -154,29 +201,6 @@ function EnlightenPrompt:_build_prompt()
     .. "\n"
     .. "\n"
     .. snippet
-end
-
-function EnlightenPrompt:submit()
-  if
-    api.nvim_buf_is_valid(self.prompt_buf)
-    and api.nvim_win_is_valid(self.prompt_win)
-    and api.nvim_buf_is_valid(self.target_buf)
-  then
-    Logger:log("prompt:submit - let's go")
-
-    self.writer:reset()
-
-    local prompt = self:_build_prompt()
-
-    self.ai:complete(prompt, self.writer)
-  end
-end
-
-function EnlightenPrompt:keep()
-  if self.writer.accumulated_text ~= "" then
-    self.writer:keep()
-    vim.cmd("lua require('enlighten'):close_prompt()")
-  end
 end
 
 return EnlightenPrompt
