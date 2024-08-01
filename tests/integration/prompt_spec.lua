@@ -72,6 +72,8 @@ describe("prompt", function()
       table.concat(content_2, "") .. "\n" .. content_1[5] .. "\n\n" .. content_1[7],
       buffer.get_content(target_buf)
     )
+
+    vim.cmd("lua require('enlighten'):toggle_prompt()")
   end)
 
   it("should be able to generate code in the buffer", function()
@@ -88,5 +90,7 @@ describe("prompt", function()
       table.concat(content_2, "") .. "\n" .. table.concat(content_1, "\n"),
       buffer.get_content(target_buf)
     )
+
+    vim.cmd("lua require('enlighten'):toggle_prompt()")
   end)
 end)

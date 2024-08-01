@@ -1,6 +1,6 @@
 local api = vim.api
 local buffer = require("enlighten/buffer")
-local Writer = require("enlighten/writer/edit")
+local Writer = require("enlighten/writer/diff")
 local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
 
@@ -10,6 +10,7 @@ local Logger = require("enlighten/logger")
 ---@field prompt_win number
 ---@field target_buf number
 ---@field target_range Range
+---@field writer DiffWriter
 local EnlightenPrompt = {}
 
 ---@param ai AI
@@ -28,14 +29,19 @@ function EnlightenPrompt:new(ai, settings)
   self.prompt_buf = prompt_win.bufnr
   self.target_buf = buf
   self.target_range = range
+  self.writer = Writer:new(buf, range)
 
-  self:_set_prompt_keymaps()
+  self:_set_keymaps()
+  self:_set_autocmds()
+
   vim.cmd("startinsert")
 
   return self
 end
 
 function EnlightenPrompt:close()
+  self.writer:reset()
+
   if api.nvim_win_is_valid(self.prompt_win) then
     Logger:log("prompt:close - closing window", { prompt_win = self.prompt_win })
     api.nvim_win_close(self.prompt_win, true)
@@ -58,7 +64,7 @@ function EnlightenPrompt._create_window(range, settings)
     relative = "win",
     width = settings.width,
     height = settings.height,
-    bufpos = { range.row_start, 0 },
+    bufpos = { range.row_start - 1, 0 },
     anchor = "SW",
     border = "single",
   })
@@ -93,14 +99,7 @@ function EnlightenPrompt:focus()
   end
 end
 
-function EnlightenPrompt:_set_prompt_keymaps()
-  api.nvim_buf_set_keymap(
-    self.prompt_buf,
-    "n",
-    "<CR>",
-    "<Cmd>lua require('enlighten').prompt:submit()<CR>",
-    {}
-  )
+function EnlightenPrompt:_set_keymaps()
   api.nvim_buf_set_keymap(
     self.prompt_buf,
     "n",
@@ -115,6 +114,23 @@ function EnlightenPrompt:_set_prompt_keymaps()
     "<Cmd>lua require('enlighten'):close_prompt()<CR>",
     {}
   )
+  api.nvim_buf_set_keymap(
+    self.prompt_buf,
+    "n",
+    "<CR>",
+    "<Cmd>lua require('enlighten').prompt:submit()<CR>",
+    {}
+  )
+  api.nvim_buf_set_keymap(
+    self.prompt_buf,
+    "n",
+    "<C-y>",
+    "<Cmd>lua require('enlighten').prompt:keep()<CR>",
+    {}
+  )
+end
+
+function EnlightenPrompt:_set_autocmds()
   api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
     callback = function()
       buffer.sticky_buffer(self.prompt_buf, self.prompt_win)
@@ -148,10 +164,17 @@ function EnlightenPrompt:submit()
   then
     Logger:log("prompt:submit - let's go")
 
-    local prompt = self:_build_prompt()
-    local writer = Writer:new(self.target_buf, self.target_range)
-    self.ai:complete(prompt, writer)
+    self.writer:reset()
 
+    local prompt = self:_build_prompt()
+
+    self.ai:complete(prompt, self.writer)
+  end
+end
+
+function EnlightenPrompt:keep()
+  if self.writer.accumulated_text ~= "" then
+    self.writer:keep()
     vim.cmd("lua require('enlighten'):close_prompt()")
   end
 end
