@@ -125,8 +125,8 @@ end
 -- Set all keymaps for the chat buffer needed for user interactions. This
 -- is the primary UX for the prompt feature.
 --
--- - q and <Esc> : close the prompt buffer
--- - <cr>        : submit prompt for generation
+-- - q        : close the prompt buffer
+-- - <cr>     : submit prompt for generation
 function EnlightenChat:_set_chat_keymaps()
   api.nvim_buf_set_keymap(
     self.chat_buf,
@@ -139,13 +139,6 @@ function EnlightenChat:_set_chat_keymaps()
     self.chat_buf,
     "n",
     "q",
-    "<Cmd>lua require('enlighten'):close_chat()<CR>",
-    {}
-  )
-  api.nvim_buf_set_keymap(
-    self.chat_buf,
-    "n",
-    "<ESC>",
     "<Cmd>lua require('enlighten'):close_chat()<CR>",
     {}
   )

@@ -141,21 +141,14 @@ end
 -- Set all keymaps for the prompt buffer needed for user interactions. This
 -- is the primary UX for the prompt feature.
 --
--- - q and <Esc> : close the prompt buffer
--- - <cr>        : submit prompt for generation
--- - <C-y>       : approve generated content
+-- - q         : close the prompt buffer
+-- - <cr>      : submit prompt for generation
+-- - <C-y>     : approve generated content
 function EnlightenPrompt:_set_keymaps()
   api.nvim_buf_set_keymap(
     self.prompt_buf,
     "n",
     "q",
-    "<Cmd>lua require('enlighten'):close_prompt()<CR>",
-    {}
-  )
-  api.nvim_buf_set_keymap(
-    self.prompt_buf,
-    "n",
-    "<ESC>",
     "<Cmd>lua require('enlighten'):close_prompt()<CR>",
     {}
   )
