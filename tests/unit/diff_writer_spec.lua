@@ -217,7 +217,7 @@ describe("DiffWriter", function()
         writer.focused_line_id,
         { details = true }
       )
-      equals(ext[1], 3)
+      equals(ext[1], 2)
       equals(ext[3].hl_group, "CursorLine")
 
       writer:on_data("hello\n")
@@ -228,7 +228,7 @@ describe("DiffWriter", function()
         writer.focused_line_id,
         { details = true }
       )
-      equals(ext[1], 4)
+      equals(ext[1], 3)
       equals(ext[3].hl_group, "CursorLine")
     end)
 

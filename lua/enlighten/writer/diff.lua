@@ -132,25 +132,30 @@ function DiffWriter:_set_line(line)
 end
 
 function DiffWriter:_inc_focused_line()
-  self.focused_line = self.focused_line + 1
-
   local total_lines = api.nvim_buf_line_count(self.buffer)
-  local end_row = self.focused_line + 1
-  if end_row > total_lines then
-    end_row = total_lines
+
+  -- have to protect against the focused line being out of range of the buffer
+  if self.focused_line <= total_lines then
+    -- have to protect against the end row being out of range of the buffer
+    local end_row = self.focused_line + 1
+    if end_row > total_lines then
+      end_row = -1
+    end
+
+    local opts = {
+      end_row = end_row,
+      hl_group = "CursorLine",
+      hl_eol = true,
+    }
+    if self.focused_line_id then
+      opts.id = self.focused_line_id
+    end
+
+    self.focused_line_id =
+      api.nvim_buf_set_extmark(self.buffer, self.line_ns_id, self.focused_line, 0, opts)
   end
 
-  local opts = {
-    end_row = end_row,
-    hl_group = "CursorLine",
-    hl_eol = true,
-  }
-  if self.focused_line_id then
-    opts.id = self.focused_line_id
-  end
-
-  self.focused_line_id =
-    api.nvim_buf_set_extmark(self.buffer, self.line_ns_id, self.focused_line, 0, opts)
+  self.focused_line = self.focused_line + 1
 end
 
 function DiffWriter:_clear_focused_line_highlight()
@@ -173,8 +178,15 @@ function DiffWriter:_highlight_diff(left, right)
 
   for row, hunk in pairs(hunks) do
     if #hunk.add then
+      -- have to protect against end row being out of range of buffer
+      local total_lines = api.nvim_buf_line_count(self.buffer)
+      local end_row = row + #hunk.add
+      if end_row > total_lines then
+        end_row = -1
+      end
+
       api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
-        end_row = row + #hunk.add,
+        end_row = end_row,
         hl_group = "DiffAdd",
         hl_eol = true,
         priority = 1000,
