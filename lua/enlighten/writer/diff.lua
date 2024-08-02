@@ -195,8 +195,7 @@ function DiffWriter:_remove_remaining_selected_lines()
 end
 
 function DiffWriter:_clear_diff_highlights()
-  local end_line = api.nvim_buf_line_count(self.buffer)
-  api.nvim_buf_clear_namespace(self.buffer, self.diff_ns_id, 0, end_line)
+  api.nvim_buf_clear_namespace(self.buffer, self.diff_ns_id, 0, -1)
 end
 
 function DiffWriter:_clear_lines()
