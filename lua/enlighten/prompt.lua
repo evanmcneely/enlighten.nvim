@@ -111,6 +111,8 @@ function EnlightenPrompt._create_window(range, settings)
     -- Open he window one line above the current one so that removed
     -- lines shown as virtual text are still visible below the popup.
     bufpos = { range.row_start - 1, 0 },
+    -- Set so that code will be visible at least by most formatters standards.
+    col = 80,
     anchor = "SW",
     border = "single",
   })
