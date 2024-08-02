@@ -1,13 +1,11 @@
 describe("enlighten commands and keymaps", function()
   local enlighten
   local target_buf
-  local target_win
 
   before_each(function()
     ---@type Enlighten
     enlighten = require("enlighten")
     target_buf = vim.api.nvim_get_current_buf()
-    target_win = vim.api.nvim_get_current_win()
   end)
 
   describe("chat", function()
@@ -41,21 +39,6 @@ describe("enlighten commands and keymaps", function()
         assert.are_nil(enlighten.chat)
       end
     )
-
-    it("should focus the chat window when focus_chat is invoked", function()
-      vim.cmd("lua require('enlighten'):toggle_chat()")
-
-      vim.api.nvim_set_current_win(target_win)
-      vim.api.nvim_set_current_buf(target_buf)
-
-      vim.cmd("lua require('enlighten'):focus_chat()")
-
-      local buf = vim.api.nvim_get_current_buf()
-      local win = vim.api.nvim_get_current_win()
-
-      assert.are.same(buf, enlighten.chat.chat_buf)
-      assert.are.same(win, enlighten.chat.chat_win)
-    end)
   end)
 
   describe("prompt", function()
@@ -89,20 +72,5 @@ describe("enlighten commands and keymaps", function()
         assert.are_nil(enlighten.prompt)
       end
     )
-
-    it("should focus the prompt window when focus_prompt is invoked", function()
-      vim.cmd("lua require('enlighten'):toggle_prompt()")
-
-      vim.api.nvim_set_current_win(target_win)
-      vim.api.nvim_set_current_buf(target_buf)
-
-      vim.cmd("lua require('enlighten'):focus_prompt()")
-
-      local buf = vim.api.nvim_get_current_buf()
-      local win = vim.api.nvim_get_current_win()
-
-      assert.are.same(buf, enlighten.prompt.prompt_buf)
-      assert.are.same(win, enlighten.prompt.prompt_win)
-    end)
   end)
 end)

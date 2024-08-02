@@ -53,7 +53,7 @@ end
 function Enlighten:open_prompt()
   if self.prompt ~= nil then
     self.logger:log("enlighten:open_prompt - focusing")
-    self:focus_prompt()
+    self.prompt:focus()
     return
   end
 
@@ -73,14 +73,6 @@ function Enlighten:toggle_prompt()
   self:open_prompt()
 end
 
---- Focus the prompt window if it exists
-function Enlighten:focus_prompt()
-  if self.prompt ~= nil then
-    self.logger:log("enlighten:focus_prompt - focusing")
-    self.prompt:focus()
-  end
-end
-
 --- Close the prompt window if it exists
 function Enlighten:close_prompt()
   if self.prompt ~= nil then
@@ -94,7 +86,7 @@ end
 function Enlighten:open_chat()
   if self.chat ~= nil then
     self.logger:log("enlighten:open_chat - focusing")
-    self:focus_chat()
+    self.chat:focus()
     return
   end
 
@@ -114,20 +106,23 @@ function Enlighten:toggle_chat()
   self:open_chat()
 end
 
---- Focus the chat pane prompt if it exists
-function Enlighten:focus_chat()
-  if self.chat ~= nil then
-    self.logger:log("enlighten:focus_chat - focusing")
-    self.chat:focus()
-  end
-end
-
 --- Close the chat if it exists
 function Enlighten:close_chat()
   if self.chat ~= nil then
     self.logger:log("enlighten:close_chat - closing")
     self.chat:close()
     self.chat = nil
+  end
+end
+
+--- Focus the prompt window if it exists
+function Enlighten:focus()
+  if self.prompt ~= nil then
+    self.logger:log("enlighten:focus - focusing")
+    self.prompt:focus()
+  elseif self.chat ~= nil then
+    self.logger:log("enlighten:focus - focusing")
+    self.chat:focus()
   end
 end
 
