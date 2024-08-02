@@ -91,6 +91,7 @@ end
 -- has been generated, this will do nothing. this is mapped to a key on the prompt buffer.
 function EnlightenPrompt:keep()
   if self.writer.accumulated_text ~= "" then
+    Logger:log("prompt:keep - confirmed")
     self.writer:keep()
     vim.cmd("lua require('enlighten'):close_prompt()")
   end

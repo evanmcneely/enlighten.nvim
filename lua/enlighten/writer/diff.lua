@@ -122,7 +122,7 @@ function DiffWriter:_set_line(line)
   local end_line = self.focused_line + (replace_focused_line and 1 or 0)
 
   Logger:log(
-    "diff:set_line - setting line",
+    "diff:_set_line - setting line",
     { line = line, num = self.focused_line, replacing = replace_focused_line }
   )
 
@@ -168,8 +168,8 @@ function DiffWriter:_highlight_diff(left, right)
   local diff_new = differ.diff(left, right)
   local hunks = differ.extract_hunks(self.orig_range[1], diff_new)
 
-  Logger:log("diff:highlight_diff - diff", diff_new)
-  Logger:log("diff:highlight_diff - hunks", hunks)
+  Logger:log("diff:_highlight_diff - diff", diff_new)
+  Logger:log("diff:_highlight_diff - hunks", hunks)
 
   for row, hunk in pairs(hunks) do
     if #hunk.add then
@@ -202,7 +202,7 @@ end
 function DiffWriter:_remove_remaining_selected_lines()
   if self.focused_line <= self.orig_range[2] then
     Logger:log(
-      "diff:finish - removing lines",
+      "diff:_remove_remaining_selected_lines - removing lines",
       { first = self.focused_line, last = self.orig_range[2] }
     )
     api.nvim_buf_set_lines(self.buffer, self.focused_line, self.orig_range[2] + 1, false, {})
