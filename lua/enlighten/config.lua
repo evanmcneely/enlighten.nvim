@@ -67,11 +67,11 @@ function M.get_default_config()
     },
     settings = {
       prompt = {
-        width = 70,
-        height = 3,
+        width = 80,
+        height = 5,
       },
       chat = {
-        width = 60,
+        width = 80,
         split = "right",
       },
     },
