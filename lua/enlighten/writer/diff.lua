@@ -1,4 +1,5 @@
 local api = vim.api
+local buffer = require("enlighten/buffer")
 local differ = require("enlighten/diff")
 local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
@@ -55,6 +56,7 @@ function DiffWriter:on_data(text)
   self.accumulated_text = self.accumulated_text .. text
 
   local lines = vim.split(self.accumulated_line, "\n")
+  local needs_diff_update = false
 
   -- Lines having a length greater than 1 indicates that there are
   -- complete lines ready to be set in the buffer. We set all of them
@@ -63,15 +65,19 @@ function DiffWriter:on_data(text)
   if #lines > 1 then
     -- Skip last line as it is not complete yet
     for i = 1, #lines - 1 do
-      self:_set_line(lines[i])
+      local was_set = self:_set_line(lines[i])
+      if was_set then
+        needs_diff_update = true
+      end
       self:_inc_focused_line()
     end
     self.accumulated_line = lines[#lines]
 
-    -- Diff what we have generated so far
-    local right = self.accumulated_lines
-    local left = utils.slice(self.orig_lines, 1, #right)
-    self:_highlight_diff(left, right)
+    if needs_diff_update then
+      local right = self.accumulated_lines
+      local left = utils.slice(self.orig_lines, 1, #right)
+      self:_highlight_diff(left, right)
+    end
   end
 end
 
@@ -96,8 +102,15 @@ function DiffWriter:on_complete(err)
 end
 
 ---@param line string
+---@return boolean
 function DiffWriter:_set_line(line)
   table.insert(self.accumulated_lines, line)
+
+  -- Short circuit if the line we would write is unchanged from the current line
+  local orig_line = buffer.get_content(self.buffer, self.focused_line, self.focused_line + 1)
+  if orig_line and orig_line == line then
+    return false
+  end
 
   -- We want to replace existing text at the focused line if the command is run on
   -- a selection and fewer lines have been written than than the selection. The
@@ -114,6 +127,8 @@ function DiffWriter:_set_line(line)
   )
 
   api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
+
+  return true
 end
 
 function DiffWriter:_inc_focused_line()
