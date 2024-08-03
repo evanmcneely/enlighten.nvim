@@ -13,12 +13,8 @@
 - Powered by OpenAI's `gpt-4o`.
 - Generate code from a prompt.
 - Edit selected code in place without leaving the buffer.
-- Highlight differences in generated or edit code.
+- Highlight differences in generated or edited code.
 - Conversational chat without leaving Neovim.
-
-### 📖 Philosophy
-
-AI code autocompletion is an incredible technical achievement. However, I fear it has turned us into tab-completion machines - waiting for the next completion, accepting, correcting, and repeating. AI should be a tool used deliberately, when needed, to extend our knowledge and ability to solve problems and overcome blocks. Enlighten is such a tool. Write your own code and use the AI integration when needed. Then set it aside and continue on your way.
 
 ### 💾 Setup
 
