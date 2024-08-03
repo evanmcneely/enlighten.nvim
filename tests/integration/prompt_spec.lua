@@ -86,6 +86,7 @@ describe("prompt", function()
     tu.feedkeys("<CR>")
     stream(content_2)
 
+    table.remove(content_1, 1)
     assert.are.same(
       table.concat(content_2, "") .. "\n" .. table.concat(content_1, "\n"),
       buffer.get_content(target_buf)

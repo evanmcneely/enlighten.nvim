@@ -1,5 +1,4 @@
 local api = vim.api
-local buffer = require("enlighten/buffer")
 local differ = require("enlighten/diff")
 local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
@@ -26,17 +25,12 @@ function DiffWriter:new(buf, range, on_done)
   local line_ns_id = api.nvim_create_namespace("EnlightenLineHighlights")
   Logger:log("diff:new", { buffer = buf, range = range, ns_id = diff_ns_id })
 
-  -- Only populate orig_lines only if text has been selected.
-  local is_selection = range.row_start ~= range.row_end
-  local lines = {}
-  if is_selection then
-    lines = vim.api.nvim_buf_get_lines(buf, range.row_start, range.row_end + 1, false)
-  end
-
   self.__index = self
   return setmetatable({
     buffer = buf,
-    orig_lines = lines,
+    -- Note: The first line is always considered to be selected will be replaced. This
+    -- is for simplicity - only one case where lines are selected and by default the first one is.
+    orig_lines = vim.api.nvim_buf_get_lines(buf, range.row_start, range.row_end + 1, false),
     orig_range = { range.row_start, range.row_end }, -- end inclusive
     accumulated_text = "",
     accumulated_line = "",
@@ -106,19 +100,13 @@ end
 function DiffWriter:_set_line(line)
   table.insert(self.accumulated_lines, line)
 
-  -- Short circuit if the line we would write is unchanged from the current line
-  local orig_line = buffer.get_content(self.buffer, self.focused_line, self.focused_line + 1)
-  if orig_line and orig_line == line then
-    return false
-  end
-
   -- We want to replace existing text at the focused line if the command is run on
   -- a selection and fewer lines have been written than than the selection. The
   -- behaviour of nvim_buf_set_lines is controlled in this case by incrementing the
   -- focused line number by one to trigger replacement instead of insertion.
   local set_lines = self.focused_line - self.orig_range[1]
   local selected_lines = self.orig_range[2] - self.orig_range[1]
-  local replace_focused_line = selected_lines ~= 0 and set_lines <= selected_lines
+  local replace_focused_line = set_lines <= selected_lines
   local end_line = self.focused_line + (replace_focused_line and 1 or 0)
 
   Logger:log(
@@ -134,26 +122,23 @@ end
 function DiffWriter:_inc_focused_line()
   local total_lines = api.nvim_buf_line_count(self.buffer)
 
-  -- have to protect against the focused line being out of range of the buffer
-  if self.focused_line <= total_lines then
-    -- have to protect against the end row being out of range of the buffer
-    local end_row = self.focused_line + 1
-    if end_row > total_lines then
-      end_row = -1
-    end
-
-    local opts = {
-      end_row = end_row,
-      hl_group = "CursorLine",
-      hl_eol = true,
-    }
-    if self.focused_line_id then
-      opts.id = self.focused_line_id
-    end
-
-    self.focused_line_id =
-      api.nvim_buf_set_extmark(self.buffer, self.line_ns_id, self.focused_line, 0, opts)
+  -- have to protect against the end row being out of range of the buffer
+  local end_row = self.focused_line + 1
+  if end_row >= total_lines then
+    end_row = total_lines
   end
+
+  local opts = {
+    end_row = end_row,
+    hl_group = "CursorLine",
+    hl_eol = true,
+  }
+  if self.focused_line_id then
+    opts.id = self.focused_line_id
+  end
+
+  self.focused_line_id =
+    api.nvim_buf_set_extmark(self.buffer, self.line_ns_id, self.focused_line, 0, opts)
 
   self.focused_line = self.focused_line + 1
 end
@@ -182,7 +167,7 @@ function DiffWriter:_highlight_diff(left, right)
       local total_lines = api.nvim_buf_line_count(self.buffer)
       local end_row = row + #hunk.add
       if end_row > total_lines then
-        end_row = -1
+        end_row = total_lines
       end
 
       api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {

@@ -77,8 +77,6 @@ function EnlightenPrompt:submit()
     and api.nvim_win_is_valid(self.prompt_win)
     and api.nvim_buf_is_valid(self.target_buf)
   then
-    Logger:log("prompt:submit - let's go")
-
     self.writer:reset()
 
     local prompt = self:_build_prompt()

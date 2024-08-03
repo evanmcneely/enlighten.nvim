@@ -76,7 +76,6 @@ function EnlightenChat:submit()
     and api.nvim_win_is_valid(self.chat_win)
     and api.nvim_buf_is_valid(self.target_buf)
   then
-    Logger:log("chat:submit - let's go")
     self:_add_assistant()
 
     local function on_complete()
