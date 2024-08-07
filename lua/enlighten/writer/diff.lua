@@ -1,4 +1,5 @@
 local api = vim.api
+local buffer = require("enlighten/buffer")
 local differ = require("enlighten/diff")
 local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
@@ -28,7 +29,7 @@ function DiffWriter:new(buf, range, on_done)
   self.__index = self
   return setmetatable({
     buffer = buf,
-    -- Note: The first line is always considered to be selected will be replaced. This
+    -- Note: The first line is always considered to be selected and can be potentially replaced. This
     -- is for simplicity - only one case where lines are selected and by default the first one is.
     orig_lines = vim.api.nvim_buf_get_lines(buf, range.row_start, range.row_end + 1, false),
     orig_range = { range.row_start, range.row_end }, -- end inclusive
@@ -52,10 +53,9 @@ function DiffWriter:on_data(text)
   local lines = vim.split(self.accumulated_line, "\n")
   local needs_diff_update = false
 
-  -- Lines having a length greater than 1 indicates that there are
-  -- complete lines ready to be set in the buffer. We set all of them
-  -- before resetting our current accumulated_line to the last line
-  -- in the table._by_new_line(self.accumulated_line)
+  -- Lines having a length greater than 1 indicates that there are complete
+  -- lines ready to be set in the buffer. We set all of them before resetting
+  -- our current accumulated_line to the last line in the table.
   if #lines > 1 then
     -- Skip last line as it is not complete yet
     for i = 1, #lines - 1 do
@@ -96,9 +96,16 @@ function DiffWriter:on_complete(err)
 end
 
 ---@param line string
----@return boolean
+---@return boolean -- whether or not the line was set
 function DiffWriter:_set_line(line)
   table.insert(self.accumulated_lines, line)
+
+  -- Short circuit if the line we would write is unchanged from the current line (always write new lines "").
+  -- This has cascading performance improvements (syntax highlighting, recomputing diff and highlights)
+  local orig_line = buffer.get_content(self.buffer, self.focused_line, self.focused_line + 1)
+  if line ~= "" and orig_line == line then
+    return false
+  end
 
   -- We want to replace existing text at the focused line if the command is run on
   -- a selection and fewer lines have been written than than the selection. The
@@ -120,16 +127,8 @@ function DiffWriter:_set_line(line)
 end
 
 function DiffWriter:_inc_focused_line()
-  local total_lines = api.nvim_buf_line_count(self.buffer)
-
-  -- have to protect against the end row being out of range of the buffer
-  local end_row = self.focused_line + 1
-  if end_row >= total_lines then
-    end_row = total_lines
-  end
-
   local opts = {
-    end_row = end_row,
+    end_row = self.focused_line + 1,
     hl_group = "CursorLine",
     hl_eol = true,
   }
@@ -137,8 +136,13 @@ function DiffWriter:_inc_focused_line()
     opts.id = self.focused_line_id
   end
 
-  self.focused_line_id =
-    api.nvim_buf_set_extmark(self.buffer, self.line_ns_id, self.focused_line, 0, opts)
+  -- Has the potential to error when writing content at the end of the buffer.
+  local success, result = pcall(function()
+    return api.nvim_buf_set_extmark(self.buffer, self.line_ns_id, self.focused_line, 0, opts)
+  end)
+  if success then
+    self.focused_line_id = result
+  end
 
   self.focused_line = self.focused_line + 1
 end
@@ -158,24 +162,17 @@ function DiffWriter:_highlight_diff(left, right)
   local diff_new = differ.diff(left, right)
   local hunks = differ.extract_hunks(self.orig_range[1], diff_new)
 
-  Logger:log("diff:_highlight_diff - diff", diff_new)
-  Logger:log("diff:_highlight_diff - hunks", hunks)
-
   for row, hunk in pairs(hunks) do
     if #hunk.add then
-      -- have to protect against end row being out of range of buffer
-      local total_lines = api.nvim_buf_line_count(self.buffer)
-      local end_row = row + #hunk.add
-      if end_row > total_lines then
-        end_row = total_lines
-      end
-
-      api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
-        end_row = end_row,
-        hl_group = "DiffAdd",
-        hl_eol = true,
-        priority = 1000,
-      })
+      -- Has the potential to error when writing/highlighting content at the end of the buffer.
+      pcall(function()
+        api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
+          end_row = row + #hunk.add,
+          hl_group = "DiffAdd",
+          hl_eol = true,
+          priority = 1000,
+        })
+      end)
     end
 
     if #hunk.remove then
