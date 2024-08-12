@@ -30,6 +30,7 @@ function M.openai_response(text, finish_reason)
   }
 end
 
+---@return OpenAIError
 function M.openai_error()
   return {
     error = {

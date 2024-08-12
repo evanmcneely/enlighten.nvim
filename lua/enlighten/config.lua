@@ -7,12 +7,14 @@ local M = {}
 ---@field model string -- model used for completions
 ---@field temperature number
 ---@field tokens number -- token limit for completions
+---@field endpoint string
 
 ---@class EnlightenPartialAiProviderConfig
 ---@field provider? string
 ---@field model? string
 ---@field temperature? number
 ---@field tokens? number
+---@field endpoint? string
 
 ---@class EnlightenAiConfig
 ---@field chat EnlightenAiProviderConfig
@@ -56,12 +58,14 @@ function M.get_default_config()
         model = "gpt-4o",
         temperature = 0,
         tokens = 4096,
+        endpoint = "https://api.openai.com/v1/chat/completions",
       },
       chat = {
         provider = "openai",
         model = "gpt-4o",
         temperature = 0,
         tokens = 4096,
+        endpoint = "https://api.openai.com/v1/chat/completions",
       },
       timeout = 60,
     },
