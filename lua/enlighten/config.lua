@@ -7,14 +7,12 @@ local M = {}
 ---@field model string -- model used for completions
 ---@field temperature number
 ---@field tokens number -- token limit for completions
----@field endpoint string
 
 ---@class EnlightenPartialAiProviderConfig
 ---@field provider? string
 ---@field model? string
 ---@field temperature? number
 ---@field tokens? number
----@field endpoint? string
 
 ---@class EnlightenAiConfig
 ---@field chat EnlightenAiProviderConfig
@@ -40,14 +38,15 @@ local M = {}
 
 ---@class EnlightenPartialChatSettings
 ---@field width? number
+---@field split? string
 
 ---@class EnlightenConfig
 ---@field ai EnlightenAiConfig
 ---@field settings { prompt: EnlightenPromptSettings, chat: EnlightenChatSettings }
 
 ---@class EnlightenPartialConfig
----@field ai EnlightenPartialAiConfig
----@field settings { prompt: EnlightenPartialPromptSettings, chat: EnlightenPartialChatSettings }
+---@field ai? EnlightenPartialAiConfig
+---@field settings? { prompt?: EnlightenPartialPromptSettings, chat?: EnlightenPartialChatSettings }
 
 ---@return EnlightenConfig
 function M.get_default_config()
