@@ -119,23 +119,22 @@ end
 ---@return EnlightenConfig
 function M.merge_config(partial_config, latest_config)
   partial_config = partial_config or {}
-  Logger:log("config.merge_config - user config", partial_config)
   local config = latest_config or M.get_default_config()
 
-  if partial_config.ai then
-    config.ai = vim.tbl_deep_extend("force", config.ai, partial_config.ai)
+  Logger:log("config.merge_config - user config", partial_config)
 
-    local base_provider_config = {
-      provider = config.ai.provider,
-      timeout = config.ai.timeout,
-      model = config.ai.model,
-      tokens = config.ai.tokens,
-      temperature = config.ai.temperature,
-    }
+  config.ai = vim.tbl_deep_extend("force", config.ai, partial_config.ai or {})
 
-    config.ai.prompt = vim.tbl_deep_extend("force", base_provider_config, config.ai.prompt or {})
-    config.ai.chat = vim.tbl_deep_extend("force", base_provider_config, config.ai.chat or {})
-  end
+  local base_provider_config = {
+    provider = config.ai.provider,
+    timeout = config.ai.timeout,
+    model = config.ai.model,
+    tokens = config.ai.tokens,
+    temperature = config.ai.temperature,
+  }
+
+  config.ai.prompt = vim.tbl_deep_extend("force", base_provider_config, config.ai.prompt or {})
+  config.ai.chat = vim.tbl_deep_extend("force", base_provider_config, config.ai.chat or {})
 
   if partial_config.settings then
     config.settings.prompt =

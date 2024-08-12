@@ -19,6 +19,6 @@ describe("provider openai", function()
 
   it("should return streamed text", function()
     local success = tu.openai_response("hello")
-    equals("hello", openai.extract_stream_text(success))
+    equals("hello", openai.get_streamed_text(success))
   end)
 end)
