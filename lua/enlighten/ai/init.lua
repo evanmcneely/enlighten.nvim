@@ -108,11 +108,10 @@ function AI.exec(cmd, args, on_stdout_chunk, on_complete)
   end
 end
 
----@param writer Writer
----@param endpoint string
 ---@param body table
+---@param writer Writer
 ---@param provider AiProvider
-function AI:request(endpoint, body, writer, provider)
+function AI:request(body, writer, provider)
   local api_key = provider.get_api_key()
   if not api_key then
     Logger:log("ai:request - no api key")
@@ -127,9 +126,7 @@ function AI:request(endpoint, body, writer, provider)
     "--max-time",
     self.config.timeout,
     "-L",
-    endpoint,
-    "-H",
-    "Authorization: Bearer " .. api_key,
+    provider.endpoint,
     "-X",
     "POST",
     "-H",
@@ -137,6 +134,11 @@ function AI:request(endpoint, body, writer, provider)
     "-d",
     vim.json.encode(body),
   }
+  for _, arg in ipairs(provider.build_stream_headers()) do
+    table.insert(curl_args, arg)
+  end
+
+  Logger:log("ai:request - curl_args", curl_args)
 
   -- Chunks of text to be processed. Can be incomplete JSON strings mixed with "data:" prefixes.
   local buffered_chunks = ""
@@ -171,8 +173,8 @@ function AI:request(endpoint, body, writer, provider)
 
       if provider.is_error(json) then
         writer:on_complete(provider.get_error_text(json))
-      else
-        local text = provider.extract_stream_text(json)
+      elseif not provider.is_streaming_finished(json) then
+        local text = provider.get_streamed_text(json)
         if #text > 0 then
           writer:on_data(text)
         end
@@ -190,8 +192,7 @@ end
 function AI:complete(prompt, writer)
   local provider = require("enlighten.ai." .. self.config.prompt.provider)
   local body = provider.build_stream_request("prompt", prompt, self.config.prompt)
-  Logger:log("ai:complete - request", { body = body })
-  self:request(self.config.prompt.endpoint, body, writer, provider)
+  self:request(body, writer, provider)
 end
 
 ---@param writer Writer
@@ -199,8 +200,7 @@ end
 function AI:chat(prompt, writer)
   local provider = require("enlighten.ai." .. self.config.chat.provider)
   local body = provider.build_stream_request("chat", prompt, self.config.chat)
-  Logger:log("ai:chat - request", { body = body })
-  self:request(self.config.chat.endpoint, body, writer, provider)
+  self:request(body, writer, provider)
 end
 
 return AI
