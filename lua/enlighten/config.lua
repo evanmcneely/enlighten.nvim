@@ -7,22 +7,32 @@ local M = {}
 ---@field model string -- model used for completions
 ---@field temperature number
 ---@field tokens number -- token limit for completions
+---@field timeout number
 
 ---@class EnlightenPartialAiProviderConfig
 ---@field provider? string
 ---@field model? string
 ---@field temperature? number
 ---@field tokens? number
+---@field timeout? number
 
 ---@class EnlightenAiConfig
 ---@field chat EnlightenAiProviderConfig
 ---@field prompt EnlightenAiProviderConfig
 ---@field timeout number
+---@field provider string -- AI model provider
+---@field model string -- model used for completions
+---@field temperature number
+---@field tokens number -- token limit for completions
 
 ---@class EnlightenPartialAiConfig
 ---@field chat? EnlightenPartialAiProviderConfig
 ---@field prompt? EnlightenPartialAiProviderConfig
 ---@field timeout? number
+---@field provider? string
+---@field model? string
+---@field temperature? number
+---@field tokens? number
 
 ---@class EnlightenPromptSettings
 ---@field width number -- prompt window width (number of columns)
@@ -52,18 +62,10 @@ local M = {}
 function M.get_default_config()
   return {
     ai = {
-      prompt = {
-        provider = "openai",
-        model = "gpt-4o",
-        temperature = 0,
-        tokens = 4096,
-      },
-      chat = {
-        provider = "openai",
-        model = "gpt-4o",
-        temperature = 0,
-        tokens = 4096,
-      },
+      provider = "openai",
+      model = "gpt-4o",
+      temperature = 0,
+      tokens = 4096,
       timeout = 60,
     },
     settings = {
@@ -117,19 +119,32 @@ end
 ---@return EnlightenConfig
 function M.merge_config(partial_config, latest_config)
   partial_config = partial_config or {}
+  Logger:log("config.merge_config - user config", partial_config)
   local config = latest_config or M.get_default_config()
 
-  for k, v in pairs(partial_config) do
-    if k == "ai" or k == "settings" then
-      for j, w in pairs(v) do
-        if j == "prompt" or j == "chat" then
-          config[k][j] = vim.tbl_extend("force", config[k][j], w)
-        end
-      end
-    end
+  if partial_config.ai then
+    config.ai = vim.tbl_deep_extend("force", config.ai, partial_config.ai)
+
+    local base_provider_config = {
+      provider = config.ai.provider,
+      timeout = config.ai.timeout,
+      model = config.ai.model,
+      tokens = config.ai.tokens,
+      temperature = config.ai.temperature,
+    }
+
+    config.ai.prompt = vim.tbl_deep_extend("force", base_provider_config, config.ai.prompt or {})
+    config.ai.chat = vim.tbl_deep_extend("force", base_provider_config, config.ai.chat or {})
   end
 
-  Logger:log("config.merge_config - config", config)
+  if partial_config.settings then
+    config.settings.prompt =
+      vim.tbl_deep_extend("force", config.settings.prompt, partial_config.settings.prompt or {})
+    config.settings.chat =
+      vim.tbl_deep_extend("force", config.settings.chat, partial_config.settings.chat or {})
+  end
+
+  Logger:log("config.merge_config - final config", config)
 
   return config
 end
