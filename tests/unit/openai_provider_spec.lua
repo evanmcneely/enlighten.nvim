@@ -21,4 +21,17 @@ describe("provider openai", function()
     local success = tu.openai_response("hello")
     equals("hello", openai.get_streamed_text(success))
   end)
+
+  it("should identify when streaming has finished", function()
+    local done = tu.openai_response("hello", "done")
+    local nope = tu.openai_response("hello")
+
+    equals(true, openai.is_streaming_finished(done))
+    equals(false, openai.is_streaming_finished(nope))
+  end)
+
+  it("should return no content if streaming is finished", function()
+    local success = tu.openai_response("hello", "done")
+    equals("", openai.get_streamed_text(success))
+  end)
 end)
