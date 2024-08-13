@@ -68,6 +68,23 @@ describe("ai", function()
     equals(0, writer.on_complete_calls)
   end)
 
+  it("should process chunks with 'event:content_block_delta data:' prefix", function()
+    -- update the config to use antthropic provider
+    ai = Ai:new(config.merge_config({ ai = { provider = "anthropic" } }).ai)
+    ai:complete("prompt", writer)
+
+    local text = "wassup"
+    local obj = tu.anthropic_response("content_block_delta", text)
+
+    -- When a response streams in, it should get buffered into the writer:on_data method
+    buffer_chunk("event:content_block_delta data: " .. vim.json.encode(obj))
+    equals(text, writer.data[1])
+
+    -- And the writer:on_complete should not be called
+    equals(1, #writer.data)
+    equals(0, writer.on_complete_calls)
+  end)
+
   it("should process multiple incoming chunks with 'data:' prefix", function()
     local text = "wassup"
     local res = tu.openai_response(text)
@@ -121,5 +138,38 @@ describe("ai", function()
 
     equals(0, #writer.data)
     equals(1, writer.on_complete_calls)
+  end)
+
+  it("should run through full anthropic streaming routine", function()
+    -- update the config to use antthropic provider
+    ai = Ai:new(config.merge_config({ ai = { provider = "anthropic" } }).ai)
+    ai:complete("prompt", writer)
+
+    local routine = {
+      tu.anthropic_response("message_start"),
+      tu.anthropic_response("content_block_start"),
+      tu.anthropic_response("ping"),
+      tu.anthropic_response("content_block_delta", "hello"),
+      tu.anthropic_response("content_block_delta", "hello"),
+      tu.anthropic_response("ping"),
+      tu.anthropic_response("content_block_delta", "hello"),
+      tu.anthropic_response("content_block_stop"),
+      tu.anthropic_response("content_block_start"),
+      tu.anthropic_response("content_block_delta", "hello"),
+      tu.anthropic_response("ping"),
+      tu.anthropic_response("content_block_delta", "hello"),
+      tu.anthropic_response("content_block_delta", "hello"),
+      tu.anthropic_response("ping"),
+      tu.anthropic_response("content_block_stop"),
+      tu.anthropic_response("message_delta"),
+      tu.anthropic_response("message_stop"),
+    }
+
+    for _, obj in ipairs(routine) do
+      buffer_chunk("event:" .. obj.type .. " data:" .. vim.json.encode(obj))
+    end
+
+    equals(6, #writer.data) -- only called on "content_block_delta" events
+    equals(0, writer.on_complete_calls) -- only called when connection closed
   end)
 end)
