@@ -6,47 +6,6 @@ local Logger = require("enlighten/logger")
 ---@field config EnlightenAiConfig
 local AI = {}
 
----@class OpenAIStreamingResponse
----@field id string
----@field object string
----@field created number
----@field model string
----@field system_fingerprint string
----@field choices OpenAIStreamingChoice[]
-
----@class OpenAIStreamingChoice
----@field index number
----@field delta OpenAIDelta
----@field logprobs any
----@field finish_reason any
-
----@class OpenAIDelta
----@field role string
----@field content string
-
----@class OpenAIError
----@field error { message:string }
-
----@class OpenAIRequest
----@field model string
----@field prompt string
----@field max_tokens number
----@field temperature number
-
--- luacheck: push ignore
-local prompt_system_prompt = [[
-  You are a coding assistant helping a software developer edit code in their IDE.
-  All of you responses should consist of only the code you want to write. Do not include any explanations or summarys. Do not include code block markdown starting with ```.
-  Match the current indentation of the code snippet.
-]]
-
-local chat_system_prompt = [[
-  You are a coding assistant helping a software developer edit code in their IDE.
-  You are provided a chat transcript between "Developer" and "Assistant" (you). The most recent messages are at the bottom.
-  Support the developer by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
-]]
--- luacheck: pop
-
 -- Try's to extract as many complete JSON strings out of the input
 -- string and returns them along with whatever junk si left over.
 ---@param s string
@@ -149,15 +108,14 @@ function AI.exec(cmd, args, on_stdout_chunk, on_complete)
   end
 end
 
+---@param body table
 ---@param writer Writer
----@param endpoint string
----@param body OpenAIRequest
-function AI:request(endpoint, body, writer)
-  local api_key = os.getenv("OPENAI_API_KEY")
+---@param provider AiProvider
+function AI:request(body, writer, provider)
+  local api_key = provider.get_api_key()
   if not api_key then
     Logger:log("ai:request - no api key")
-    ---@diagnostic disable-next-line: param-type-mismatch
-    writer:on_complete("$OPENAI_API_KEY environment variable must be set")
+    writer:on_complete(provider.api_key_env_var .. " environment variable must be set")
     return
   end
 
@@ -168,9 +126,7 @@ function AI:request(endpoint, body, writer)
     "--max-time",
     self.config.timeout,
     "-L",
-    "https://api.openai.com/v1/" .. endpoint,
-    "-H",
-    "Authorization: Bearer " .. api_key,
+    provider.endpoint,
     "-X",
     "POST",
     "-H",
@@ -178,6 +134,11 @@ function AI:request(endpoint, body, writer)
     "-d",
     vim.json.encode(body),
   }
+  for _, arg in ipairs(provider.build_stream_headers()) do
+    table.insert(curl_args, arg)
+  end
+
+  Logger:log("ai:request - curl_args", curl_args)
 
   -- Chunks of text to be processed. Can be incomplete JSON strings mixed with "data:" prefixes.
   local buffered_chunks = ""
@@ -186,6 +147,7 @@ function AI:request(endpoint, body, writer)
 
   ---@param chunk string
   local function on_stdout_chunk(chunk)
+    Logger:log(chunk)
     -- A chunk here can look like three known things
     --  1. "data: {...} data: [done]" : a single JSON object with data and prefix/suffix
     --  2. "data: {...} data: {...} data: {...} ... data: [done]" : multiple JSON objects with data and prefix/suffix
@@ -207,18 +169,15 @@ function AI:request(endpoint, body, writer)
     while processed_chunks[1] ~= nil do
       local json_str = table.remove(processed_chunks, 1)
 
-      ---@type OpenAIStreamingResponse | OpenAIError
+      ---@type table
       local json = vim.json.decode(json_str)
 
-      if json.error then
-        writer:on_complete(json.error.message)
-      else
-        local completion = json.choices[1]
-        if not completion.finish_reason or completion.finish_reason == vim.NIL then
-          local text = completion.delta.content
-          if #text > 0 then
-            writer:on_data(text)
-          end
+      if provider.is_error(json) then
+        writer:on_complete(provider.get_error_text(json))
+      elseif not provider.is_streaming_finished(json) then
+        local text = provider.get_streamed_text(json)
+        if #text > 0 then
+          writer:on_data(text)
         end
       end
     end
@@ -232,42 +191,17 @@ end
 ---@param writer Writer
 ---@param prompt string
 function AI:complete(prompt, writer)
-  local body = {
-    model = self.config.prompt.model,
-    max_tokens = self.config.prompt.tokens,
-    temperature = self.config.prompt.temperature,
-    stream = true,
-    messages = {
-      { role = "system", content = prompt_system_prompt },
-      {
-        role = "user",
-        content = prompt,
-      },
-    },
-  }
-  Logger:log("ai:complete - request", { body = body })
-
-  self:request("chat/completions", body, writer)
+  local provider = require("enlighten.ai." .. self.config.prompt.provider)
+  local body = provider.build_stream_request("prompt", prompt, self.config.prompt)
+  self:request(body, writer, provider)
 end
 
 ---@param writer Writer
 ---@param prompt string
 function AI:chat(prompt, writer)
-  local body = {
-    model = self.config.chat.model,
-    max_tokens = self.config.chat.tokens,
-    temperature = self.config.chat.temperature,
-    stream = true,
-    messages = {
-      { role = "system", content = chat_system_prompt },
-      {
-        role = "user",
-        content = prompt,
-      },
-    },
-  }
-  Logger:log("ai:chat - request", { body = body })
-  self:request("chat/completions", body, writer)
+  local provider = require("enlighten.ai." .. self.config.chat.provider)
+  local body = provider.build_stream_request("chat", prompt, self.config.chat)
+  self:request(body, writer, provider)
 end
 
 return AI

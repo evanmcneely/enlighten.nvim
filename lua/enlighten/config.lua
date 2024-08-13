@@ -7,22 +7,32 @@ local M = {}
 ---@field model string -- model used for completions
 ---@field temperature number
 ---@field tokens number -- token limit for completions
+---@field timeout number
 
 ---@class EnlightenPartialAiProviderConfig
 ---@field provider? string
 ---@field model? string
 ---@field temperature? number
 ---@field tokens? number
+---@field timeout? number
 
 ---@class EnlightenAiConfig
 ---@field chat EnlightenAiProviderConfig
 ---@field prompt EnlightenAiProviderConfig
 ---@field timeout number
+---@field provider string -- AI model provider
+---@field model string -- model used for completions
+---@field temperature number
+---@field tokens number -- token limit for completions
 
 ---@class EnlightenPartialAiConfig
 ---@field chat? EnlightenPartialAiProviderConfig
 ---@field prompt? EnlightenPartialAiProviderConfig
 ---@field timeout? number
+---@field provider? string
+---@field model? string
+---@field temperature? number
+---@field tokens? number
 
 ---@class EnlightenPromptSettings
 ---@field width number -- prompt window width (number of columns)
@@ -38,31 +48,24 @@ local M = {}
 
 ---@class EnlightenPartialChatSettings
 ---@field width? number
+---@field split? string
 
 ---@class EnlightenConfig
 ---@field ai EnlightenAiConfig
 ---@field settings { prompt: EnlightenPromptSettings, chat: EnlightenChatSettings }
 
 ---@class EnlightenPartialConfig
----@field ai EnlightenPartialAiConfig
----@field settings { prompt: EnlightenPartialPromptSettings, chat: EnlightenPartialChatSettings }
+---@field ai? EnlightenPartialAiConfig
+---@field settings? { prompt?: EnlightenPartialPromptSettings, chat?: EnlightenPartialChatSettings }
 
 ---@return EnlightenConfig
 function M.get_default_config()
   return {
     ai = {
-      prompt = {
-        provider = "openai",
-        model = "gpt-4o",
-        temperature = 0,
-        tokens = 4096,
-      },
-      chat = {
-        provider = "openai",
-        model = "gpt-4o",
-        temperature = 0,
-        tokens = 4096,
-      },
+      provider = "openai",
+      model = "gpt-4o",
+      temperature = 0,
+      tokens = 4096,
       timeout = 60,
     },
     settings = {
@@ -81,15 +84,6 @@ end
 M.config = M.get_default_config()
 
 function M.validate_environment()
-  if vim.fn.getenv("OPENAI_API_KEY") == nil then
-    Logger:log("config.validate_environment - no API key is set")
-    vim.api.nvim_notify(
-      "Enlighten: No 'OPENAI_API_KEY' environment variable is not set",
-      vim.log.levels.WARN,
-      {}
-    )
-  end
-
   local function is_curl_installed()
     local handle = io.popen("command -v curl")
     local result = ""
@@ -102,13 +96,21 @@ function M.validate_environment()
 
   if not is_curl_installed() then
     Logger:log("config.validate_environment - curl not installed")
-    vim.api.nvim_notify(
-      "Enlighten: Curl is not installed. Please install curl to use this plugin.",
-      vim.log.levels.WARN,
-      {}
-    )
+    M.warn("Enlighten: Curl is not installed. Please install curl to use this plugin.")
     return
   end
+end
+
+---@param p string
+---@return boolean
+function M.is_valid_ai_provider(p)
+  local accepted = { "openai", "anthropic" }
+  return vim.tbl_contains(accepted, p)
+end
+
+---@param message string
+function M.warn(message)
+  vim.api.nvim_notify(message, vim.log.levels.WARN, {})
 end
 
 ---@param partial_config EnlightenPartialConfig?
@@ -118,17 +120,39 @@ function M.merge_config(partial_config, latest_config)
   partial_config = partial_config or {}
   local config = latest_config or M.get_default_config()
 
-  for k, v in pairs(partial_config) do
-    if k == "ai" or k == "settings" then
-      for j, w in pairs(v) do
-        if j == "prompt" or j == "chat" then
-          config[k][j] = vim.tbl_extend("force", config[k][j], w)
-        end
-      end
-    end
+  Logger:log("config.merge_config - user config", partial_config)
+
+  config.ai = vim.tbl_deep_extend("force", config.ai, partial_config.ai or {})
+
+  local base_provider_config = {
+    provider = config.ai.provider,
+    timeout = config.ai.timeout,
+    model = config.ai.model,
+    tokens = config.ai.tokens,
+    temperature = config.ai.temperature,
+  }
+
+  config.ai.prompt = vim.tbl_deep_extend("force", base_provider_config, config.ai.prompt or {})
+  config.ai.chat = vim.tbl_deep_extend("force", base_provider_config, config.ai.chat or {})
+
+  if not M.is_valid_ai_provider(config.ai.prompt.provider) then
+    M.warn("Invalid provider " .. config.ai.prompt.provider .. " for prompt, using default openai")
+    config.ai.prompt.provider = "openai"
   end
 
-  Logger:log("config.merge_config - config", config)
+  if not M.is_valid_ai_provider(config.ai.chat.provider) then
+    M.warn("Invalid provider " .. config.ai.chat.provider .. " for chat, using default openai")
+    config.ai.chat.provider = "openai"
+  end
+
+  if partial_config.settings then
+    config.settings.prompt =
+      vim.tbl_deep_extend("force", config.settings.prompt, partial_config.settings.prompt or {})
+    config.settings.chat =
+      vim.tbl_deep_extend("force", config.settings.chat, partial_config.settings.chat or {})
+  end
+
+  Logger:log("config.merge_config - final config", config)
 
   return config
 end

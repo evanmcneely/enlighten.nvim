@@ -2,7 +2,7 @@
 
 ## 🤖 Enlighten
 
-#### Turn Neovim into an AI Code Editor
+### Turn Neovim into an AI Code Editor
 
 ![enlighten-demo](./demo.gif)
 
@@ -10,17 +10,19 @@
 
 ### 🥖 Features
 
-- Powered by OpenAI's `gpt-4o`.
 - Generate code from a prompt.
 - Edit selected code in place without leaving the buffer.
 - Highlight differences in generated or edited code.
 - Conversational chat without leaving Neovim.
+- OpenAI and Anthropic chat models are supported.
 
 ### 💾 Setup
 
+Neovim 0.8.0 and up are supported
+
 `curl` is required.
 
-You will also need to set the environment variable `$OPENAI_API_KEY` with your OpenAI API key. Other AI providers and private models will be supported in the future.
+You will also need to set the environment variable `$OPENAI_API_KEY` or `$ANTHROPIC_API_KEY` depending on the AI provider you are using.
 
 Installation with [lazy.vim](https://github.com/folke/lazy.nvim)
 
@@ -41,23 +43,15 @@ Installation with [lazy.vim](https://github.com/folke/lazy.nvim)
 
 ### ⚙️ Configuration
 
-This is the default configuration. Pass overrides into setup: `require('enlighten'):setup({...}) `.
+This is the default configuration.
 
 ```lua
   {
     ai = {
-      prompt = {
-        provider = "openai", -- doesn't do anything yet
-        model = "gpt-4o", -- only OpenAI models are supported
-        temperature = 0,
-        tokens = 4096,
-      },
-      chat = {
-        provider = "openai",
-        model = "gpt-4o",
-        temperature = 0,
-        tokens = 4096,
-      },
+      provider = "openai", -- AI provider. Only "openai" or "anthropic" or supported.
+      model = "gpt-4o", -- model name for the specified provider. Only chat completion models are supported.
+      temperature = 0,
+      tokens = 4096,
       timeout = 60,
     },
     settings = {
@@ -73,25 +67,66 @@ This is the default configuration. Pass overrides into setup: `require('enlighte
   }
 ```
 
+To customize this configuration, pass overrides into setup: `require('enlighten'):setup({...}) `.
+
+#### Using Anthropic as the provider
+
+Example configuration to use Anthropic AI as the completion provider:
+
+```lua
+  {
+    ai = {
+      provider = "anthropic",
+      model = "claude-3-5-sonnet-20240620",
+    },
+  }
+```
+
+#### Feature specific configuration
+
+You can override the AI configuration for the prompt-completion or chat feature using the following feature specific overrides:
+
+```lua
+  {
+    ai = {
+      prompt = {
+        timeout = 10, -- set a lower timeout for the prompt feature only
+      },
+      chat = {
+        model = "gpt-3.5-turbo", -- use a different model for the chat feature only
+      }
+    },
+  }
+```
+
+These are just examples, all `ai` configurations can be overridden in this way.
+
 ### 📖 Usage
 
-#### Generate
+#### Prompt completion
 
-From normal mode, position the cursor where you want to generate code. Open the prompt and write your instructions. Hit 'Enter' from normal mode to generate a completion in buffer. 'C-y' to approve the changes or edit your prompt and hit 'Enter' again to retry.
+Select the code you want to edit (from normal mode, the line under the cursor is considered selected). Open the prompt and write your instructions. The keymaps available to you are:
 
-#### Edit
+- `<cr>` - submit the prompt for completion
+- `q` - close the prompt window (clears any generated code)
+- `<C-y>` - accept the generated code
 
-Edit: Select the code you want to edit. Open the prompt and write your instructions. Hit 'Enter' from normal mode to edit the selected code in buffer. Review the changes and approve them, or edit your prompt and hit 'Enter' again to retry.
+Generated code is diff'd against the initially selected code and highlighted as green (add) or red (remove) appropriately.
 
 #### Chat
 
-Chat: Open the chat. Hitting 'Enter' from normal mode submits the prompt. Responses are streamed into the buffer.
+Open the chat window. You can optionally select code from the buffer to have it populate the prompt. The keymaps available to you are:
+
+- `<cr>` - submit the prompt for completion
+- `q` - close the chat window
+
+Chat responses are streamed into the chat buffer.
 
 ### 👍 Kudos
 
-[aduros/ai.vim](https://github.com/aduros/ai.vim) which provided the foundation of this project. The two projects look nothing the same now, but ai.vim made me think this was possible.
+- [aduros/ai.vim](https://github.com/aduros/ai.vim) which provided the foundation of this project. The two projects look nothing the same now, but ai.vim made me think this was possible.
 
-[Cursor](https://www.cursor.com/) the AI Code Editor which, in my opinion, has pioneered AI-editor integrations and inspired the features here and on the roadmap.
+- [Cursor](https://www.cursor.com/) the AI Code Editor which, in my opinion, has pioneered AI-editor integrations and inspired the features here and on the roadmap.
 
 ### 🏎️ TODO
 
@@ -99,5 +134,4 @@ Chat: Open the chat. Hitting 'Enter' from normal mode submits the prompt. Respon
 - Chat: @use directive to edit buffer with context from the chat.
 - Chat: history
 - Completion without prompt - just use code context to try and generate code (inserting at the cursor).
-- Add Anthropic as a provider for generating content (with an abstraction to allow adding more model providers and local models in the future).
 - Prompt and Chat: @ directive for searching codebase for functions, classes, etc. to be added to context when generating a completion. Create codebase embeddings.
