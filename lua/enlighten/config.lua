@@ -96,13 +96,21 @@ function M.validate_environment()
 
   if not is_curl_installed() then
     Logger:log("config.validate_environment - curl not installed")
-    vim.api.nvim_notify(
-      "Enlighten: Curl is not installed. Please install curl to use this plugin.",
-      vim.log.levels.WARN,
-      {}
-    )
+    M.warn("Enlighten: Curl is not installed. Please install curl to use this plugin.")
     return
   end
+end
+
+---@param p string
+---@return boolean
+function M.is_valid_ai_provider(p)
+  local accepted = { "openai", "anthropic" }
+  return vim.tbl_contains(accepted, p)
+end
+
+---@param message string
+function M.warn(message)
+  vim.api.nvim_notify(message, vim.log.levels.WARN, {})
 end
 
 ---@param partial_config EnlightenPartialConfig?
@@ -126,6 +134,16 @@ function M.merge_config(partial_config, latest_config)
 
   config.ai.prompt = vim.tbl_deep_extend("force", base_provider_config, config.ai.prompt or {})
   config.ai.chat = vim.tbl_deep_extend("force", base_provider_config, config.ai.chat or {})
+
+  if not M.is_valid_ai_provider(config.ai.prompt.provider) then
+    M.warn("Invalid provider " .. config.ai.prompt.provider .. " for prompt, using default openai")
+    config.ai.prompt.provider = "openai"
+  end
+
+  if not M.is_valid_ai_provider(config.ai.chat.provider) then
+    M.warn("Invalid provider " .. config.ai.chat.provider .. " for chat, using default openai")
+    config.ai.chat.provider = "openai"
+  end
 
   if partial_config.settings then
     config.settings.prompt =
