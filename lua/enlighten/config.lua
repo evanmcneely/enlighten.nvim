@@ -84,15 +84,6 @@ end
 M.config = M.get_default_config()
 
 function M.validate_environment()
-  if vim.fn.getenv("OPENAI_API_KEY") == nil then
-    Logger:log("config.validate_environment - no API key is set")
-    vim.api.nvim_notify(
-      "Enlighten: No 'OPENAI_API_KEY' environment variable is not set",
-      vim.log.levels.WARN,
-      {}
-    )
-  end
-
   local function is_curl_installed()
     local handle = io.popen("command -v curl")
     local result = ""
