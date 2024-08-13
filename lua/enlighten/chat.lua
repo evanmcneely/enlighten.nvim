@@ -10,14 +10,16 @@ local Logger = require("enlighten/logger")
 ---@field chat_win number
 ---@field target_buf number
 ---@field target_range Range
+---@field history History
 local EnlightenChat = {}
 
 -- Initial gateway into the chat feature. Initialize all data, windows, keymaps
 -- and autocommands that the feature depend on.
 ---@param ai AI
 ---@param settings EnlightenChatSettings
+---@param history History
 ---@return EnlightenChat
-function EnlightenChat:new(ai, settings)
+function EnlightenChat:new(ai, settings, history)
   self.__index = self
 
   local buf = api.nvim_get_current_buf()
@@ -37,6 +39,7 @@ function EnlightenChat:new(ai, settings)
   self.chat_buf = chat_win.bufnr
   self.chat_win = chat_win.win_id
   self.target_buf = buf
+  self.history = history
 
   self:_set_chat_keymaps()
   self:_add_user(snippet)

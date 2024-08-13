@@ -3,12 +3,15 @@ local Prompt = require("enlighten/prompt")
 local Chat = require("enlighten/chat")
 local Ai = require("enlighten/ai")
 local Config = require("enlighten/config")
+local History = require("enlighten/history")
 
 ---@class Enlighten
 ---@field config EnlightenConfig
 ---@field logger EnlightenLog
 ---@field prompt EnlightenPrompt
 ---@field chat EnlightenChat
+---@field prompt_history History
+---@field chat_history History
 ---@field ai AI
 local Enlighten = {}
 
@@ -23,6 +26,8 @@ function Enlighten:new()
     logger = Logger,
     prompt = nil,
     chat = nil,
+    prompt_history = nil,
+    chat_history = nil,
   }, self)
 
   return enlighten
@@ -43,6 +48,8 @@ function Enlighten.setup(self, partial_config)
   ---@diagnostic disable-next-line: param-type-mismatch
   self.config = Config.merge_config(partial_config, self.config)
   self.ai = Ai:new(self.config.ai)
+  self.prompt_history = History:new(self.config.settings.max_history)
+  self.chat_history = History:new(self.config.settings.max_history)
 
   Config.validate_environment()
 
@@ -58,7 +65,7 @@ function Enlighten:open_prompt()
   end
 
   self.logger:log("enlighten:open_prompt - new")
-  self.prompt = Prompt:new(self.ai, self.config.settings.prompt)
+  self.prompt = Prompt:new(self.ai, self.config.settings.prompt, self.prompt_history)
 end
 
 --- Close the prompt window if it exists and open it otherwise
@@ -91,7 +98,7 @@ function Enlighten:open_chat()
   end
 
   self.logger:log("enlighten:open_chat - new")
-  self.chat = Chat:new(self.ai, self.config.settings.chat)
+  self.chat = Chat:new(self.ai, self.config.settings.chat, self.chat_history)
 end
 
 --- Close the chat pane if it exists and open it otherwise

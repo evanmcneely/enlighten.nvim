@@ -11,14 +11,16 @@ local Logger = require("enlighten/logger")
 ---@field target_buf number
 ---@field target_range Range
 ---@field writer DiffWriter
+---@field history History
 local EnlightenPrompt = {}
 
 -- Initial gateway into the "prompt" feature. Initialize all data, windows,
 -- keymaps and autocammonds that the feature depends on.
 ---@param ai AI
 ---@param settings EnlightenPromptSettings
+---@param history History
 ---@return EnlightenPrompt
-function EnlightenPrompt:new(ai, settings)
+function EnlightenPrompt:new(ai, settings, history)
   self.__index = self
 
   local buf = api.nvim_get_current_buf()
@@ -32,6 +34,7 @@ function EnlightenPrompt:new(ai, settings)
   self.target_buf = buf
   self.target_range = range
   self.writer = Writer:new(buf, range)
+  self.history = history
 
   self:_set_keymaps()
   self:_set_autocmds()
