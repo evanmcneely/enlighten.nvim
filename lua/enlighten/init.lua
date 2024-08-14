@@ -26,8 +26,8 @@ function Enlighten:new()
     logger = Logger,
     prompt = nil,
     chat = nil,
-    prompt_history = nil,
-    chat_history = nil,
+    prompt_history = {},
+    chat_history = {},
   }, self)
 
   return enlighten
@@ -48,8 +48,6 @@ function Enlighten.setup(self, partial_config)
   ---@diagnostic disable-next-line: param-type-mismatch
   self.config = Config.merge_config(partial_config, self.config)
   self.ai = Ai:new(self.config.ai)
-  self.prompt_history = History:new(self.config.settings.max_history)
-  self.chat_history = History:new(self.config.settings.max_history)
 
   Config.validate_environment()
 

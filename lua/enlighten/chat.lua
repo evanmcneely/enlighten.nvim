@@ -1,8 +1,8 @@
 local api = vim.api
 local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/stream")
-local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
+local History = require("enlighten/history")
 
 ---@class EnlightenChat
 ---@field settings EnlightenChatSettings
@@ -17,7 +17,7 @@ local EnlightenChat = {}
 -- and autocommands that the feature depend on.
 ---@param ai AI
 ---@param settings EnlightenChatSettings
----@param history History
+---@param history string[][]
 ---@return EnlightenChat
 function EnlightenChat:new(ai, settings, history)
   self.__index = self
@@ -39,7 +39,7 @@ function EnlightenChat:new(ai, settings, history)
   self.chat_buf = chat_win.bufnr
   self.chat_win = chat_win.win_id
   self.target_buf = buf
-  self.history = history
+  self.history = History:new(chat_win.bufnr, 5, history)
 
   self:_set_chat_keymaps()
   self:_add_user(snippet)
@@ -83,6 +83,7 @@ function EnlightenChat:submit()
 
     local function on_complete()
       self:_add_user()
+      self.history:update()
     end
 
     local prompt = self:_build_prompt()
@@ -129,6 +130,8 @@ end
 --
 -- - q        : close the prompt buffer
 -- - <cr>     : submit prompt for generation
+-- - <C-o>    : scroll back in history
+-- - <C-i>    : scroll forward in history
 function EnlightenChat:_set_chat_keymaps()
   api.nvim_buf_set_keymap(
     self.chat_buf,
@@ -144,12 +147,20 @@ function EnlightenChat:_set_chat_keymaps()
     "<Cmd>lua require('enlighten'):close_chat()<CR>",
     {}
   )
-  api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
-    callback = function()
-      buffer.sticky_buffer(self.chat_buf, self.chat_win)
-    end,
-    group = group,
-  })
+  api.nvim_buf_set_keymap(
+    self.chat_buf,
+    "n",
+    "<C-o>",
+    "<Cmd>lua require('enlighten').chat:scroll_back()<CR>",
+    {}
+  )
+  api.nvim_buf_set_keymap(
+    self.chat_buf,
+    "n",
+    "<C-i>",
+    "<Cmd>lua require('enlighten').chat:scroll_forward()<CR>",
+    {}
+  )
 end
 
 -- Format the prompt for generating a response. The conversation is not broken up
@@ -208,6 +219,16 @@ function EnlightenChat:_add_assistant()
   insert_line(self.chat_buf, ">>> Assistant", "Function")
   insert_line(self.chat_buf, "")
   insert_line(self.chat_buf, "")
+end
+
+-- Scroll back in history
+function EnlightenChat:scroll_back()
+  self.history:scroll_back()
+end
+
+-- Scroll forward in history
+function EnlightenChat:scroll_forward()
+  self.history:scroll_forward()
 end
 
 return EnlightenChat

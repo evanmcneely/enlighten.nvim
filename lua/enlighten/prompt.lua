@@ -3,6 +3,7 @@ local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/diff")
 local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
+local History = require("enlighten/history")
 
 ---@class EnlightenPrompt
 ---@field settings EnlightenPromptSettings
@@ -18,7 +19,7 @@ local EnlightenPrompt = {}
 -- keymaps and autocammonds that the feature depends on.
 ---@param ai AI
 ---@param settings EnlightenPromptSettings
----@param history History
+---@param history string[][]
 ---@return EnlightenPrompt
 function EnlightenPrompt:new(ai, settings, history)
   self.__index = self
@@ -34,7 +35,7 @@ function EnlightenPrompt:new(ai, settings, history)
   self.target_buf = buf
   self.target_range = range
   self.writer = Writer:new(buf, range)
-  self.history = history
+  self.history = History:new(prompt_win.bufnr, 5, history)
 
   self:_set_keymaps()
   self:_set_autocmds()
