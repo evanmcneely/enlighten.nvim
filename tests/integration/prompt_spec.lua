@@ -110,16 +110,16 @@ describe("prompt", function()
     vim.cmd("lua require('enlighten'):toggle_prompt()")
 
     tu.feedkeys("<Esc><C-o>")
-    assert_buffer_content("abc")
+    tu.scheduled_equals("abc", buffer.get_content(enlighten.prompt.prompt_buf))
 
     tu.feedkeys("<C-o>")
-    assert_buffer_content("def")
+    tu.scheduled_equals("def", buffer.get_content(enlighten.prompt.prompt_buf))
 
     tu.feedkeys("<C-i>")
-    assert_buffer_content("abc")
+    tu.scheduled_equals("abc", buffer.get_content(enlighten.prompt.prompt_buf))
 
     tu.feedkeys("<C-i>")
-    assert_buffer_content("")
+    tu.scheduled_equals("", buffer.get_content(enlighten.prompt.prompt_buf))
   end)
 
   it("should save prompt to history after completion", function()
@@ -132,7 +132,7 @@ describe("prompt", function()
     vim.cmd("lua require('enlighten'):toggle_prompt()")
 
     tu.feedkeys("<Esc><C-o>")
-    assert_buffer_content("hello")
+    tu.scheduled_equals("hello", buffer.get_content(enlighten.prompt.prompt_buf))
     assert.are.same({ { "hello" } }, enlighten.prompt_history)
   end)
 end)

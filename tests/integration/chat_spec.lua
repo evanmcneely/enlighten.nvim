@@ -89,16 +89,16 @@ describe("chat", function()
     vim.cmd("lua require('enlighten'):toggle_chat()")
 
     tu.feedkeys("<Esc><C-o>")
-    assert_buffer_content("abc")
+    tu.scheduled_equals("abc", buffer.get_content(enlighten.chat.chat_buf))
 
     tu.feedkeys("<C-o>")
-    assert_buffer_content("def")
+    tu.scheduled_equals("def", buffer.get_content(enlighten.chat.chat_buf))
 
     tu.feedkeys("<C-i>")
-    assert_buffer_content("abc")
+    tu.scheduled_equals("abc", buffer.get_content(enlighten.chat.chat_buf))
 
     tu.feedkeys("<C-i>")
-    assert_buffer_content("\n>>> Developer\n\n")
+    tu.scheduled_equals("\n>>> Developer\n\n", buffer.get_content(enlighten.chat.chat_buf))
   end)
 
   it("should save convo to history after completion", function()
@@ -115,8 +115,7 @@ describe("chat", function()
       .. table.concat(content_1, "")
       .. "\n\n>>> Developer\n\n"
 
-    assert_buffer_content(want)
-    -- assert.are.same(want, buffer.get_content(enlighten.chat.chat_buf))
+    tu.scheduled_equals(want, buffer.get_content(enlighten.chat.chat_buf))
     assert.are.same({ vim.split(want, "\n") }, enlighten.chat_history)
   end)
 end)
