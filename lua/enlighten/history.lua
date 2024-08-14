@@ -54,6 +54,8 @@ function History:scroll_back()
   elseif self.index > 1 then
     vim.api.nvim_buf_set_lines(self.buffer, 0, -1, false, self.items[self.index])
   end
+
+  self:highlight_lines()
 end
 
 function History:scroll_forward()
@@ -71,6 +73,18 @@ function History:scroll_forward()
     vim.api.nvim_buf_set_lines(self.buffer, 0, -1, false, self.current)
   else
     vim.api.nvim_buf_set_lines(self.buffer, 0, -1, false, self.items[self.index])
+  end
+
+  self:highlight_lines()
+end
+
+function History:highlight_lines()
+  local lines = vim.api.nvim_buf_get_lines(self.buffer, 0, -1, false)
+
+  for i, line in ipairs(lines) do
+    if line:match("^>>>") then
+      vim.api.nvim_buf_add_highlight(self.buffer, -1, "Function", i - 1, 0, -1)
+    end
   end
 end
 
