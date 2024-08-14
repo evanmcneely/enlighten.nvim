@@ -38,10 +38,8 @@ local prompt_system_prompt = [[
 ]]
 
 local chat_system_prompt = [[
-  You are a coding assistant helping a software developer edit code in their IDE.
-  You are provided a chat transcript between "Developer" and "Assistant" (you). The most recent messages are at the bottom.
-  Support the developer by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
-  You are only the "Assistant" and should only return an answer to the most recent "Developer" question. Do continue on a conversation with yourself.
+  You are a coding assistant helping a software developer (the user) edit code in their IDE.
+  Support the user by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
 ]]
 -- luacheck: pop
 
@@ -96,14 +94,55 @@ function M.build_stream_headers()
   return { "-H", "x-api-key: " .. M.get_api_key(), "-H", "anthropic-version: 2023-06-01" }
 end
 
+--- Parse the buffer string
+---@param content string
+---@return {role:string, content:string}[]
+function M.build_messages(content)
+  local messages = {}
+  local current_role = nil
+  local current_content = {}
+
+  for line in content:gmatch("[^\r\n]+") do
+    if line:match("^>>> Developer") then
+      if current_role then
+        table.insert(
+          messages,
+          { role = current_role, content = table.concat(current_content, "\n") }
+        )
+        current_content = {}
+      end
+      current_role = "user"
+    elseif line:match("^>>> Assistant") then
+      if current_role then
+        table.insert(
+          messages,
+          { role = current_role, content = table.concat(current_content, "\n") }
+        )
+        current_content = {}
+      end
+      current_role = "assistant"
+    elseif current_role then
+      table.insert(current_content, line)
+    end
+  end
+
+  if current_role then
+    table.insert(messages, { role = current_role, content = table.concat(current_content, "\n") })
+  end
+
+  return messages
+end
+
 ---@param feat string
 ---@param prompt string
 ---@param config EnlightenAiProviderConfig
 ---@return AnthropicRequest
 function M.build_stream_request(feat, prompt, config)
   local system_prompt = ""
+  local messages = { { role = "user", content = prompt } }
   if feat == "chat" then
     system_prompt = chat_system_prompt
+    messages = M.build_messages(prompt)
   elseif feat == "prompt" then
     system_prompt = prompt_system_prompt
   end
@@ -114,12 +153,7 @@ function M.build_stream_request(feat, prompt, config)
     temperature = config.temperature,
     stream = true,
     system = system_prompt,
-    messages = {
-      {
-        role = "user",
-        content = prompt,
-      },
-    },
+    messages = messages,
   }
 end
 
