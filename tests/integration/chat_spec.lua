@@ -80,9 +80,11 @@ describe("chat", function()
   it("should be able to scroll chat history", function()
     enlighten.chat_history = { { "abc" }, { "def" } }
     vim.cmd("lua require('enlighten'):toggle_chat()")
-
+    print("before <C-o>")
     tu.feedkeys("<Esc><C-o>")
+    print("after <C-o>")
     assert.are.same("abc", buffer.get_content(enlighten.chat.chat_buf))
+    print("after assert")
 
     tu.feedkeys("<C-o>")
     assert.are.same("def", buffer.get_content(enlighten.chat.chat_buf))

@@ -46,15 +46,18 @@ function History:scroll_back()
   if old_index == self.index then
     return
   end
-
   if self.index == 1 and old_index == 0 then
+    print("getting lines")
     self.current = vim.api.nvim_buf_get_lines(self.buffer, 0, -1, false)
+    print("setting lines")
     vim.api.nvim_buf_set_lines(self.buffer, 0, -1, false, self.items[self.index])
   elseif self.index > 1 then
     vim.api.nvim_buf_set_lines(self.buffer, 0, -1, false, self.items[self.index])
   end
 
+  print("setting highligts")
   self:highlight_lines()
+  print("done highligts")
 end
 
 function History:scroll_forward()
