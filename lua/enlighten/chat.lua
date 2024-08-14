@@ -151,14 +151,14 @@ function EnlightenChat:_set_chat_keymaps()
     self.chat_buf,
     "n",
     "<C-o>",
-    "<Cmd>lua require('enlighten').chat:scroll_back()<CR>",
+    "<Cmd>lua require('enlighten').chat:_scroll_back()<CR>",
     {}
   )
   api.nvim_buf_set_keymap(
     self.chat_buf,
     "n",
     "<C-i>",
-    "<Cmd>lua require('enlighten').chat:scroll_forward()<CR>",
+    "<Cmd>lua require('enlighten').chat:_scroll_forward()<CR>",
     {}
   )
 end
@@ -222,12 +222,12 @@ function EnlightenChat:_add_assistant()
 end
 
 -- Scroll back in history
-function EnlightenChat:scroll_back()
+function EnlightenChat:_scroll_back()
   self.history:scroll_back()
 end
 
 -- Scroll forward in history
-function EnlightenChat:scroll_forward()
+function EnlightenChat:_scroll_forward()
   self.history:scroll_forward()
 end
 
