@@ -51,6 +51,12 @@ describe("chat", function()
     complete()
   end
 
+  local function assert_buffer_content(expected)
+    vim.schedule(function()
+      assert.are.same(expected, buffer.get_content(enlighten.chat.chat_buf))
+    end)
+  end
+
   it("should be able to have a chat conversation", function()
     vim.cmd("lua require('enlighten'):toggle_chat()")
 
@@ -80,12 +86,6 @@ describe("chat", function()
   it("should be able to scroll chat history", function()
     enlighten.chat_history = { { "abc" }, { "def" } }
     vim.cmd("lua require('enlighten'):toggle_chat()")
-
-    local function assert_buffer_content(expected)
-      vim.schedule(function()
-        assert.are.same(expected, buffer.get_content(enlighten.chat.chat_buf))
-      end)
-    end
 
     tu.feedkeys("<Esc><C-o>")
     vim.defer_fn(function()
@@ -118,12 +118,14 @@ describe("chat", function()
     vim.cmd("lua require('enlighten'):toggle_chat()")
 
     tu.feedkeys("<Esc><C-o>")
+    vim.defer_fn(function()
+      local want = "\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
+        .. table.concat(content_1, "")
+        .. "\n\n>>> Developer\n\n"
 
-    local want = "\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
-      .. table.concat(content_1, "")
-      .. "\n\n>>> Developer\n\n"
-
-    assert.are.same(want, buffer.get_content(enlighten.chat.chat_buf))
-    assert.are.same({ vim.split(want, "\n") }, enlighten.chat_history)
+      assert_buffer_content(want)
+      -- assert.are.same(want, buffer.get_content(enlighten.chat.chat_buf))
+      assert.are.same({ vim.split(want, "\n") }, enlighten.chat_history)
+    end, 100)
   end)
 end)
