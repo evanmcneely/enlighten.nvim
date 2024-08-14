@@ -82,17 +82,21 @@ describe("chat", function()
     vim.cmd("lua require('enlighten'):toggle_chat()")
     print("before <C-o>")
     tu.feedkeys("<Esc><C-o>")
+    vim.wait(100, function() end)
     print("after <C-o>")
     assert.are.same("abc", buffer.get_content(enlighten.chat.chat_buf))
     print("after assert")
 
     tu.feedkeys("<C-o>")
+    vim.wait(100)
     assert.are.same("def", buffer.get_content(enlighten.chat.chat_buf))
 
     tu.feedkeys("<C-i>")
+    vim.wait(100)
     assert.are.same("abc", buffer.get_content(enlighten.chat.chat_buf))
 
     tu.feedkeys("<C-i>")
+    vim.wait(100)
     assert.are.same("\n>>> Developer\n\n", buffer.get_content(enlighten.chat.chat_buf))
   end)
 
