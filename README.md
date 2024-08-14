@@ -25,7 +25,7 @@ Neovim 0.8.0 and up are supported
 
 You will also need to set the environment variable `$OPENAI_API_KEY` or `$ANTHROPIC_API_KEY` depending on the AI provider you are using.
 
-Installation with [lazy.vim](https://github.com/folke/lazy.nvim)
+Installation with [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
 {
