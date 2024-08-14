@@ -90,24 +90,15 @@ describe("chat", function()
 
     tu.feedkeys("<Esc><C-o>")
     assert_buffer_content("abc")
-    vim.defer_fn(function()
-      assert_buffer_content("abc")
 
-      tu.feedkeys("<C-o>")
-      vim.defer_fn(function()
-        assert_buffer_content("def")
+    tu.feedkeys("<C-o>")
+    assert_buffer_content("def")
 
-        tu.feedkeys("<C-i>")
-        vim.defer_fn(function()
-          assert_buffer_content("abc")
+    tu.feedkeys("<C-i>")
+    assert_buffer_content("abc")
 
-          tu.feedkeys("<C-i>")
-          vim.defer_fn(function()
-            assert_buffer_content("\n>>> Developer\n\n")
-          end, 100)
-        end, 100)
-      end, 100)
-    end, 100)
+    tu.feedkeys("<C-i>")
+    assert_buffer_content("\n>>> Developer\n\n")
   end)
 
   it("should save convo to history after completion", function()
@@ -120,14 +111,12 @@ describe("chat", function()
     vim.cmd("lua require('enlighten'):toggle_chat()")
 
     tu.feedkeys("<Esc><C-o>")
-    vim.defer_fn(function()
-      local want = "\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
-        .. table.concat(content_1, "")
-        .. "\n\n>>> Developer\n\n"
+    local want = "\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
+      .. table.concat(content_1, "")
+      .. "\n\n>>> Developer\n\n"
 
-      assert_buffer_content(want)
-      -- assert.are.same(want, buffer.get_content(enlighten.chat.chat_buf))
-      assert.are.same({ vim.split(want, "\n") }, enlighten.chat_history)
-    end, 100)
+    assert_buffer_content(want)
+    -- assert.are.same(want, buffer.get_content(enlighten.chat.chat_buf))
+    assert.are.same({ vim.split(want, "\n") }, enlighten.chat_history)
   end)
 end)
