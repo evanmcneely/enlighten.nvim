@@ -39,7 +39,7 @@ function EnlightenChat:new(ai, settings, history)
   self.chat_buf = chat_win.bufnr
   self.chat_win = chat_win.win_id
   self.target_buf = buf
-  self.history = History:new(chat_win.bufnr, 5, history)
+  self.history = History:new(chat_win.bufnr, history)
 
   self:_set_chat_keymaps()
   self:_add_user(snippet)

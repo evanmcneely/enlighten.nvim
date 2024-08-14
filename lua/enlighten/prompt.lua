@@ -33,7 +33,7 @@ function EnlightenPrompt:new(ai, settings, history)
   self.prompt_buf = prompt_win.bufnr
   self.target_buf = buf
   self.target_range = range
-  self.history = History:new(prompt_win.bufnr, 5, history)
+  self.history = History:new(prompt_win.bufnr, history)
 
   local function on_writer_complete()
     self.history:update()

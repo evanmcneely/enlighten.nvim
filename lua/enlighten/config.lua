@@ -53,12 +53,10 @@ local M = {}
 ---@class EnlightenSettings
 ---@field prompt EnlightenPromptSettings
 ---@field chat EnlightenChatSettings
----@field max_history number
 
 ---@class EnlightenPartialSettings
 ---@field prompt? EnlightenPromptSettings
 ---@field chat? EnlightenChatSettings
----@field max_history? number
 
 ---@class EnlightenConfig
 ---@field ai EnlightenAiConfig
@@ -87,7 +85,6 @@ function M.get_default_config()
         width = 80,
         split = "right",
       },
-      max_history = 5,
     },
   }
 end
@@ -161,10 +158,6 @@ function M.merge_config(partial_config, latest_config)
       vim.tbl_deep_extend("force", config.settings.prompt, partial_config.settings.prompt or {})
     config.settings.chat =
       vim.tbl_deep_extend("force", config.settings.chat, partial_config.settings.chat or {})
-
-    if partial_config.settings.max_history then
-      config.settings.max_history = partial_config.settings.max_history
-    end
   end
 
   Logger:log("config.merge_config - final config", config)

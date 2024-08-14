@@ -1,22 +1,21 @@
 ---@class History
----@field max number
 ---@field items string[][]
 ---@field index number
 ---@field current string[]
 ---@field buffer number
 local History = {}
 
+local MAX_HISTORY = 10
+
 ---@param buffer number
----@param max number
 ---@param previous string[][]
 ---@return History
-function History:new(buffer, max, previous)
+function History:new(buffer, previous)
   local instance = setmetatable({}, self)
   self.__index = self
   instance.buffer = buffer
   instance.items = previous
   instance.index = 0
-  instance.max = max
   instance.current = {}
   return instance
 end
@@ -26,7 +25,7 @@ function History:update()
 
   if self.index == 0 then
     table.insert(self.items, 1, current)
-    if #self.items > self.max then
+    if #self.items > MAX_HISTORY then
       table.remove(self.items)
     end
     self.current = {}
