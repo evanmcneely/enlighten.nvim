@@ -50,13 +50,21 @@ local M = {}
 ---@field width? number
 ---@field split? string
 
+---@class EnlightenSettings
+---@field prompt EnlightenPromptSettings
+---@field chat EnlightenChatSettings
+
+---@class EnlightenPartialSettings
+---@field prompt? EnlightenPromptSettings
+---@field chat? EnlightenChatSettings
+
 ---@class EnlightenConfig
 ---@field ai EnlightenAiConfig
----@field settings { prompt: EnlightenPromptSettings, chat: EnlightenChatSettings }
+---@field settings EnlightenSettings
 
 ---@class EnlightenPartialConfig
 ---@field ai? EnlightenPartialAiConfig
----@field settings? { prompt?: EnlightenPartialPromptSettings, chat?: EnlightenPartialChatSettings }
+---@field settings? EnlightenPartialSettings
 
 ---@return EnlightenConfig
 function M.get_default_config()

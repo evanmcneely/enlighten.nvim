@@ -9,6 +9,8 @@ local Config = require("enlighten/config")
 ---@field logger EnlightenLog
 ---@field prompt EnlightenPrompt
 ---@field chat EnlightenChat
+---@field prompt_history string[][]
+---@field chat_history string[][]
 ---@field ai AI
 local Enlighten = {}
 
@@ -23,6 +25,8 @@ function Enlighten:new()
     logger = Logger,
     prompt = nil,
     chat = nil,
+    prompt_history = {},
+    chat_history = {},
   }, self)
 
   return enlighten
@@ -58,7 +62,7 @@ function Enlighten:open_prompt()
   end
 
   self.logger:log("enlighten:open_prompt - new")
-  self.prompt = Prompt:new(self.ai, self.config.settings.prompt)
+  self.prompt = Prompt:new(self.ai, self.config.settings.prompt, self.prompt_history)
 end
 
 --- Close the prompt window if it exists and open it otherwise
@@ -91,7 +95,7 @@ function Enlighten:open_chat()
   end
 
   self.logger:log("enlighten:open_chat - new")
-  self.chat = Chat:new(self.ai, self.config.settings.chat)
+  self.chat = Chat:new(self.ai, self.config.settings.chat, self.chat_history)
 end
 
 --- Close the chat pane if it exists and open it otherwise

@@ -14,6 +14,7 @@
 - Edit selected code in place without leaving the buffer.
 - Highlight differences in generated or edited code.
 - Conversational chat without leaving Neovim.
+- Conversation and prompt history.
 - OpenAI and Anthropic chat models are supported.
 
 ### 💾 Setup
@@ -110,6 +111,8 @@ Select the code you want to edit (from normal mode, the line under the cursor is
 - `<cr>` - submit the prompt for completion
 - `q` - close the prompt window (clears any generated code)
 - `<C-y>` - accept the generated code
+- `<C-o>` - scroll back through past prompts
+- `<C-i>` - scroll forward through past prompts
 
 Generated code is diff'd against the initially selected code and highlighted as green (add) or red (remove) appropriately.
 
@@ -119,8 +122,10 @@ Open the chat window. You can optionally select code from the buffer to have it 
 
 - `<cr>` - submit the prompt for completion
 - `q` - close the chat window
+- `<C-o>` - scroll back through past chat conversations
+- `<C-i>` - scroll forward through past chat conversations
 
-Chat responses are streamed into the chat buffer.
+Chat responses are streamed into the chat buffer. Chat conversations will only be available for the current Neovim session
 
 ### 👍 Kudos
 

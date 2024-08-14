@@ -1,8 +1,8 @@
 local api = vim.api
 local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/diff")
-local group = require("enlighten/autocmd")
 local Logger = require("enlighten/logger")
+local History = require("enlighten/history")
 
 ---@class EnlightenPrompt
 ---@field settings EnlightenPromptSettings
@@ -11,14 +11,16 @@ local Logger = require("enlighten/logger")
 ---@field target_buf number
 ---@field target_range Range
 ---@field writer DiffWriter
+---@field history History
 local EnlightenPrompt = {}
 
 -- Initial gateway into the "prompt" feature. Initialize all data, windows,
 -- keymaps and autocammonds that the feature depends on.
 ---@param ai AI
 ---@param settings EnlightenPromptSettings
+---@param history string[][]
 ---@return EnlightenPrompt
-function EnlightenPrompt:new(ai, settings)
+function EnlightenPrompt:new(ai, settings, history)
   self.__index = self
 
   local buf = api.nvim_get_current_buf()
@@ -31,10 +33,14 @@ function EnlightenPrompt:new(ai, settings)
   self.prompt_buf = prompt_win.bufnr
   self.target_buf = buf
   self.target_range = range
-  self.writer = Writer:new(buf, range)
+  self.history = History:new(prompt_win.bufnr, history)
+
+  local function on_writer_complete()
+    self.history:update()
+  end
+  self.writer = Writer:new(buf, range, on_writer_complete)
 
   self:_set_keymaps()
-  self:_set_autocmds()
 
   vim.cmd("startinsert")
 
@@ -142,6 +148,8 @@ end
 -- - q         : close the prompt buffer
 -- - <cr>      : submit prompt for generation
 -- - <C-y>     : approve generated content
+-- - <C-o>    : scroll back in history
+-- - <C-i>    : scroll forward in history
 function EnlightenPrompt:_set_keymaps()
   api.nvim_buf_set_keymap(
     self.prompt_buf,
@@ -164,16 +172,20 @@ function EnlightenPrompt:_set_keymaps()
     "<Cmd>lua require('enlighten').prompt:keep()<CR>",
     {}
   )
-end
-
--- Set all autocmds for the prompt buffer
-function EnlightenPrompt:_set_autocmds()
-  api.nvim_create_autocmd({ "BufWinEnter", "BufWinLeave" }, {
-    callback = function()
-      buffer.sticky_buffer(self.prompt_buf, self.prompt_win)
-    end,
-    group = group,
-  })
+  api.nvim_buf_set_keymap(
+    self.prompt_buf,
+    "n",
+    "<C-o>",
+    "<Cmd>lua require('enlighten').prompt:_scroll_back()<CR>",
+    {}
+  )
+  api.nvim_buf_set_keymap(
+    self.prompt_buf,
+    "n",
+    "<C-i>",
+    "<Cmd>lua require('enlighten').prompt:_scroll_forward()<CR>",
+    {}
+  )
 end
 
 -- Format the prompt generating content. The prompt includes the prompt buffer
@@ -195,6 +207,16 @@ function EnlightenPrompt:_build_prompt()
     .. "\n"
     .. "\n"
     .. snippet
+end
+
+-- Scroll back in history
+function EnlightenPrompt:_scroll_back()
+  self.history:scroll_back()
+end
+
+-- Scroll forward in history
+function EnlightenPrompt:_scroll_forward()
+  self.history:scroll_forward()
 end
 
 return EnlightenPrompt
