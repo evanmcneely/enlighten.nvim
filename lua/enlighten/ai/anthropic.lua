@@ -38,8 +38,9 @@ local prompt_system_prompt = [[
 ]]
 
 local chat_system_prompt = [[
-  You are a coding assistant helping a software developer (the user) edit code in their IDE.
-  Support the user by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
+  You are a coding assistant helping a software developer edit code in their IDE.
+  You are provided a chat transcript between "Developer" and "Assistant" (you). The most recent messages are at the bottom.
+  Support the developer by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
 ]]
 -- luacheck: pop
 
@@ -94,7 +95,7 @@ function M.build_stream_headers()
   return { "-H", "x-api-key: " .. M.get_api_key(), "-H", "anthropic-version: 2023-06-01" }
 end
 
---- Parse the buffer string
+--- Parse the buffer content into the Anthropic messages format
 ---@param content string
 ---@return {role:string, content:string}[]
 function M.build_messages(content)
@@ -142,7 +143,7 @@ function M.build_stream_request(feat, prompt, config)
   local messages = { { role = "user", content = prompt } }
   if feat == "chat" then
     system_prompt = chat_system_prompt
-    messages = M.build_messages(prompt)
+    -- messages = M.build_messages(prompt)
   elseif feat == "prompt" then
     system_prompt = prompt_system_prompt
   end
