@@ -89,6 +89,7 @@ describe("chat", function()
     vim.cmd("lua require('enlighten'):toggle_chat()")
 
     tu.feedkeys("<Esc><C-o>")
+    assert_buffer_content("abc")
     vim.defer_fn(function()
       assert_buffer_content("abc")
 
