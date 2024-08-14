@@ -59,13 +59,6 @@ describe("prompt", function()
     complete()
   end
 
-  ---@param expected string
-  local function assert_buffer_content(expected)
-    vim.schedule(function()
-      assert.are.same(expected, buffer.get_content(enlighten.prompt.prompt_buf))
-    end)
-  end
-
   it("should be able to edit code in the buffer", function()
     -- Select the first four lines of the buffer
     tu.feedkeys("Vjjj")

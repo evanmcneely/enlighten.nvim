@@ -51,13 +51,6 @@ describe("chat", function()
     complete()
   end
 
-  ---@param expected string
-  local function assert_buffer_content(expected)
-    vim.schedule(function()
-      assert.are.same(expected, buffer.get_content(enlighten.chat.chat_buf))
-    end)
-  end
-
   it("should be able to have a chat conversation", function()
     vim.cmd("lua require('enlighten'):toggle_chat()")
 
