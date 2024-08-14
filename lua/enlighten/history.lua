@@ -1,10 +1,11 @@
 ---@class History
----@field items string[][]
----@field index number
----@field current string[]
----@field buffer number
+---@field items string[][] -- history in the form of list of buffer lines
+---@field index number -- current index in the items list that is checked out
+---@field current string[] -- temp storage of the current unset content while scrolling past history
+---@field buffer number -- the buffer under consideration
 local History = {}
 
+-- only keep a max of 10 past prompts or conversations
 local MAX_HISTORY = 10
 
 ---@param buffer number
@@ -15,6 +16,8 @@ function History:new(buffer, previous)
   self.__index = self
   instance.buffer = buffer
   instance.items = previous
+  -- Zero is used to identify the current prompt, not in history.
+  -- Indexes 1 - MAX_HISTORY are used to index the history items.
   instance.index = 0
   instance.current = {}
   return instance
@@ -53,7 +56,7 @@ function History:scroll_back()
     vim.api.nvim_buf_set_lines(self.buffer, 0, -1, false, self.items[self.index])
   end
 
-  self:highlight_lines()
+  self:_highlight_lines()
 end
 
 function History:scroll_forward()
@@ -73,12 +76,13 @@ function History:scroll_forward()
     vim.api.nvim_buf_set_lines(self.buffer, 0, -1, false, self.items[self.index])
   end
 
-  self:highlight_lines()
+  self:_highlight_lines()
 end
 
-function History:highlight_lines()
+function History:_highlight_lines()
   local lines = vim.api.nvim_buf_get_lines(self.buffer, 0, -1, false)
 
+  -- Highlight the chat user/assistant markers after the content is set
   for i, line in ipairs(lines) do
     if line:match("^>>>") then
       vim.api.nvim_buf_add_highlight(self.buffer, -1, "Function", i - 1, 0, -1)
