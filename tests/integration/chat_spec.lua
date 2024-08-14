@@ -51,6 +51,7 @@ describe("chat", function()
     complete()
   end
 
+  ---@param expected string
   local function assert_buffer_content(expected)
     vim.schedule(function()
       assert.are.same(expected, buffer.get_content(enlighten.chat.chat_buf))

@@ -59,6 +59,13 @@ describe("prompt", function()
     complete()
   end
 
+  ---@param expected string
+  local function assert_buffer_content(expected)
+    vim.schedule(function()
+      assert.are.same(expected, buffer.get_content(enlighten.prompt.prompt_buf))
+    end)
+  end
+
   it("should be able to edit code in the buffer", function()
     -- Select the first four lines of the buffer
     tu.feedkeys("Vjjj")
@@ -103,16 +110,24 @@ describe("prompt", function()
     vim.cmd("lua require('enlighten'):toggle_prompt()")
 
     tu.feedkeys("<Esc><C-o>")
-    assert.are.same("abc", buffer.get_content(enlighten.prompt.prompt_buf))
+    vim.defer_fn(function()
+      assert_buffer_content("abc")
 
-    tu.feedkeys("<C-o>")
-    assert.are.same("def", buffer.get_content(enlighten.prompt.prompt_buf))
+      tu.feedkeys("<C-o>")
+      vim.defer_fn(function()
+        assert_buffer_content("def")
 
-    tu.feedkeys("<C-i>")
-    assert.are.same("abc", buffer.get_content(enlighten.prompt.prompt_buf))
+        tu.feedkeys("<C-i>")
+        vim.defer_fn(function()
+          assert_buffer_content("abc")
 
-    tu.feedkeys("<C-i>")
-    assert.are.same("", buffer.get_content(enlighten.prompt.prompt_buf))
+          tu.feedkeys("<C-i>")
+          vim.defer_fn(function()
+            assert_buffer_content("")
+          end, 100)
+        end, 100)
+      end, 100)
+    end, 100)
   end)
 
   it("should save prompt to history after completion", function()
@@ -125,8 +140,9 @@ describe("prompt", function()
     vim.cmd("lua require('enlighten'):toggle_prompt()")
 
     tu.feedkeys("<Esc><C-o>")
-
-    assert.are.same("hello", buffer.get_content(enlighten.prompt.prompt_buf))
-    assert.are.same({ { "hello" } }, enlighten.prompt_history)
+    vim.defer_fn(function()
+      assert_buffer_content("hello")
+      assert.are.same({ { "hello" } }, enlighten.prompt_history)
+    end, 100)
   end)
 end)
