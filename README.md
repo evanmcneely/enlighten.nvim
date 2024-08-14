@@ -137,6 +137,5 @@ Chat responses are streamed into the chat buffer. Chat conversations will only b
 
 - Allow cancelling/stopping generation.
 - Chat: @use directive to edit buffer with context from the chat.
-- Chat: history
 - Completion without prompt - just use code context to try and generate code (inserting at the cursor).
 - Prompt and Chat: @ directive for searching codebase for functions, classes, etc. to be added to context when generating a completion. Create codebase embeddings.
