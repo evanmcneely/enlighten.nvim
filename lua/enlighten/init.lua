@@ -3,15 +3,14 @@ local Prompt = require("enlighten/prompt")
 local Chat = require("enlighten/chat")
 local Ai = require("enlighten/ai")
 local Config = require("enlighten/config")
-local History = require("enlighten/history")
 
 ---@class Enlighten
 ---@field config EnlightenConfig
 ---@field logger EnlightenLog
 ---@field prompt EnlightenPrompt
 ---@field chat EnlightenChat
----@field prompt_history History
----@field chat_history History
+---@field prompt_history string[][]
+---@field chat_history string[][]
 ---@field ai AI
 local Enlighten = {}
 

@@ -44,6 +44,11 @@ describe("prompt", function()
     end
   end)
 
+  after_each(function()
+    vim.cmd("lua require('enlighten'):close_prompt()")
+    enlighten.prompt_history = {}
+  end)
+
   -- Mock the streaming of response chunks, stop sequence and copmletion
   ---@param content string[]
   local function stream(content)
@@ -91,7 +96,37 @@ describe("prompt", function()
       table.concat(content_2, "") .. "\n" .. table.concat(content_1, "\n"),
       buffer.get_content(target_buf)
     )
+  end)
+
+  it("should be able to scroll prompt history", function()
+    enlighten.prompt_history = { { "abc" }, { "def" } }
+    vim.cmd("lua require('enlighten'):toggle_prompt()")
+
+    tu.feedkeys("<Esc><C-o>")
+    assert.are.same("abc", buffer.get_content(enlighten.prompt.prompt_buf))
+
+    tu.feedkeys("<C-o>")
+    assert.are.same("def", buffer.get_content(enlighten.prompt.prompt_buf))
+
+    tu.feedkeys("<C-i>")
+    assert.are.same("abc", buffer.get_content(enlighten.prompt.prompt_buf))
+
+    tu.feedkeys("<C-i>")
+    assert.are.same("", buffer.get_content(enlighten.prompt.prompt_buf))
+  end)
+
+  it("should save prompt to history after completion", function()
+    vim.cmd("lua require('enlighten'):toggle_prompt()")
+
+    tu.feedkeys("ihello<Esc><CR>")
+    stream(content_2)
 
     vim.cmd("lua require('enlighten'):toggle_prompt()")
+    vim.cmd("lua require('enlighten'):toggle_prompt()")
+
+    tu.feedkeys("<Esc><C-o>")
+
+    assert.are.same("hello", buffer.get_content(enlighten.prompt.prompt_buf))
+    assert.are.same({ { "hello" } }, enlighten.prompt_history)
   end)
 end)

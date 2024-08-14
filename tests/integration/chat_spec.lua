@@ -36,6 +36,11 @@ describe("chat", function()
     end
   end)
 
+  after_each(function()
+    vim.cmd("lua require('enlighten'):close_chat()")
+    enlighten.chat_history = {}
+  end)
+
   -- Mock the streaming of response chunks, stop sequence and copmletion
   ---@param content string[]
   local function stream(content)
@@ -70,5 +75,41 @@ describe("chat", function()
         .. "\n\n>>> Developer\n\n",
       buffer.get_content(enlighten.chat.chat_buf)
     )
+  end)
+
+  it("should be able to scroll chat history", function()
+    enlighten.chat_history = { { "abc" }, { "def" } }
+    vim.cmd("lua require('enlighten'):toggle_chat()")
+
+    tu.feedkeys("<Esc><C-o>")
+    assert.are.same("abc", buffer.get_content(enlighten.chat.chat_buf))
+
+    tu.feedkeys("<C-o>")
+    assert.are.same("def", buffer.get_content(enlighten.chat.chat_buf))
+
+    tu.feedkeys("<C-i>")
+    assert.are.same("abc", buffer.get_content(enlighten.chat.chat_buf))
+
+    tu.feedkeys("<C-i>")
+    assert.are.same("\n>>> Developer\n\n", buffer.get_content(enlighten.chat.chat_buf))
+  end)
+
+  it("should save convo to history after completion", function()
+    vim.cmd("lua require('enlighten'):toggle_chat()")
+
+    tu.feedkeys("ihello<Esc><CR>")
+    stream(content_1)
+
+    vim.cmd("lua require('enlighten'):toggle_chat()")
+    vim.cmd("lua require('enlighten'):toggle_chat()")
+
+    tu.feedkeys("<Esc><C-o>")
+
+    local want = "\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
+      .. table.concat(content_1, "")
+      .. "\n\n>>> Developer\n\n"
+
+    assert.are.same(want, buffer.get_content(enlighten.chat.chat_buf))
+    assert.are.same({ vim.split(want, "\n") }, enlighten.chat_history)
   end)
 end)
