@@ -32,6 +32,10 @@ end
 
 ---@param text string
 function StreamWriter:on_data(text)
+  if self.shortcircuit then
+    return
+  end
+
   self.accumulated_text = self.accumulated_text .. text
 
   -- Insert a new line into the buffer and update the position
@@ -94,6 +98,10 @@ function StreamWriter:on_complete(err)
     return
   end
 
+  if self.shortcircuit then
+    return
+  end
+
   if self.on_done ~= nil then
     self:on_done()
   end
@@ -107,10 +115,11 @@ end
 
 function StreamWriter:reset()
   self.accumulated_text = ""
+  self.shortcircuit = false
 end
 
-function StreamWriter.stop()
-  -- nothing
+function StreamWriter:stop()
+  self.shortcircuit = true
 end
 
 return StreamWriter

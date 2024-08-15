@@ -11,6 +11,7 @@ local History = require("enlighten/history")
 ---@field target_buf number
 ---@field target_range Range
 ---@field history History
+---@field writer Writer | nil
 local EnlightenChat = {}
 
 -- Initial gateway into the chat feature. Initialize all data, windows, keymaps
@@ -51,6 +52,10 @@ end
 
 -- Close the chat buffer. Any generated content will be LOST!
 function EnlightenChat:close()
+  if self.writer then
+    self.writer:stop()
+  end
+
   if api.nvim_win_is_valid(self.chat_win) then
     Logger:log("chat:close - closing window", { chat_win = self.chat_win })
     api.nvim_win_close(self.chat_win, true)
@@ -79,6 +84,10 @@ function EnlightenChat:submit()
     and api.nvim_win_is_valid(self.chat_win)
     and api.nvim_buf_is_valid(self.target_buf)
   then
+    if self.writer and self.writer.active then
+      return
+    end
+
     self:_add_assistant()
 
     local function on_complete()
@@ -88,8 +97,15 @@ function EnlightenChat:submit()
 
     local prompt = self:_build_prompt()
     local count = api.nvim_buf_line_count(self.chat_buf)
-    local writer = Writer:new(self.chat_win, self.chat_buf, { count, 0 }, on_complete)
-    self.ai:chat(prompt, writer)
+    self.writer = Writer:new(self.chat_win, self.chat_buf, { count, 0 }, on_complete)
+    self.ai:chat(prompt, self.writer)
+  end
+end
+
+function EnlightenChat:_stop()
+  if self.writer then
+    self.writer:stop()
+    self:_add_user()
   end
 end
 
@@ -132,6 +148,7 @@ end
 -- - <cr>     : submit prompt for generation
 -- - <C-o>    : scroll back in history
 -- - <C-i>    : scroll forward in history
+-- - <C-x>    : stop AI generation
 function EnlightenChat:_set_chat_keymaps()
   api.nvim_buf_set_keymap(
     self.chat_buf,
@@ -159,6 +176,13 @@ function EnlightenChat:_set_chat_keymaps()
     "n",
     "<C-i>",
     "<Cmd>lua require('enlighten').chat:_scroll_forward()<CR>",
+    {}
+  )
+  api.nvim_buf_set_keymap(
+    self.chat_buf,
+    "n",
+    "<C-x>",
+    "<Cmd>lua require('enlighten').chat:_stop()<CR>",
     {}
   )
 end
