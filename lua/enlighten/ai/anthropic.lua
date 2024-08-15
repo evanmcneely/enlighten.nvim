@@ -97,7 +97,7 @@ end
 --- Parse the buffer content into the Anthropic messages format
 ---@param content string
 ---@return {role:string, content:string}[]
-function M.build_messages(content)
+function M._build_messages(content)
   local messages = {}
   local current_role = nil
   local current_content = {}
@@ -142,7 +142,7 @@ function M.build_stream_request(feat, prompt, config)
   local messages = { { role = "user", content = prompt } }
   if feat == "chat" then
     system_prompt = chat_system_prompt
-    messages = M.build_messages(prompt)
+    messages = M._build_messages(prompt)
   elseif feat == "prompt" then
     system_prompt = prompt_system_prompt
   end
