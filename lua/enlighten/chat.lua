@@ -169,8 +169,7 @@ end
 ---@return string
 function EnlightenChat:_build_prompt()
   local prompt = buffer.get_content(self.chat_buf)
-  return "Continue this conversation. Be concise. Most recent message is at the bottom...\n\n"
-    .. prompt
+  return prompt
 end
 
 -- Insert the content at the end of the buffer with the specified highlight.

@@ -1,5 +1,6 @@
 local tu = require("tests.testutils")
 local anthropic = require("enlighten.ai.anthropic")
+local config = require("enlighten.config")
 
 local equals = assert.are.same
 
@@ -68,5 +69,33 @@ describe("provider anthropic", function()
     equals(false, anthropic.is_streaming_finished(block_delta))
     equals(false, anthropic.is_streaming_finished(block_stop))
     equals(false, anthropic.is_streaming_finished(ping))
+  end)
+
+  it("should build streaming request for chat", function()
+    local c = config.merge_config()
+    local chat = "\n>>> Developer\n\na\n>>> Assistant\n\nb\n\n>>> Developer\nc"
+    local body = anthropic.build_stream_request("chat", chat, c.ai.chat)
+
+    equals({
+      { role = "user", content = "a" },
+      { role = "assistant", content = "b" },
+      { role = "user", content = "c" },
+    }, body.messages)
+    equals(c.ai.chat.temperature, body.temperature)
+    equals(c.ai.chat.model, body.model)
+    equals(c.ai.chat.tokens, body.max_tokens)
+    equals(true, body.stream)
+  end)
+
+  it("should build streaming request for prompt", function()
+    local c = config.merge_config()
+    local prompt = "hello"
+    local body = anthropic.build_stream_request("prompt", prompt, c.ai.prompt)
+
+    equals({ { role = "user", content = "hello" } }, body.messages)
+    equals(c.ai.prompt.temperature, body.temperature)
+    equals(c.ai.prompt.model, body.model)
+    equals(c.ai.prompt.tokens, body.max_tokens)
+    equals(true, body.stream)
   end)
 end)
