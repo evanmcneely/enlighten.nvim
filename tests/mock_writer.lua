@@ -10,7 +10,6 @@ function MockWriter:new(buffer)
   self.buffer = buffer
   self.data = {}
   self.complete_err = nil
-  self.on_done_calls = 0
   self.on_complete_calls = 0
   return self
 end
@@ -22,6 +21,14 @@ end
 function MockWriter:on_complete(err)
   self.on_complete_calls = self.on_complete_calls + 1
   self.complete_err = err
+end
+
+function MockWriter.start()
+  -- nothing
+end
+
+function MockWriter.reset()
+  -- nothing
 end
 
 return MockWriter

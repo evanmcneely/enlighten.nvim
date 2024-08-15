@@ -19,6 +19,8 @@ function StreamWriter:new(window, buffer, pos, on_done)
 
   self.__index = self
   return setmetatable({
+    active = false,
+    shortcircuit = false,
     buffer = buffer,
     window = window,
     pos = pos,
@@ -84,6 +86,8 @@ end
 
 ---@param err? string
 function StreamWriter:on_complete(err)
+  self.active = false
+
   if err then
     Logger:log("stream:on_complete - error", err)
     api.nvim_err_writeln("Enlighten: " .. err)
@@ -95,6 +99,14 @@ function StreamWriter:on_complete(err)
   end
 
   Logger:log("stream:on_complete - ai completion", self.accumulated_text)
+end
+
+function StreamWriter:start()
+  self.active = true
+end
+
+function StreamWriter:reset()
+  self.accumulated_text = ""
 end
 
 return StreamWriter

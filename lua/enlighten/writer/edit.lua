@@ -2,10 +2,14 @@ local api = vim.api
 local Logger = require("enlighten/logger")
 
 ---@class Writer
+---@field active boolean -- flag for whether the writer is actively reciveing streamed text
+---@field shortcircuit boolean -- flag for whether writing to buffer should be stopped
 ---@field buffer number
 ---@field on_complete fun(self: Writer, err: string?): nil
 ---@field on_data fun(self: Writer, data: string): nil
 ---@field on_done fun(): nil
+---@field start fun(): nil
+---@field reset fun(): nil
 
 ---@class EditWriter: Writer
 ---@field range Range
@@ -31,6 +35,8 @@ function EditWriter:new(buffer, range, on_done)
 
   self.__index = self
   return setmetatable({
+    active = false,
+    shortcircuit = false,
     buffer = buffer,
     range = range,
     accumulated_text = "",
@@ -63,6 +69,8 @@ function EditWriter:on_data(text)
 end
 
 function EditWriter:on_complete(err)
+  self.active = false
+
   if err then
     Logger:log("edit:on_complete - error", err)
     api.nvim_err_writeln("Enlighten: " .. err)
@@ -118,6 +126,16 @@ end
 function EditWriter:is_selection()
   -- Only consider selections over multiple lines
   return self.range.row_start ~= self.range.row_end
+end
+
+function EditWriter:start()
+  self.active = true
+end
+
+function EditWriter:reset()
+  self.accumulated_text = ""
+  self.accumulated_line = ""
+  self.focused_line = self.range.row_start
 end
 
 return EditWriter
