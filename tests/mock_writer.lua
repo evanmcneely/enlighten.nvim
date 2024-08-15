@@ -31,4 +31,8 @@ function MockWriter.reset()
   -- nothing
 end
 
+function MockWriter.stop()
+  -- nothing
+end
+
 return MockWriter

@@ -243,4 +243,8 @@ function DiffWriter:start()
   self.active = true
 end
 
+function DiffWriter.stop()
+  -- nothing
+end
+
 return DiffWriter

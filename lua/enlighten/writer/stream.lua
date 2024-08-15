@@ -109,4 +109,8 @@ function StreamWriter:reset()
   self.accumulated_text = ""
 end
 
+function StreamWriter.stop()
+  -- nothing
+end
+
 return StreamWriter

@@ -9,6 +9,7 @@ local Logger = require("enlighten/logger")
 ---@field on_data fun(self: Writer, data: string): nil
 ---@field on_done fun(): nil
 ---@field start fun(): nil
+---@field stop fun(): nil
 ---@field reset fun(): nil
 
 ---@class EditWriter: Writer
@@ -136,6 +137,10 @@ function EditWriter:reset()
   self.accumulated_text = ""
   self.accumulated_line = ""
   self.focused_line = self.range.row_start
+end
+
+function EditWriter.stop()
+  -- nothing
 end
 
 return EditWriter
