@@ -51,6 +51,8 @@ end
 
 -- Close the chat buffer. Any generated content will be LOST!
 function EnlightenChat:close()
+  self.history:update()
+
   if api.nvim_win_is_valid(self.chat_win) then
     Logger:log("chat:close - closing window", { chat_win = self.chat_win })
     api.nvim_win_close(self.chat_win, true)

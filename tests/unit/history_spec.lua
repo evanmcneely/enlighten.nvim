@@ -52,4 +52,35 @@ describe("history", function()
     equals({ { content }, { "1" } }, h.items)
     equals({ { content }, { "1" } }, items)
   end)
+
+  it("should update history of current if already saved", function()
+    local h = History:new(buf, { { "1" }, { "2" } })
+    h.saved = true
+
+    local items = h:update()
+
+    equals({ { content }, { "2" } }, h.items)
+    equals({ { content }, { "2" } }, items)
+  end)
+
+  it("should update history of the past", function()
+    local h = History:new(buf, { { "1" }, { "2" }, { "3" } })
+    h.index = 2
+
+    local items = h:update()
+
+    equals({ { "1" }, { content }, { "3" } }, h.items)
+    equals({ { "1" }, { content }, { "3" } }, items)
+  end)
+
+  it("should skip the first history item after current content has been saved", function()
+    local h = History:new(buf, { { "1" } })
+    h:update()
+
+    h:scroll_back()
+    equals("1", buffer.get_content(buf))
+
+    h:scroll_forward()
+    equals(content, buffer.get_content(buf))
+  end)
 end)
