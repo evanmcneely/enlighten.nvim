@@ -31,6 +31,7 @@ function History:update()
     if #self.items > MAX_HISTORY then
       table.remove(self.items)
     end
+    self.index = 1
     self.current = {}
   else
     self.items[self.index] = current

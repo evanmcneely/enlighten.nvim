@@ -11,7 +11,7 @@ local History = require("enlighten/history")
 ---@field target_buf number
 ---@field target_range Range
 ---@field history History
----@field writer Writer | nil
+---@field writer Writer
 local EnlightenChat = {}
 
 -- Initial gateway into the chat feature. Initialize all data, windows, keymaps
@@ -42,6 +42,13 @@ function EnlightenChat:new(ai, settings, history)
   self.target_buf = buf
   self.history = History:new(chat_win.bufnr, history)
 
+  local function on_done()
+    self:_add_user()
+    self.history:update()
+  end
+
+  self.writer = Writer:new(chat_win.win_id, chat_win.bufnr, on_done)
+
   self:_set_chat_keymaps()
   self:_add_user(snippet)
 
@@ -52,7 +59,7 @@ end
 
 -- Close the chat buffer. Any generated content will be LOST!
 function EnlightenChat:close()
-  if self.writer then
+  if self.writer.active then
     self.writer:stop()
   end
 
@@ -84,26 +91,21 @@ function EnlightenChat:submit()
     and api.nvim_win_is_valid(self.chat_win)
     and api.nvim_buf_is_valid(self.target_buf)
   then
-    if self.writer and self.writer.active then
+    if self.writer.active then
       return
     end
 
+    self.writer:reset()
+
     self:_add_assistant()
 
-    local function on_complete()
-      self:_add_user()
-      self.history:update()
-    end
-
     local prompt = self:_build_prompt()
-    local count = api.nvim_buf_line_count(self.chat_buf)
-    self.writer = Writer:new(self.chat_win, self.chat_buf, { count, 0 }, on_complete)
     self.ai:chat(prompt, self.writer)
   end
 end
 
 function EnlightenChat:_stop()
-  if self.writer then
+  if self.writer.active then
     self.writer:stop()
     self:_add_user()
   end

@@ -10,12 +10,11 @@ local StreamWriter = {}
 
 ---@param window number
 ---@param buffer number
----@param pos number[]
 ---@param on_done? fun(): nil
 ---@return StreamWriter
-function StreamWriter:new(window, buffer, pos, on_done)
+function StreamWriter:new(window, buffer, on_done)
   local ns_id = api.nvim_create_namespace("Enlighten")
-  Logger:log("stream:new", { buffer = buffer, ns_id = ns_id, pos = pos })
+  Logger:log("stream:new", { buffer = buffer, ns_id = ns_id })
 
   self.__index = self
   return setmetatable({
@@ -23,7 +22,7 @@ function StreamWriter:new(window, buffer, pos, on_done)
     shortcircuit = false,
     buffer = buffer,
     window = window,
-    pos = pos,
+    pos = { 0, 0 },
     accumulated_text = "",
     ns_id = ns_id,
     on_done = on_done,
@@ -110,7 +109,10 @@ function StreamWriter:on_complete(err)
 end
 
 function StreamWriter:start()
+  local count = api.nvim_buf_line_count(self.buffer)
+  self.pos = { count, 0 }
   self.active = true
+  self.shortcircuit = false
 end
 
 function StreamWriter:reset()
