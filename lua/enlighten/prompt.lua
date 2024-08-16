@@ -50,6 +50,10 @@ end
 -- Reset the buffer to the state it was in before AI content was generated (if any)
 -- and close the popup window.
 function EnlightenPrompt:close()
+  if self.writer.active then
+    return
+  end
+
   self.writer:reset()
 
   if api.nvim_win_is_valid(self.prompt_win) then
@@ -83,10 +87,13 @@ function EnlightenPrompt:submit()
     and api.nvim_win_is_valid(self.prompt_win)
     and api.nvim_buf_is_valid(self.target_buf)
   then
+    if self.writer.active then
+      return
+    end
+
     self.writer:reset()
 
     local prompt = self:_build_prompt()
-
     self.ai:complete(prompt, self.writer)
   end
 end
