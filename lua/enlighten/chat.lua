@@ -220,28 +220,28 @@ function EnlightenChat:_add_user(snippet)
   -- TODO: Might be better to use extmarks for this identifier so
   -- that it can't be removed? There is a lot of code dependant on
   -- the ">>> Developer" text being real so this is a bigger refactor.
-  local count = api.nvim_buf_line_count(self.chat_buf)
 
-  -- `count` is 1 when the feature is opened and the buffer is created
-  -- for the first time. Kinda hack.
-  if count == 1 then
-    insert_line(self.chat_buf, ">>> Developer", "Function")
-    insert_line(self.chat_buf, "")
-    if snippet ~= nil then
-      for _, l in pairs(snippet) do
-        insert_line(self.chat_buf, l)
-      end
-      insert_line(self.chat_buf, "")
+  insert_line(self.chat_buf, "")
+  insert_line(self.chat_buf, ">>> Developer", "Function")
+  insert_line(self.chat_buf, "")
+
+  if snippet then
+    local file_extension = vim.fn.expand("#" .. self.target_buf .. ":e")
+    if file_extension ~= "" then
+      insert_line(self.chat_buf, "```" .. file_extension)
+    end
+    for _, l in pairs(snippet) do
+      insert_line(self.chat_buf, l)
     end
     insert_line(self.chat_buf, "")
-  else
-    insert_line(self.chat_buf, "")
-    insert_line(self.chat_buf, ">>> Developer", "Function")
-    insert_line(self.chat_buf, "")
-    insert_line(self.chat_buf, "")
+    if file_extension ~= "" then
+      insert_line(self.chat_buf, "```")
+    end
   end
 
-  count = api.nvim_buf_line_count(self.chat_buf)
+  insert_line(self.chat_buf, "")
+
+  local count = api.nvim_buf_line_count(self.chat_buf)
   vim.api.nvim_win_set_cursor(self.chat_win, { count, 0 })
   vim.cmd("startinsert")
 end

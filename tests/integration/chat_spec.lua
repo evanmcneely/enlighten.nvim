@@ -58,7 +58,7 @@ describe("chat", function()
     stream(content_1)
 
     assert.are.same(
-      "\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
+      "\n\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
         .. table.concat(content_1, "")
         .. "\n\n>>> Developer\n\n",
       buffer.get_content(enlighten.chat.chat_buf)
@@ -68,7 +68,7 @@ describe("chat", function()
     stream(content_2)
 
     assert.are.same(
-      "\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
+      "\n\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
         .. table.concat(content_1, "")
         .. "\n\n>>> Developer\n\nmore\n\n>>> Assistant\n\n"
         .. table.concat(content_2, "")
@@ -91,7 +91,7 @@ describe("chat", function()
     tu.scheduled_equals("abc", buffer.get_content(enlighten.chat.chat_buf))
 
     tu.feedkeys("<C-i>")
-    tu.scheduled_equals("\n>>> Developer\n\n", buffer.get_content(enlighten.chat.chat_buf))
+    tu.scheduled_equals("\n\n>>> Developer\n\n", buffer.get_content(enlighten.chat.chat_buf))
   end)
 
   it("should save convo to history after completion", function()
@@ -104,7 +104,7 @@ describe("chat", function()
     vim.cmd("lua require('enlighten'):toggle_chat()")
 
     tu.feedkeys("<Esc><C-o>")
-    local want = "\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
+    local want = "\n\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
       .. table.concat(content_1, "")
       .. "\n\n>>> Developer\n\n"
 

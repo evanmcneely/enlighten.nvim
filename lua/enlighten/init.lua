@@ -50,6 +50,9 @@ function Enlighten.setup(self, partial_config)
 
   Config.validate_environment()
 
+  -- Use markdown highlighting in the chat buffer and prompt buffers
+  vim.treesitter.language.register("markdown", { "enlighten" })
+
   return self
 end
 
