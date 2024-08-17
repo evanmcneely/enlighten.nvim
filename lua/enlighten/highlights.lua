@@ -3,8 +3,8 @@ local M = {}
 local highlights = {
   EnlightenDiffAdd = { default = true, link = "DiffAdd" },
   EnlightenDiffDelete = { default = true, link = "DiffDelete" },
-  EnlightenChatAssistant = { default = true, link = "Function" },
-  EnlightenChatUser = { default = true, link = "Function" },
+  EnlightenChatAssistant = { default = true, link = "ModeMsg" },
+  EnlightenChatUser = { default = true, link = "ModeMsg", },
 }
 
 function M.setup()
