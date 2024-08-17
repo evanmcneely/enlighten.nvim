@@ -89,6 +89,17 @@ describe("DiffWriter", function()
     equals(true, done)
   end)
 
+  it("should be active on start and inactive on complete", function()
+    local writer = DiffWriter:new(buf, range)
+    equals(false, writer.active)
+
+    writer:start()
+    equals(true, writer.active)
+
+    writer:on_complete()
+    equals(false, writer.active)
+  end)
+
   -- current expected behaviour is for the line the cursor is on to always be selected
   describe("normal", function()
     it("should not write to buffer until there is a complete line", function()

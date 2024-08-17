@@ -140,6 +140,8 @@ function AI:request(body, writer, provider)
 
   Logger:log("ai:request - curl_args", curl_args)
 
+  writer:start()
+
   -- Chunks of text to be processed. Can be incomplete JSON strings mixed with "data:" prefixes.
   local buffered_chunks = ""
   -- A queue of JSON object strings to handle. Add to the end and take from the front.

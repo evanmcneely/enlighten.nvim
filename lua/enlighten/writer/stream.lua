@@ -10,18 +10,19 @@ local StreamWriter = {}
 
 ---@param window number
 ---@param buffer number
----@param pos number[]
 ---@param on_done? fun(): nil
 ---@return StreamWriter
-function StreamWriter:new(window, buffer, pos, on_done)
+function StreamWriter:new(window, buffer, on_done)
   local ns_id = api.nvim_create_namespace("Enlighten")
-  Logger:log("stream:new", { buffer = buffer, ns_id = ns_id, pos = pos })
+  Logger:log("stream:new", { buffer = buffer, ns_id = ns_id })
 
   self.__index = self
   return setmetatable({
+    active = false,
+    shortcircuit = false,
     buffer = buffer,
     window = window,
-    pos = pos,
+    pos = { 0, 0 },
     accumulated_text = "",
     ns_id = ns_id,
     on_done = on_done,
@@ -30,6 +31,10 @@ end
 
 ---@param text string
 function StreamWriter:on_data(text)
+  if self.shortcircuit then
+    return
+  end
+
   self.accumulated_text = self.accumulated_text .. text
 
   -- Insert a new line into the buffer and update the position
@@ -84,9 +89,15 @@ end
 
 ---@param err? string
 function StreamWriter:on_complete(err)
+  self.active = false
+
   if err then
     Logger:log("stream:on_complete - error", err)
     api.nvim_err_writeln("Enlighten: " .. err)
+    return
+  end
+
+  if self.shortcircuit then
     return
   end
 
@@ -95,6 +106,23 @@ function StreamWriter:on_complete(err)
   end
 
   Logger:log("stream:on_complete - ai completion", self.accumulated_text)
+end
+
+function StreamWriter:start()
+  local count = api.nvim_buf_line_count(self.buffer)
+  self.pos = { count, 0 }
+  self.active = true
+  self.shortcircuit = false
+end
+
+function StreamWriter:reset()
+  self.accumulated_text = ""
+  self.shortcircuit = false
+end
+
+function StreamWriter:stop()
+  self.shortcircuit = true
+  self.active = false
 end
 
 return StreamWriter

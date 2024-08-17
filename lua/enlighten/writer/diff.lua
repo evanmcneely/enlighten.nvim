@@ -28,6 +28,8 @@ function DiffWriter:new(buf, range, on_done)
 
   self.__index = self
   return setmetatable({
+    active = false,
+    shortcircuit = false,
     buffer = buf,
     -- Note: The first line is always considered to be selected and can be potentially replaced. This
     -- is for simplicity - only one case where lines are selected and by default the first one is.
@@ -76,6 +78,8 @@ function DiffWriter:on_data(text)
 end
 
 function DiffWriter:on_complete(err)
+  self.active = false
+
   if err then
     Logger:log("diff:on_complete - error", err)
     api.nvim_err_writeln("Enlighten: " .. err)
@@ -233,6 +237,14 @@ function DiffWriter:keep()
   Logger:log("diff:keep")
   self:_clear_diff_highlights()
   self:_clear_state()
+end
+
+function DiffWriter:start()
+  self.active = true
+end
+
+function DiffWriter.stop()
+  -- nothing
 end
 
 return DiffWriter

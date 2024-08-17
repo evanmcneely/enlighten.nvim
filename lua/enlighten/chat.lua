@@ -11,6 +11,7 @@ local History = require("enlighten/history")
 ---@field target_buf number
 ---@field target_range Range
 ---@field history History
+---@field writer Writer
 local EnlightenChat = {}
 
 -- Initial gateway into the chat feature. Initialize all data, windows, keymaps
@@ -41,6 +42,13 @@ function EnlightenChat:new(ai, settings, history)
   self.target_buf = buf
   self.history = History:new(chat_win.bufnr, history)
 
+  local function on_done()
+    self:_add_user()
+    self.history:update()
+  end
+
+  self.writer = Writer:new(chat_win.win_id, chat_win.bufnr, on_done)
+
   self:_set_chat_keymaps()
   self:_add_user(snippet)
 
@@ -51,7 +59,11 @@ end
 
 -- Close the chat buffer. Any generated content will be LOST!
 function EnlightenChat:close()
-  self.history:update()
+  if self.writer.active then
+    self.writer:stop()
+  else
+    self.history:update()
+  end
 
   if api.nvim_win_is_valid(self.chat_win) then
     Logger:log("chat:close - closing window", { chat_win = self.chat_win })
@@ -81,17 +93,23 @@ function EnlightenChat:submit()
     and api.nvim_win_is_valid(self.chat_win)
     and api.nvim_buf_is_valid(self.target_buf)
   then
-    self:_add_assistant()
-
-    local function on_complete()
-      self:_add_user()
-      self.history:update()
+    if self.writer.active then
+      return
     end
 
+    self.writer:reset()
+
+    self:_add_assistant()
+
     local prompt = self:_build_prompt()
-    local count = api.nvim_buf_line_count(self.chat_buf)
-    local writer = Writer:new(self.chat_win, self.chat_buf, { count, 0 }, on_complete)
-    self.ai:chat(prompt, writer)
+    self.ai:chat(prompt, self.writer)
+  end
+end
+
+function EnlightenChat:_stop()
+  if self.writer.active then
+    self.writer:stop()
+    self:_add_user()
   end
 end
 
@@ -134,6 +152,7 @@ end
 -- - <cr>     : submit prompt for generation
 -- - <C-o>    : scroll back in history
 -- - <C-i>    : scroll forward in history
+-- - <C-x>    : stop AI generation
 function EnlightenChat:_set_chat_keymaps()
   api.nvim_buf_set_keymap(
     self.chat_buf,
@@ -161,6 +180,13 @@ function EnlightenChat:_set_chat_keymaps()
     "n",
     "<C-i>",
     "<Cmd>lua require('enlighten').chat:_scroll_forward()<CR>",
+    {}
+  )
+  api.nvim_buf_set_keymap(
+    self.chat_buf,
+    "n",
+    "<C-x>",
+    "<Cmd>lua require('enlighten').chat:_stop()<CR>",
     {}
   )
 end
