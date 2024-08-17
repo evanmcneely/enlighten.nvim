@@ -236,8 +236,8 @@ describe("DiffWriter", function()
         writer:on_data("hello\n")
 
         local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 2, 3, "DiffAdd")
-        assert_virtual_line(ext, 2, "ccc", "DiffDelete")
+        assert_highlight(ext, 2, 3, "EnlightenDiffAdd")
+        assert_virtual_line(ext, 2, "ccc", "EnlightenDiffDelete")
       end)
 
       it("should highlight diffs at start of buffer", function()
@@ -248,8 +248,8 @@ describe("DiffWriter", function()
         writer:on_data("hello\n")
 
         local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 0, 1, "DiffAdd")
-        assert_virtual_line(ext, 0, "aaa", "DiffDelete")
+        assert_highlight(ext, 0, 1, "EnlightenDiffAdd")
+        assert_virtual_line(ext, 0, "aaa", "EnlightenDiffDelete")
       end)
 
       it("should highlight diffs at the end of buffer", function()
@@ -260,8 +260,8 @@ describe("DiffWriter", function()
         writer:on_data("hello\n")
 
         local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 4, 5, "DiffAdd")
-        assert_virtual_line(ext, 4, "eee", "DiffDelete")
+        assert_highlight(ext, 4, 5, "EnlightenDiffAdd")
+        assert_virtual_line(ext, 4, "eee", "EnlightenDiffDelete")
       end)
 
       it("should not highlight diff when content hasn't changed", function()
@@ -281,7 +281,7 @@ describe("DiffWriter", function()
         writer:on_data("zzz\n")
 
         local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 2, 5, "DiffAdd")
+        assert_highlight(ext, 2, 5, "EnlightenDiffAdd")
       end)
 
       it("should highlight multiple hunks", function()
@@ -292,8 +292,8 @@ describe("DiffWriter", function()
         writer:on_data("zzz\n")
 
         local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 2, 3, "DiffAdd")
-        assert_highlight(ext, 4, 5, "DiffAdd")
+        assert_highlight(ext, 2, 3, "EnlightenDiffAdd")
+        assert_highlight(ext, 4, 5, "EnlightenDiffAdd")
         assert_no_virt_lines(ext) -- line "ccc" is recognised as being the existing line
       end)
 

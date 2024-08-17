@@ -222,7 +222,7 @@ function EnlightenChat:_add_user(snippet)
   -- the ">>> Developer" text being real so this is a bigger refactor.
 
   insert_line(self.chat_buf, "")
-  insert_line(self.chat_buf, ">>> Developer", "Function")
+  insert_line(self.chat_buf, ">>> Developer", "EnlightenChatUser")
   insert_line(self.chat_buf, "")
 
   if snippet then
@@ -252,7 +252,7 @@ function EnlightenChat:_add_assistant()
   -- that it can't be removed? There is a lot of code dependant on
   -- the ">>> Assistant" text being real so this is a bigger refactor.
   insert_line(self.chat_buf, "")
-  insert_line(self.chat_buf, ">>> Assistant", "Function")
+  insert_line(self.chat_buf, ">>> Assistant", "EnlightenChatAssistant")
   insert_line(self.chat_buf, "")
   insert_line(self.chat_buf, "")
 end

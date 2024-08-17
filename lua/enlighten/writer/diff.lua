@@ -194,7 +194,7 @@ function DiffWriter:_highlight_diff(left, right)
       pcall(function()
         api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
           end_row = row + #hunk.add,
-          hl_group = "DiffAdd",
+          hl_group = "EnlightenDiffAdd",
           hl_eol = true,
           priority = 1000,
         })
@@ -205,7 +205,7 @@ function DiffWriter:_highlight_diff(left, right)
       local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
 
       for _, line in pairs(hunk.remove) do
-        table.insert(virt_lines, { { line .. string.rep(" ", vim.o.columns), "DiffDelete" } })
+        table.insert(virt_lines, { { line .. string.rep(" ", vim.o.columns), "EnlightenDiffDelete" } })
       end
 
       api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, -1, {

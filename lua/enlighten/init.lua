@@ -3,6 +3,7 @@ local Prompt = require("enlighten/prompt")
 local Chat = require("enlighten/chat")
 local Ai = require("enlighten/ai")
 local Config = require("enlighten/config")
+local highlights = require("enlighten/highlights")
 
 ---@class Enlighten
 ---@field config EnlightenConfig
@@ -50,8 +51,7 @@ function Enlighten.setup(self, partial_config)
 
   Config.validate_environment()
 
-  -- Use markdown highlighting in the chat buffer and prompt buffers
-  vim.treesitter.language.register("markdown", { "enlighten" })
+  highlights.setup()
 
   return self
 end
