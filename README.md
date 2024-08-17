@@ -83,6 +83,8 @@ Example configuration to use Anthropic AI as the completion provider:
   }
 ```
 
+At the moment, OpenAI's `gpt-4o` model is a fair bit better at generating code that respects the indentation and formatting of existing code in the buffer.
+
 #### Feature specific configuration
 
 You can override the AI configuration for the prompt-completion or chat feature using the following feature specific overrides:
