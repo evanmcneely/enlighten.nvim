@@ -1,17 +1,6 @@
 local api = vim.api
 local Logger = require("enlighten/logger")
 
----@class Writer
----@field active boolean -- flag for whether the writer is actively reciveing streamed text
----@field shortcircuit boolean -- flag for whether writing to buffer should be stopped
----@field buffer number
----@field on_complete fun(self: Writer, err: string?): nil
----@field on_data fun(self: Writer, data: string): nil
----@field on_done fun(): nil
----@field start fun(): nil
----@field stop fun(): nil
----@field reset fun(): nil
-
 ---@class EditWriter: Writer
 ---@field range Range
 ---@field accumulated_text string -- stores all accumulated text

@@ -2,15 +2,15 @@
 --- Items is a list of the current history. A history item is a list of buffer lines.
 ---@field items string[][]
 --- The current index in the items list that is checked out. Zero is used to identify the
---- current prompt, not saved in history. Indexes 1+ are used to index the history items.
+--- current content, not saved in history. Indexes 1+ are used to index the history items.
 ---@field index number
 --- Temp storage of the current unsaved content while scrolling past history.
 ---@field current string[]
 --- The curret buffer.
 ---@field buffer number
 --- Flag for whether the current session has already been saved. This is used to
---- skip the history item and index 1, to prevent scrolling a duplicate of the current content
---- that has already been saved. This is a bit hacky.
+--- skip the history item at index 1 when it is a saved version of the current content.
+--- This prevents scrolling a duplicate of the current content. A bit hacky.
 ---@field saved boolean
 local History = {}
 
@@ -32,6 +32,8 @@ function History:new(buffer, previous)
   return self
 end
 
+--- Update the history item with the buffer content. Create a new history item
+--- if one has not been created yet.
 ---@return string[][]
 function History:update()
   local current = vim.api.nvim_buf_get_lines(self.buffer, 0, -1, false)
@@ -53,6 +55,7 @@ function History:update()
   return self.items
 end
 
+--- Scroll back through the history items.
 function History:scroll_back()
   local old_index = self.index
 
@@ -80,6 +83,7 @@ function History:scroll_back()
   self:_highlight_lines()
 end
 
+--- Scroll forward through the history items.
 function History:scroll_forward()
   local old_index = self.index
 
