@@ -31,6 +31,7 @@
 ---@field messages AnthropicMessage[]
 
 -- luacheck: push ignore
+-- Anthropic is having a very hard time respecting the indentation of the provided code snippet.
 local prompt_system_prompt = [[
   You are a coding assistant helping a software developer edit code in their IDE.
   All of you responses should consist of only the code you want to write. Do not include any explanations or summarys. Do not include code block markdown starting with ```.
@@ -103,6 +104,7 @@ function M._build_messages(content)
   local current_content = {}
 
   for line in content:gmatch("[^\r\n]+") do
+    -- TODO: It is not great how dependant this is on these strings
     if line:match("^>>> Developer") then
       if current_role then
         table.insert(

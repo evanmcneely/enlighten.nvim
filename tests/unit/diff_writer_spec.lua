@@ -134,7 +134,6 @@ describe("DiffWriter", function()
     it("should not write characters after a new line character", function()
       local writer = DiffWriter:new(buf, range)
 
-      -- The text "here" remains to accumulate on new line
       writer:on_data("\nhere")
       equals("aaa\nbbb\n\nddd\neee", buffer.get_content(buf))
     end)
@@ -142,13 +141,11 @@ describe("DiffWriter", function()
     it("should write all unwritten text on complete", function()
       local writer = DiffWriter:new(buf, range)
 
-      -- Text is received that is unwritten
       writer:on_data("hello world")
       equals(buffer.get_content(buf), content)
 
-      -- Now text get written
       writer:on_complete()
-      equals("aaa\nbbb\nhello world\nddd\neee", buffer.get_content(buf))
+      tu.scheduled_equals("aaa\nbbb\nhello world\nddd\neee", buffer.get_content(buf))
     end)
 
     it("should write to an empty buffer with new line characters", function()

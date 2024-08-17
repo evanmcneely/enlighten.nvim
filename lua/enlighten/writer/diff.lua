@@ -4,17 +4,46 @@ local differ = require("enlighten/diff")
 local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
 
+---@class Writer
+--- A flag for whether the writer is actively reciveing streamed text to be processed.
+---@field active boolean
+--- A flag for whether writing to buffer should be stopped.
+---@field shortcircuit boolean
+--- The buffer text will be written to.
+---@field buffer number
+---@field on_complete fun(self: Writer, err: string?): nil
+---@field on_data fun(self: Writer, data: string): nil
+---@field on_done fun(): nil
+---@field start fun(): nil
+---@field stop fun(): nil
+---@field reset fun(): nil
+
 ---@class DiffWriter: Writer
----@field orig_range number[] -- original start and end rows selected (minimum being the line the cursor is on)
----@field orig_lines string[] -- original lines of text selected (minimum being the line the cursor is on)
----@field accumulated_text string -- stores all accumulated text
----@field accumulated_line string -- stores text of the current line before it added to the buffer
----@field accumulated_lines string[] -- stores all complete lines that have been generated
----@field focused_line number -- stores the current line text will be written to
----@field focused_line_id number -- extmark id for the focused line highlight
----@field line_ns_id number -- namespace id for the focused line highlight
----@field diff LineDiff -- stores the most recent line diff computed
----@field diff_ns_id number -- namespace id for diff highlights
+--- The start and end rows of a range of text in the buffer (end inclusive). ex: [1, 3]
+--- At a minimum the range covers one line, so one line can always be replaced. This
+--- is for simplicity, only one case where a range of text is being written to, rather
+--- than trying to write to no line (inbetween lines).
+---@field orig_range {[1]: number, [2]: number}
+--- The text content for the `orig_range` in the buffer. This is the text we diff generated content against.
+---@field orig_lines string[]
+--- All text that has been generated.
+---@field accumulated_text string
+--- The text of the current line (from the last \n) that has been generated. Only complpete lines are
+--- writen to the buffer, so this can be considered a staging area for the next line to be written.
+---@field accumulated_line string
+--- All lines of text that have been written to the buffer.
+---@field accumulated_lines string[]
+--- The line in the buffer that will be written to next.
+---@field focused_line number
+--- The extmark id for the focused line highlight. The highlight is never on the focused line, as the focused
+--- line could be outside the buffer. The highlighted line is line we have most recently written text too.
+---@field focused_line_id number
+--- The namespace id for the focused line highlight.
+---@field line_ns_id number
+--- The namespace id for diff highlights.
+---@field diff_ns_id number
+--- The most recent line diff that has been computed.
+---@field diff LineDiff
 local DiffWriter = {}
 
 ---@param buf number
@@ -31,19 +60,17 @@ function DiffWriter:new(buf, range, on_done)
     active = false,
     shortcircuit = false,
     buffer = buf,
-    -- Note: The first line is always considered to be selected and can be potentially replaced. This
-    -- is for simplicity - only one case where lines are selected and by default the first one is.
+    on_done = on_done or function() end,
     orig_lines = vim.api.nvim_buf_get_lines(buf, range.row_start, range.row_end + 1, false),
     orig_range = { range.row_start, range.row_end }, -- end inclusive
     accumulated_text = "",
     accumulated_line = "",
     accumulated_lines = {},
-    diff = {},
     focused_line = range.row_start,
-    diff_ns_id = diff_ns_id,
+    focused_line_id = nil,
     line_ns_id = line_ns_id,
-    focuseed_line_id = nil,
-    on_done = on_done or function() end,
+    diff_ns_id = diff_ns_id,
+    diff = {},
   }, self)
 end
 
@@ -89,18 +116,20 @@ function DiffWriter:on_complete(err)
   if #self.accumulated_line > 0 then
     self:_set_line(self.accumulated_line)
     self.accumulated_line = ""
-    self:_inc_focused_line()
+    -- self:_inc_focused_line()
   end
+
   self:_clear_focused_line_highlight()
   self:_remove_remaining_selected_lines()
   self:_highlight_diff(self.orig_lines, self.accumulated_lines)
   self:on_done()
 
   Logger:log("diff:on_complete - ai completion", self.accumulated_text)
+  Logger:log("diff:on_complete - diff", self.diff)
 end
 
 ---@param line string
----@return boolean -- whether or not the line was set
+---@return boolean -- true if line was set
 function DiffWriter:_set_line(line)
   table.insert(self.accumulated_lines, line)
 
@@ -112,18 +141,11 @@ function DiffWriter:_set_line(line)
   end
 
   -- We want to replace existing text at the focused line if the command is run on
-  -- a selection and fewer lines have been written than than the selection. The
-  -- behaviour of nvim_buf_set_lines is controlled in this case by incrementing the
-  -- focused line number by one to trigger replacement instead of insertion.
+  -- a selection and fewer lines have been written than are in the selection.
   local set_lines = self.focused_line - self.orig_range[1]
   local selected_lines = self.orig_range[2] - self.orig_range[1]
   local replace_focused_line = set_lines <= selected_lines
   local end_line = self.focused_line + (replace_focused_line and 1 or 0)
-
-  Logger:log(
-    "diff:_set_line - setting line",
-    { line = line, num = self.focused_line, replacing = replace_focused_line }
-  )
 
   api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
 

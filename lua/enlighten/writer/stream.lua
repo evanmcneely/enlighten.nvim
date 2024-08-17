@@ -3,8 +3,9 @@ local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
 
 ---@class StreamWriter: Writer
----@field pos number[]
----@field ns_id number
+--- Position { row, column} in the buffer that text will be streamed into
+---@field pos {[1]: number, [2]: number}
+--- The window if the buffer we are writing to. Used to move the cursor around.
 ---@field window number
 local StreamWriter = {}
 
@@ -13,8 +14,7 @@ local StreamWriter = {}
 ---@param on_done? fun(): nil
 ---@return StreamWriter
 function StreamWriter:new(window, buffer, on_done)
-  local ns_id = api.nvim_create_namespace("Enlighten")
-  Logger:log("stream:new", { buffer = buffer, ns_id = ns_id })
+  Logger:log("stream:new", { buffer = buffer })
 
   self.__index = self
   return setmetatable({
@@ -24,7 +24,6 @@ function StreamWriter:new(window, buffer, on_done)
     window = window,
     pos = { 0, 0 },
     accumulated_text = "",
-    ns_id = ns_id,
     on_done = on_done,
   }, self)
 end

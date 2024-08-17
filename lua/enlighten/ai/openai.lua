@@ -1,14 +1,25 @@
 ---@class AiProvider
+--- The proper name of the ai provider (use proper capitalization).
 ---@field name string
+--- The endpoint of the chat model.
 ---@field endpoint string
+--- The name of the environment variable we expect an API key to saved to.
 ---@field api_key_env_var string
+--- A function to get the API key from the environment.
 ---@field get_api_key fun(): string
+--- A function to interpret a response from the API and determine if it is an error.
 ---@field is_error fun(body: table): boolean
+--- A function to interpret a response from the API and determine if the streaming is finished.
 ---@field is_streaming_finished fun(body: table): boolean
+--- A function to get the generated text out of the response body (assuming it is a successful response).
 ---@field get_streamed_text fun(body: table): string
+--- A function to get the error message out of the response body (assuming it is an error repsonse).
 ---@field get_error_text fun(body: table): string
+--- A function to build the curl header flags we need to send to the endpoint (usually auth or API version headers).
+--- The response is passed straight to curl as command line arguments.
 ---@field build_stream_headers fun(): string[]
----@field build_stream_request fun(feat: string, prompt: string, config: EnlightenAiProviderConfig): OpenAIRequest
+---A function to build a streaming request body to send to the API.
+---@field build_stream_request fun(feat: string, prompt: string, config: EnlightenAiProviderConfig): table
 
 ---@class OpenAIStreamingResponse
 ---@field id string
