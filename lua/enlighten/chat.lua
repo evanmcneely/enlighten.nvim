@@ -74,8 +74,6 @@ end
 function EnlightenChat:close()
   if self.writer.active then
     self.writer:stop()
-  else
-    self.history:update()
   end
 
   if api.nvim_win_is_valid(self.chat_win) then
