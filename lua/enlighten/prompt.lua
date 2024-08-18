@@ -152,10 +152,22 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
   local current_win = api.nvim_get_current_win()
   local ns_id = api.nvim_create_namespace("EnlightenPrompt")
 
+  local height = settings.height
+  local border =  { "", "", "", "", "", "", "", "" }
+
+  if settings.showTitle then
+    height = height + 1
+    border[2] = " "
+  end
+  if settings.showHelp then
+    height = height + 1
+    border[6] = " "
+  end
+
   -- We don't want the prompt to cover any code. Virtual lines are injected into the
   -- buffer and the prompt window is position over top of it.
   local virt_lines = {}
-  for i = 1, settings.height + 2 do
+  for i = 1, height do
     virt_lines[i] = { { "", "normal" } }
   end
 
@@ -181,10 +193,10 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
     height = settings.height,
     bufpos = { range.row_start, 0 },
     anchor = "SW",
-    border = { "", " ", "", "", "", " ", "", "" },
+    border = border,
     style = "minimal",
-    title = "Enlighten",
-    footer = {
+    title = settings.showTitle and "Enlighten" or nil,
+    footer = settings.showHelp and {
       -- help info in the footer
       { "submit ", "EnlightenPromptHelpMsg" },
       { "<cr>  ", "EnlightenPromptHelpKey" },
@@ -192,8 +204,8 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
       { "q  ", "EnlightenPromptHelpKey" },
       { "history ", "EnlightenPromptHelpMsg" },
       { "<c-o>/<c-i>  ", "EnlightenPromptHelpKey" },
-    },
-    footer_pos = "right",
+    } or nil,
+    footer_pos = settings.showHelp and "right" or nil,
   })
 
   api.nvim_set_option_value("buftype", "nofile", { buf = buf })

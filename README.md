@@ -59,6 +59,8 @@ This is the default configuration.
       prompt = {
         width = 80, -- prompt window width
         height = 5, -- prompt window height
+        showTitle = true, -- show the title in the prompt window
+        showHelp = true, -- show the help footer in the prompt window
       },
       chat = {
         width = 80, -- chat window width

@@ -37,6 +37,8 @@ local M = {}
 ---@class EnlightenPromptSettings
 ---@field width number -- prompt window width (number of columns)
 ---@field height number -- prompt window height (number of rows)
+---@field showTitle boolean -- whether to render a title in the prompt UI
+---@field showHelp boolean -- whether to render help footer in the prompt UI
 
 ---@class EnlightenChatSettings
 ---@field width number -- chat pane width (number of columns)
@@ -45,6 +47,8 @@ local M = {}
 ---@class EnlightenPartialPromptSettings
 ---@field width? number
 ---@field height? number
+---@field showTitle? boolean
+---@field showHelp? boolean
 
 ---@class EnlightenPartialChatSettings
 ---@field width? number
@@ -55,8 +59,8 @@ local M = {}
 ---@field chat EnlightenChatSettings
 
 ---@class EnlightenPartialSettings
----@field prompt? EnlightenPromptSettings
----@field chat? EnlightenChatSettings
+---@field prompt? EnlightenPartialPromptSettings
+---@field chat? EnlightenPartialChatSettings
 
 ---@class EnlightenConfig
 ---@field ai EnlightenAiConfig
@@ -80,6 +84,8 @@ function M.get_default_config()
       prompt = {
         width = 80,
         height = 5,
+        showTitle = true,
+        showHelp = true,
       },
       chat = {
         width = 80,
