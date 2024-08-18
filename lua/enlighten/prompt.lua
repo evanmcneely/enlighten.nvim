@@ -230,6 +230,7 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
     ext_id = extmark,
   }
 end
+
 --- Set all keymaps for the prompt buffer needed for user interactions. This
 --- is the primary UX for the prompt feature.
 ---
