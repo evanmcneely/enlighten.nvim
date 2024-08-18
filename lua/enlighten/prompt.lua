@@ -26,8 +26,9 @@ local History = require("enlighten/history")
 --- The namespace id of the prompt window virtual lines
 ---@field prompt_ns_id number
 --- The extmark id of the injected virtual lines in the target buffer over which the
---- prompt window is display'd.
----@field prompt_ext_id number
+--- prompt window is display'd. This will be nil if the prompt window is opened at the
+--- top line of the buffer. In this case we don't use virtual lines.
+---@field prompt_ext_id number|nil
 local EnlightenPrompt = {}
 
 --- Initial gateway into the "prompt" feature. Initialize all data, windows,
@@ -95,7 +96,9 @@ function EnlightenPrompt:close()
     api.nvim_buf_delete(self.prompt_buf, { force = true })
   end
 
-  api.nvim_buf_del_extmark(self.target_buf, self.prompt_ns_id, self.prompt_ext_id)
+  if self.prompt_ext_id then
+    api.nvim_buf_del_extmark(self.target_buf, self.prompt_ns_id, self.prompt_ext_id)
+  end
 end
 
 --- Focus the popup window
@@ -117,13 +120,8 @@ function EnlightenPrompt:submit()
     api.nvim_buf_is_valid(self.prompt_buf)
     and api.nvim_win_is_valid(self.prompt_win)
     and api.nvim_buf_is_valid(self.target_buf)
+    and not self.writer.active
   then
-    -- Prevent trying to write two completions to the same range of
-    -- text at the same time.
-    if self.writer.active then
-      return
-    end
-
     self.writer:reset()
 
     local prompt = self:_build_prompt()
@@ -142,18 +140,26 @@ function EnlightenPrompt:keep()
 end
 
 --- Create the prompt buffer and popup window.
+---
+--- The prompt popup window is rendered in one of two ways.
+--- 1. Embedded into the buffer between lines.
+--- 2. Positioned at some column out of the way of buffer content.
+---
+--- We prefer (1) but this approach complicates things when the prompt
+--- is opened from the top of a buffer. In this case we do (2).
 ---@param target_buf number
 ---@param range Range
 ---@param settings EnlightenPromptSettings
----@return { bufnr:number, win_id:number, ns_id:number, ext_id:number }
+---@return { bufnr:number, win_id:number, ns_id:number, ext_id:number|nil }
 function EnlightenPrompt._create_window(target_buf, range, settings)
   Logger:log("prompt:_create_window - creating window", { range = range })
 
-  local current_win = api.nvim_get_current_win()
   local ns_id = api.nvim_create_namespace("EnlightenPrompt")
-
+  local buf = api.nvim_create_buf(false, true)
   local height = settings.height
   local border = { "", "", "", "", "", "", "", "" }
+  local open_at_top = range.row_start <= 1
+  local extmark
 
   if settings.showTitle then
     height = height + 1
@@ -164,51 +170,45 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
     border[6] = " "
   end
 
-  -- We don't want the prompt to cover any code. Virtual lines are injected into the
-  -- buffer and the prompt window is position over top of it.
-  local virt_lines = {}
-  for i = 1, height do
-    virt_lines[i] = { { "", "normal" } }
-  end
-
-  local rendertop = range.row_start == 0
-  local row = rendertop and 0 or range.row_start - 1
-  local extmark = api.nvim_buf_set_extmark(target_buf, ns_id, row, 0, {
-    virt_lines = virt_lines,
-    virt_lines_above = rendertop,
-  })
-
-  -- scroll to make virtual lines above visible
-  if rendertop then
-    api.nvim_win_call(current_win, function()
-      vim.cmd("normal " .. vim.api.nvim_replace_termcodes("<C-b>", true, false, true))
-      vim.cmd("normal " .. "gg")
-    end)
-  end
-
-  local buf = api.nvim_create_buf(false, true)
-
   local win_opts = {
     relative = "win",
     width = settings.width,
     height = settings.height,
-    bufpos = { range.row_start, 0 },
+    bufpos = { range.row_start - 1, 0 },
     anchor = "SW",
     border = border,
     style = "minimal",
   }
 
+  if open_at_top then
+    win_opts.col = 80
+  else
+    local virt_lines = {}
+    for i = 1, height do
+      virt_lines[i] = { { "", "normal" } }
+    end
+
+    -- We need to position the window 1 line above the target range so that other virtual
+    -- text we want to add to that line (such as removed line highlights) work without any hassel.
+    local row = range.row_start - 2
+    extmark = api.nvim_buf_set_extmark(target_buf, ns_id, row, 0, {
+      virt_lines = virt_lines,
+    })
+  end
+
   if settings.showTitle then
-    win_opts.title = "Enlighten"
+    win_opts.title = ">>> Prompt"
   end
 
   if settings.showHelp and vim.fn.has("nvim-0.10.0") == 1 then
+    -- help info in the footer
     win_opts.footer = {
-      -- help info in the footer
       { "submit ", "EnlightenPromptHelpMsg" },
       { "<cr>  ", "EnlightenPromptHelpKey" },
       { "close ", "EnlightenPromptHelpMsg" },
       { "q  ", "EnlightenPromptHelpKey" },
+      { "confirm ", "EnlightenPromptHelpMsg" },
+      { "<c-y>  ", "EnlightenPromptHelpKey" },
       { "history ", "EnlightenPromptHelpMsg" },
       { "<c-o>/<c-i>  ", "EnlightenPromptHelpKey" },
     }
