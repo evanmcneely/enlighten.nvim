@@ -155,7 +155,7 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
   -- We don't want the prompt to cover any code. Virtual lines are injected into the
   -- buffer and the prompt window is position over top of it.
   local virt_lines = {}
-  for i = 1, settings.height + 2 do -- add 2 lines for the border
+  for i = 1, settings.height + 2 do
     virt_lines[i] = { { "", "normal" } }
   end
 
@@ -169,7 +169,7 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
   -- scroll to make virtual lines above visible
   if rendertop then
     api.nvim_win_call(current_win, function()
-      vim.cmd("normal " .. vim.api.nvim_replace_termcodes('<C-b>', true, false, true))
+      vim.cmd("normal " .. vim.api.nvim_replace_termcodes("<C-b>", true, false, true))
       vim.cmd("normal " .. "gg")
     end)
   end
@@ -181,17 +181,26 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
     height = settings.height,
     bufpos = { range.row_start, 0 },
     anchor = "SW",
-    border = "single",
+    border = { "", " ", "", "", "", " ", "", "" },
     style = "minimal",
+    title = "Enlighten",
+    footer = {
+      -- help info in the footer
+      { "submit ", "EnlightenPromptHelpMsg" },
+      { "<cr>  ", "EnlightenPromptHelpKey" },
+      { "close ", "EnlightenPromptHelpMsg" },
+      { "q  ", "EnlightenPromptHelpKey" },
+      { "history ", "EnlightenPromptHelpMsg" },
+      { "<c-o>/<c-i>  ", "EnlightenPromptHelpKey" },
+    },
+    footer_pos = "right",
   })
 
-  api.nvim_win_set_config(win, { title = "Enlighten" })
-  api.nvim_set_option_value("number", false, { win = win })
-  api.nvim_set_option_value("signcolumn", "no", { win = win })
   api.nvim_set_option_value("buftype", "nofile", { buf = buf })
   api.nvim_buf_set_name(buf, "enlighten-prompt")
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
+  api.nvim_set_option_value("winhl", "FloatTitle:EnlightenPromptTitle", { win = win })
 
   return {
     bufnr = buf,
