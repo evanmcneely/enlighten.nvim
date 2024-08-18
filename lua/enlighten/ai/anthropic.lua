@@ -95,66 +95,31 @@ function M.build_stream_headers()
   return { "-H", "x-api-key: " .. M.get_api_key(), "-H", "anthropic-version: 2023-06-01" }
 end
 
---- Parse the buffer content into the Anthropic messages format
----@param content string
----@return {role:string, content:string}[]
-function M._build_messages(content)
-  local messages = {}
-  local current_role = nil
-  local current_content = {}
-
-  for line in content:gmatch("[^\r\n]+") do
-    -- TODO: It is not great how dependant this is on these strings
-    if line:match("^>>> Developer") then
-      if current_role then
-        table.insert(
-          messages,
-          { role = current_role, content = table.concat(current_content, "\n") }
-        )
-        current_content = {}
-      end
-      current_role = "user"
-    elseif line:match("^>>> Assistant") then
-      if current_role then
-        table.insert(
-          messages,
-          { role = current_role, content = table.concat(current_content, "\n") }
-        )
-        current_content = {}
-      end
-      current_role = "assistant"
-    elseif current_role then
-      table.insert(current_content, line)
-    end
+---@param feature string
+---@return string
+function M.get_system_prompt(feature)
+  local system_prompt = ""
+  if feature == "chat" then
+    system_prompt = chat_system_prompt
+  elseif feature == "prompt" then
+    system_prompt = prompt_system_prompt
   end
-
-  if current_role then
-    table.insert(messages, { role = current_role, content = table.concat(current_content, "\n") })
-  end
-
-  return messages
+  return system_prompt
 end
 
 ---@param feat string
----@param prompt string
+---@param prompt string | AiMessages
 ---@param config EnlightenAiProviderConfig
 ---@return AnthropicRequest
 function M.build_stream_request(feat, prompt, config)
-  local system_prompt = nil
-  local messages = { { role = "user", content = prompt } }
-  if feat == "chat" then
-    system_prompt = chat_system_prompt
-    messages = M._build_messages(prompt)
-  elseif feat == "prompt" then
-    system_prompt = prompt_system_prompt
-  end
+  local messages = type(prompt) == "string" and { { role = "user", content = prompt } } or prompt
 
   return {
     model = config.model,
     max_tokens = config.tokens,
     temperature = config.temperature,
     stream = true,
-    system = system_prompt,
+    system = M.get_system_prompt(feat),
     messages = messages,
   }
 end

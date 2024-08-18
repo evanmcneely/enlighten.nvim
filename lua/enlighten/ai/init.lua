@@ -193,14 +193,16 @@ end
 ---@param writer Writer
 ---@param prompt string
 function AI:complete(prompt, writer)
+  ---@type AiProvider
   local provider = require("enlighten.ai." .. self.config.prompt.provider)
   local body = provider.build_stream_request("prompt", prompt, self.config.prompt)
   self:request(body, writer, provider)
 end
 
 ---@param writer Writer
----@param prompt string
+---@param prompt AiMessages
 function AI:chat(prompt, writer)
+  ---@type AiProvider
   local provider = require("enlighten.ai." .. self.config.chat.provider)
   local body = provider.build_stream_request("chat", prompt, self.config.chat)
   self:request(body, writer, provider)

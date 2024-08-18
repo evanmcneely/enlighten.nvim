@@ -194,11 +194,45 @@ end
 
 --- Format the prompt for generating a response. The conversation is not broken up
 --- into user/assistant roles when passed to the AI provider for completion.
----@return string
+---@return AiMessages
 function EnlightenChat:_build_prompt()
   -- At the moment the entire buffer is treated as the prompt.
-  local prompt = buffer.get_content(self.chat_buf)
-  return prompt
+  local content = buffer.get_content(self.chat_buf)
+
+  local messages = {}
+  local current_role = nil
+  local message_content = {}
+
+  for line in content:gmatch("[^\r\n]+") do
+    -- TODO: It is not great how dependant this is on these strings
+    if line:match("^" .. ROLE_PREFIX .. " Developer") then
+      if current_role then
+        table.insert(
+          messages,
+          { role = current_role, content = table.concat(message_content, "\n") }
+        )
+        message_content = {}
+      end
+      current_role = "user"
+    elseif line:match("^" .. ROLE_PREFIX .. " Assistant") then
+      if current_role then
+        table.insert(
+          messages,
+          { role = current_role, content = table.concat(message_content, "\n") }
+        )
+        message_content = {}
+      end
+      current_role = "assistant"
+    elseif current_role then
+      table.insert(message_content, line)
+    end
+  end
+
+  if current_role then
+    table.insert(messages, { role = current_role, content = table.concat(message_content, "\n") })
+  end
+
+  return messages
 end
 
 --- Insert the content at the end of the buffer with the specified highlight.

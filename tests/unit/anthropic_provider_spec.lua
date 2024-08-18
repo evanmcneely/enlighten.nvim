@@ -73,14 +73,14 @@ describe("provider anthropic", function()
 
   it("should build streaming request for chat", function()
     local c = config.merge_config()
-    local chat = "\n>>> Developer\n\na\n>>> Assistant\n\nb\n\n>>> Developer\nc"
-    local body = anthropic.build_stream_request("chat", chat, c.ai.chat)
-
-    equals({
+    local chat = {
       { role = "user", content = "a" },
       { role = "assistant", content = "b" },
       { role = "user", content = "c" },
-    }, body.messages)
+    }
+    local body = anthropic.build_stream_request("chat", chat, c.ai.chat)
+
+    equals(chat, body.messages)
     equals(c.ai.chat.temperature, body.temperature)
     equals(c.ai.chat.model, body.model)
     equals(c.ai.chat.tokens, body.max_tokens)

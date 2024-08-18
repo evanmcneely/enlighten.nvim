@@ -19,7 +19,9 @@
 --- The response is passed straight to curl as command line arguments.
 ---@field build_stream_headers fun(): string[]
 ---A function to build a streaming request body to send to the API.
----@field build_stream_request fun(feat: string, prompt: string, config: EnlightenAiProviderConfig): table
+---@field build_stream_request fun(feat: string, prompt: string|AiMessages, config: EnlightenAiProviderConfig): table
+
+---@alias AiMessages {role:string, content:string}[]
 
 ---@class OpenAIStreamingResponse
 ---@field id string
@@ -125,30 +127,36 @@ function M.build_stream_headers()
   return { "-H", "Authorization: Bearer " .. M.get_api_key() }
 end
 
+---@param feature string
+---@return string
+function M.get_system_prompt(feature)
+  local system_prompt = ""
+  if feature == "chat" then
+    system_prompt = chat_system_prompt
+  elseif feature == "prompt" then
+    system_prompt = prompt_system_prompt
+  end
+  return system_prompt
+end
+
 ---@param feat string
----@param prompt string
+---@param prompt string | AiMessages
 ---@param config EnlightenAiProviderConfig
 ---@return OpenAIRequest
 function M.build_stream_request(feat, prompt, config)
-  local system_prompt = ""
-  if feat == "chat" then
-    system_prompt = chat_system_prompt
-  elseif feat == "prompt" then
-    system_prompt = prompt_system_prompt
-  end
+  local messages = type(prompt) == "string"
+      and {
+        { role = "system", content = M.get_system_prompt(feat) },
+        { role = "user", content = prompt },
+      }
+    or prompt
 
   return {
     model = config.model,
     max_tokens = config.tokens,
     temperature = config.temperature,
     stream = true,
-    messages = {
-      { role = "system", content = system_prompt },
-      {
-        role = "user",
-        content = prompt,
-      },
-    },
+    messages = messages,
   }
 end
 
