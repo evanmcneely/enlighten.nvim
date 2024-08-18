@@ -23,6 +23,11 @@ local History = require("enlighten/history")
 ---@field history History
 --- A class responsible for interacting with supported AI providers.
 ---@field ai AI
+--- The namespace id of the prompt window virtual lines
+---@field prompt_ns_id number
+--- The extmark id of the injected virtual lines in the target buffer over which the
+--- prompt window is display'd.
+---@field prompt_ext_id number
 local EnlightenPrompt = {}
 
 --- Initial gateway into the "prompt" feature. Initialize all data, windows,
@@ -36,7 +41,7 @@ function EnlightenPrompt:new(ai, settings, history)
 
   local buf = api.nvim_get_current_buf()
   local range = buffer.get_range()
-  local prompt_win = self._create_window(range, settings)
+  local prompt_win = self._create_window(buf, range, settings)
 
   self.ai = ai
   self.settings = settings
@@ -45,6 +50,8 @@ function EnlightenPrompt:new(ai, settings, history)
   self.target_buf = buf
   self.target_range = range
   self.history = History:new(prompt_win.bufnr, history)
+  self.prompt_ns_id = prompt_win.ns_id
+  self.prompt_ext_id = prompt_win.ext_id
 
   local function on_done()
     self.history:update()
@@ -87,6 +94,8 @@ function EnlightenPrompt:close()
     Logger:log("prompt:close - deleting buffer", { prompt_buf = self.prompt_buf })
     api.nvim_buf_delete(self.prompt_buf, { force = true })
   end
+
+  api.nvim_buf_del_extmark(self.target_buf, self.prompt_ns_id, self.prompt_ext_id)
 end
 
 --- Focus the popup window
@@ -133,31 +142,50 @@ function EnlightenPrompt:keep()
 end
 
 --- Create the prompt buffer and popup window.
+---@param target_buf number
 ---@param range Range
 ---@param settings EnlightenPromptSettings
----@return { bufnr:number, win_id:number }
-function EnlightenPrompt._create_window(range, settings)
+---@return { bufnr:number, win_id:number, ns_id:number, ext_id:number }
+function EnlightenPrompt._create_window(target_buf, range, settings)
   Logger:log("prompt:_create_window - creating window", { range = range })
+
+  local current_win = api.nvim_get_current_win()
+  local ns_id = api.nvim_create_namespace("EnlightenPrompt")
+
+  -- We don't want the prompt to cover any code. Virtual lines are injected into the
+  -- buffer and the prompt window is position over top of it.
+  local virt_lines = {}
+  for i = 1, settings.height + 2 do -- add 2 lines for the border
+    virt_lines[i] = { { "", "normal" } }
+  end
+
+  local rendertop = range.row_start == 0
+  local row = rendertop and 0 or range.row_start - 1
+  local extmark = api.nvim_buf_set_extmark(target_buf, ns_id, row, 0, {
+    virt_lines = virt_lines,
+    virt_lines_above = rendertop,
+  })
+
+  -- scroll to make virtual lines above visible
+  if rendertop then
+    api.nvim_win_call(current_win, function()
+      vim.cmd("normal " .. vim.api.nvim_replace_termcodes('<C-b>', true, false, true))
+      vim.cmd("normal " .. "gg")
+    end)
+  end
 
   local buf = api.nvim_create_buf(false, true)
   local win = api.nvim_open_win(buf, true, {
     relative = "win",
     width = settings.width,
     height = settings.height,
-    -- Open he window one line above the current one so that removed
-    -- lines shown as virtual text are still visible below the popup.
-    bufpos = { range.row_start - 1, 0 },
-    -- Set so that code will be visible at least by most formatters standards.
-    col = 80,
+    bufpos = { range.row_start, 0 },
     anchor = "SW",
     border = "single",
+    style = "minimal",
   })
 
-  -- nvim 0.8.0+ get's a title
-  if vim.version().minor > 8 or vim.version().major > 0 then
-    api.nvim_win_set_config(win, { title = "Prompt" })
-  end
-
+  api.nvim_win_set_config(win, { title = "Enlighten" })
   api.nvim_set_option_value("number", false, { win = win })
   api.nvim_set_option_value("signcolumn", "no", { win = win })
   api.nvim_set_option_value("buftype", "nofile", { buf = buf })
@@ -168,6 +196,8 @@ function EnlightenPrompt._create_window(range, settings)
   return {
     bufnr = buf,
     win_id = win,
+    ns_id = ns_id,
+    ext_id = extmark,
   }
 end
 
