@@ -149,7 +149,6 @@ function AI:request(body, writer, provider)
 
   ---@param chunk string
   local function on_stdout_chunk(chunk)
-    Logger:log(chunk)
     -- A chunk here can look like three known things
     --  1. "data: {...} data: [done]" : a single JSON object with data and prefix/suffix
     --  2. "data: {...} data: {...} data: {...} ... data: [done]" : multiple JSON objects with data and prefix/suffix

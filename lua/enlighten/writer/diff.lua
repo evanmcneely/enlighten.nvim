@@ -116,7 +116,7 @@ function DiffWriter:on_complete(err)
   if #self.accumulated_line > 0 then
     self:_set_line(self.accumulated_line)
     self.accumulated_line = ""
-    -- self:_inc_focused_line()
+    self:_inc_focused_line()
   end
 
   self:_clear_focused_line_highlight()
