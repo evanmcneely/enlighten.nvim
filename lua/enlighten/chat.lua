@@ -21,6 +21,8 @@ local History = require("enlighten/history")
 ---@field ai AI
 local EnlightenChat = {}
 
+local ROLE_PREFIX = ">>>"
+
 --- Initial gateway into the chat feature. Initialize all data, windows, keymaps
 --- and autocommands that the feature depend on.
 ---@param ai AI
@@ -220,7 +222,7 @@ function EnlightenChat:_add_user(snippet)
   -- the ">>> Developer" text being real so this is a bigger refactor.
 
   insert_line(self.chat_buf, "")
-  insert_line(self.chat_buf, ">>> Developer", "EnlightenChatUser")
+  insert_line(self.chat_buf, ROLE_PREFIX .. " Developer", "EnlightenChatRole")
   insert_line(self.chat_buf, "")
 
   if snippet then
@@ -250,9 +252,19 @@ function EnlightenChat:_add_assistant()
   -- that it can't be removed? There is a lot of code dependant on
   -- the ">>> Assistant" text being real so this is a bigger refactor.
   insert_line(self.chat_buf, "")
-  insert_line(self.chat_buf, ">>> Assistant", "EnlightenChatAssistant")
+  insert_line(self.chat_buf, ROLE_PREFIX .. " Assistant", "EnlightenChatRole")
   insert_line(self.chat_buf, "")
   insert_line(self.chat_buf, "")
+end
+
+-- Highlight the chat user/assistant markers
+function EnlightenChat:_highlight_chat_roles()
+  local lines = vim.api.nvim_buf_get_lines(self.chat_buf, 0, -1, false)
+  for i, line in ipairs(lines) do
+    if line:match("^" .. ROLE_PREFIX) then
+      vim.api.nvim_buf_add_highlight(self.chat_buf, -1, "EnlightenChatRole", i - 1, 0, -1)
+    end
+  end
 end
 
 --- If text content is currently being written to the buffer... stop doing that
@@ -266,11 +278,13 @@ end
 --- Scroll back in history
 function EnlightenChat:_scroll_back()
   self.history:scroll_back()
+  self:_highlight_chat_roles()
 end
 
 --- Scroll forward in history
 function EnlightenChat:_scroll_forward()
   self.history:scroll_forward()
+  self:_highlight_chat_roles()
 end
 
 return EnlightenChat
