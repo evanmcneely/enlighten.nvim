@@ -1,5 +1,6 @@
 local api = vim.api
 local buffer = require("enlighten/buffer")
+local augroup = require("enlighten/autocmd")
 local Writer = require("enlighten/writer/diff")
 local Logger = require("enlighten/logger")
 local History = require("enlighten/history")
@@ -29,10 +30,12 @@ local History = require("enlighten/history")
 --- prompt window is display'd. This will be nil if the prompt window is opened at the
 --- top line of the buffer. In this case we don't use virtual lines.
 ---@field prompt_ext_id number|nil
+--- A list of ids of all autocommands that have been created for this feature.
+---@field autocommands number[]
 local EnlightenPrompt = {}
 
 --- Initial gateway into the "prompt" feature. Initialize all data, windows,
---- keymaps and autocammonds that the feature depends on.
+--- keymaps and autocommands that the feature depends on.
 ---@param ai AI
 ---@param settings EnlightenPromptSettings
 ---@param history string[][]
@@ -60,6 +63,8 @@ function EnlightenPrompt:new(ai, settings, history)
   self.writer = Writer:new(buf, range, on_done)
 
   self:_set_keymaps()
+
+  self.autocommands = self._set_autocmds(buf)
 
   vim.cmd("startinsert")
 
@@ -96,9 +101,11 @@ function EnlightenPrompt:close()
     api.nvim_buf_delete(self.prompt_buf, { force = true })
   end
 
-  if self.prompt_ext_id then
+  if api.nvim_buf_is_valid(self.target_buf) and self.prompt_ext_id then
     api.nvim_buf_del_extmark(self.target_buf, self.prompt_ns_id, self.prompt_ext_id)
   end
+
+  self._del_autocmds(self.autocommands or {})
 end
 
 --- Focus the popup window
@@ -275,6 +282,34 @@ function EnlightenPrompt:_set_keymaps()
     "<Cmd>lua require('enlighten').prompt:_scroll_forward()<CR>",
     {}
   )
+end
+
+--- Set all autocommands that the feature is dependant on
+---@param target_buf number
+---@return number[]
+function EnlightenPrompt._set_autocmds(target_buf)
+  local autocmd_ids = {}
+
+  -- When the target buffer is not in any window -> close the prompt
+  local id = api.nvim_create_autocmd("BufWinLeave", {
+    group = augroup,
+    buffer = target_buf,
+    callback = function()
+      vim.cmd("lua require('enlighten'):close_prompt()")
+      return true
+    end,
+  })
+  table.insert(autocmd_ids, id)
+
+  return autocmd_ids
+end
+
+--- Clean up all autocommands that have been created
+---@param autocommand_ids number[]
+function EnlightenPrompt._del_autocmds(autocommand_ids)
+  for _, id in ipairs(autocommand_ids) do
+    api.nvim_del_autocmd(id)
+  end
 end
 
 --- Format the prompt for generating content. The prompt includes the prompt buffer
