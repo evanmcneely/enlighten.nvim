@@ -199,9 +199,9 @@ function EnlightenChat:_build_prompt()
   -- At the moment the entire buffer is treated as the prompt.
   local content = buffer.get_content(self.chat_buf)
 
-  local messages = {}
-  local current_role = nil
-  local message_content = {}
+  local messages = {} ---@type AiMessages
+  local current_role = nil ---@type string|nil
+  local message_content = {} ---@type string[]
 
   for line in content:gmatch("[^\r\n]+") do
     -- TODO: It is not great how dependant this is on these strings

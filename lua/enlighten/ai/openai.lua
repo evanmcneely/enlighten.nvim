@@ -21,7 +21,9 @@
 ---A function to build a streaming request body to send to the API.
 ---@field build_stream_request fun(feat: string, prompt: string|AiMessages, config: EnlightenAiProviderConfig): table
 
----@alias AiMessages {role:string, content:string}[]
+--- General format for chat messages.
+---@alias AiRole "user"|"assistant"
+---@alias AiMessages {role:AiRole, content:string}[]
 
 ---@class OpenAIStreamingResponse
 ---@field id string
