@@ -153,7 +153,7 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
   local ns_id = api.nvim_create_namespace("EnlightenPrompt")
 
   local height = settings.height
-  local border =  { "", "", "", "", "", "", "", "" }
+  local border = { "", "", "", "", "", "", "", "" }
 
   if settings.showTitle then
     height = height + 1
@@ -187,7 +187,8 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
   end
 
   local buf = api.nvim_create_buf(false, true)
-  local win = api.nvim_open_win(buf, true, {
+
+  local win_opts = {
     relative = "win",
     width = settings.width,
     height = settings.height,
@@ -195,8 +196,14 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
     anchor = "SW",
     border = border,
     style = "minimal",
-    title = settings.showTitle and "Enlighten" or nil,
-    footer = settings.showHelp and {
+  }
+
+  if settings.showTitle then
+    win_opts.title = "Enlighten"
+  end
+
+  if settings.showHelp then
+    win_opts.footer = {
       -- help info in the footer
       { "submit ", "EnlightenPromptHelpMsg" },
       { "<cr>  ", "EnlightenPromptHelpKey" },
@@ -204,9 +211,14 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
       { "q  ", "EnlightenPromptHelpKey" },
       { "history ", "EnlightenPromptHelpMsg" },
       { "<c-o>/<c-i>  ", "EnlightenPromptHelpKey" },
-    } or nil,
-    footer_pos = settings.showHelp and "right" or nil,
-  })
+    }
+
+    if vim.fn.has("nvim-0.9.0") == 1 then
+      win_opts.footer_pos = "right"
+    end
+  end
+
+  local win = api.nvim_open_win(buf, true, win_opts)
 
   api.nvim_set_option_value("buftype", "nofile", { buf = buf })
   api.nvim_buf_set_name(buf, "enlighten-prompt")
@@ -221,7 +233,6 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
     ext_id = extmark,
   }
 end
-
 --- Set all keymaps for the prompt buffer needed for user interactions. This
 --- is the primary UX for the prompt feature.
 ---
