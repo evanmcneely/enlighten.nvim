@@ -19,7 +19,7 @@
 
 ### 💾 Setup
 
-Neovim 0.8.0 and up are supported
+Neovim 0.9.0 and up are supported
 
 `curl` is required.
 
