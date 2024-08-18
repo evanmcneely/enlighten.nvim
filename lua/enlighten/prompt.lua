@@ -202,7 +202,7 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
     win_opts.title = "Enlighten"
   end
 
-  if settings.showHelp then
+  if settings.showHelp and vim.fn.has("nvim-0.9.0") == 1 then
     win_opts.footer = {
       -- help info in the footer
       { "submit ", "EnlightenPromptHelpMsg" },
@@ -212,10 +212,7 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
       { "history ", "EnlightenPromptHelpMsg" },
       { "<c-o>/<c-i>  ", "EnlightenPromptHelpKey" },
     }
-
-    if vim.fn.has("nvim-0.9.0") == 1 then
-      win_opts.footer_pos = "right"
-    end
+    win_opts.footer_pos = "right"
   end
 
   local win = api.nvim_open_win(buf, true, win_opts)
