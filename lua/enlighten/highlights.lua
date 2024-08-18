@@ -4,6 +4,9 @@ local highlights = {
   EnlightenDiffAdd = { default = true, link = "DiffAdd" },
   EnlightenDiffDelete = { default = true, link = "DiffDelete" },
   EnlightenChatRole = { default = true, link = "ModeMsg" },
+  EnlightenPromptTitle = { default = true, link = "ModeMsg" },
+  EnlightenPromptHelpMsg = { default = true, link = "ModeMsg" },
+  EnlightenPromptHelpKey = { default = true, link = "Function" },
 }
 
 function M.setup()
