@@ -163,19 +163,8 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
 
   local ns_id = api.nvim_create_namespace("EnlightenPrompt")
   local buf = api.nvim_create_buf(false, true)
-  local height = settings.height
-  local border = { "", "", "", "", "", "", "", "" }
   local open_at_top = range.row_start <= 1
   local extmark
-
-  if settings.showTitle then
-    height = height + 1
-    border[2] = " "
-  end
-  if settings.showHelp then
-    height = height + 1
-    border[6] = " "
-  end
 
   local win_opts = {
     relative = "win",
@@ -183,7 +172,7 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
     height = settings.height,
     bufpos = { range.row_start - 1, 0 },
     anchor = "SW",
-    border = border,
+    border = { "", "═", "", "", "", "═", "", "" },
     style = "minimal",
   }
 
@@ -191,7 +180,7 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
     win_opts.col = 80
   else
     local virt_lines = {}
-    for i = 1, height do
+    for i = 1, settings.height + 2 do
       virt_lines[i] = { { "", "normal" } }
     end
 
@@ -204,13 +193,13 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
   end
 
   if settings.showTitle then
-    win_opts.title = ">>> Prompt"
+    win_opts.title = { { " Prompt ", "EnlightenPromptTitle" } }
   end
 
   if settings.showHelp and vim.fn.has("nvim-0.10.0") == 1 then
     -- help info in the footer
     win_opts.footer = {
-      { "submit ", "EnlightenPromptHelpMsg" },
+      { " submit ", "EnlightenPromptHelpMsg" },
       { "<cr>  ", "EnlightenPromptHelpKey" },
       { "close ", "EnlightenPromptHelpMsg" },
       { "q  ", "EnlightenPromptHelpKey" },
@@ -228,7 +217,7 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
   api.nvim_buf_set_name(buf, "enlighten-prompt")
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
-  api.nvim_set_option_value("winhl", "FloatTitle:EnlightenPromptTitle", { win = win })
+  api.nvim_set_option_value("winhl", "FloatBorder:EnlightenPromptBorder", { win = win })
 
   return {
     bufnr = buf,
