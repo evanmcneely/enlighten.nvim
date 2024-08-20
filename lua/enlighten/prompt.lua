@@ -6,6 +6,7 @@ local Logger = require("enlighten/logger")
 local History = require("enlighten/history")
 
 ---@class EnlightenPrompt
+---@field id string
 ---@field settings EnlightenPromptSettings
 --- The id of the prompt buffer
 ---@field prompt_buf number
@@ -41,41 +42,51 @@ local EnlightenPrompt = {}
 ---@param history string[][]
 ---@return EnlightenPrompt
 function EnlightenPrompt:new(ai, settings, history)
-  self.__index = self
-
+  local id = tostring(math.random(10000))
   local buf = api.nvim_get_current_buf()
   local range = buffer.get_range()
-  local prompt_win = self._create_window(buf, range, settings)
+  local prompt_win = self._create_window(id, buf, range, settings)
 
-  self.ai = ai
-  self.settings = settings
-  self.prompt_win = prompt_win.win_id
-  self.prompt_buf = prompt_win.bufnr
-  self.target_buf = buf
-  self.target_range = range
-  self.history = History:new(prompt_win.bufnr, history)
-  self.prompt_ns_id = prompt_win.ns_id
-  self.prompt_ext_id = prompt_win.ext_id
+  local context = {}
+  context.__index = self
+  context.id = id
+  context.ai = ai
+  context.settings = settings
+  context.prompt_win = prompt_win.win_id
+  context.prompt_buf = prompt_win.bufnr
+  context.target_buf = buf
+  context.target_range = range
+  context.history = History:new(prompt_win.bufnr, history)
+  context.prompt_ns_id = prompt_win.ns_id
+  context.prompt_ext_id = prompt_win.ext_id
 
   local function on_done()
-    self.history:update()
+    context.history:update()
   end
-  self.writer = Writer:new(buf, range, on_done)
+  context.writer = Writer:new(buf, range, on_done)
 
-  self:_set_keymaps()
+  self:_set_keymaps(prompt_win.bufnr)
+  context.autocommands = self:_set_autocmds(buf)
 
-  self.autocommands = self._set_autocmds(buf)
+  api.nvim_command("startinsert")
 
-  vim.cmd("startinsert")
-
+  print("log", vim.inspect(prompt_win))
   Logger:log("prompt:new", {
     prompt_win = prompt_win.win_id,
     prompt_buf = prompt_win.bufnr,
     target_buf = buf,
     target_range = range,
+    autocmd = context.autocommands,
   })
 
-  return self
+  setmetatable(context, self)
+  context.__index = self
+
+
+  context:_set_keymaps(prompt_win.bufnr)
+  context.autocommands = context:_set_autocmds(buf)
+
+  return context
 end
 
 --- Reset the buffer to the state it was in before AI content was generated (if any)
@@ -108,18 +119,6 @@ function EnlightenPrompt:close()
   self._del_autocmds(self.autocommands or {})
 end
 
---- Focus the popup window
-function EnlightenPrompt:focus()
-  if api.nvim_buf_is_valid(self.prompt_buf) and api.nvim_win_is_valid(self.prompt_win) then
-    Logger:log(
-      "prompt:focus - focusing",
-      { prompt_buf = self.prompt_buf, prompt_win = self.prompt_win }
-    )
-    api.nvim_set_current_win(self.prompt_win)
-    api.nvim_win_set_buf(self.prompt_win, self.prompt_buf)
-  end
-end
-
 --- Submit the current prompt for generation. Any previously generated content
 --- will be cleared. This is mapped to a key on the prompt buffer.
 function EnlightenPrompt:submit()
@@ -138,11 +137,11 @@ end
 
 --- Keep (approve) AI generated content and close the buffer. If no content
 --- has been generated, this will do nothing. This is mapped to a key on the prompt buffer.
-function EnlightenPrompt:keep()
+function EnlightenPrompt:confirm()
   if self.writer.accumulated_text ~= "" then
     Logger:log("prompt:keep - confirmed")
     self.writer:keep()
-    vim.cmd("lua require('enlighten'):close_prompt()")
+    self:close()
   end
 end
 
@@ -154,14 +153,13 @@ end
 ---
 --- We prefer (1) but this approach complicates things when the prompt
 --- is opened from the top of a buffer. In this case we do (2).
+---@param id string
 ---@param target_buf number
 ---@param range Range
 ---@param settings EnlightenPromptSettings
 ---@return { bufnr:number, win_id:number, ns_id:number, ext_id:number|nil }
-function EnlightenPrompt._create_window(target_buf, range, settings)
-  Logger:log("prompt:_create_window - creating window", { range = range })
-
-  local ns_id = api.nvim_create_namespace("EnlightenPrompt")
+function EnlightenPrompt._create_window(id, target_buf, range, settings)
+  local ns_id = api.nvim_create_namespace("EnlightenPrompt-" .. id)
   local buf = api.nvim_create_buf(false, true)
   local open_at_top = range.row_start <= 1
   local extmark
@@ -214,7 +212,7 @@ function EnlightenPrompt._create_window(target_buf, range, settings)
   local win = api.nvim_open_win(buf, true, win_opts)
 
   api.nvim_set_option_value("buftype", "nofile", { buf = buf })
-  api.nvim_buf_set_name(buf, "enlighten-prompt")
+  api.nvim_buf_set_name(buf, "enlighten-prompt-" .. id)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
   api.nvim_set_option_value("winhl", "FloatBorder:EnlightenPromptBorder", { win = win })
@@ -235,48 +233,48 @@ end
 --- - <C-y>     : approve generated content
 --- - <C-o>    : scroll back in history
 --- - <C-i>    : scroll forward in history
-function EnlightenPrompt:_set_keymaps()
-  api.nvim_buf_set_keymap(
-    self.prompt_buf,
-    "n",
-    "q",
-    "<Cmd>lua require('enlighten'):close_prompt()<CR>",
-    {}
-  )
-  api.nvim_buf_set_keymap(
-    self.prompt_buf,
-    "n",
-    "<CR>",
-    "<Cmd>lua require('enlighten').prompt:submit()<CR>",
-    {}
-  )
-  api.nvim_buf_set_keymap(
-    self.prompt_buf,
-    "n",
-    "<C-y>",
-    "<Cmd>lua require('enlighten').prompt:keep()<CR>",
-    {}
-  )
-  api.nvim_buf_set_keymap(
-    self.prompt_buf,
-    "n",
-    "<C-o>",
-    "<Cmd>lua require('enlighten').prompt:_scroll_back()<CR>",
-    {}
-  )
-  api.nvim_buf_set_keymap(
-    self.prompt_buf,
-    "n",
-    "<C-i>",
-    "<Cmd>lua require('enlighten').prompt:_scroll_forward()<CR>",
-    {}
-  )
+function EnlightenPrompt:_set_keymaps(prompt_buf)
+  api.nvim_buf_set_keymap(prompt_buf, "n", "q", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      self:close()
+    end,
+  })
+  api.nvim_buf_set_keymap(prompt_buf, "n", "<CR>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      self:submit()
+    end,
+  })
+  api.nvim_buf_set_keymap(prompt_buf, "n", "<C-y>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      self:confirm()
+    end,
+  })
+  api.nvim_buf_set_keymap(prompt_buf, "n", "<C-o>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      self:_scroll_back()
+    end,
+  })
+  api.nvim_buf_set_keymap(prompt_buf, "n", "<C-i>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      self:_scroll_forward()
+    end,
+  })
 end
 
 --- Set all autocommands that the feature is dependant on
 ---@param target_buf number
 ---@return number[]
-function EnlightenPrompt._set_autocmds(target_buf)
+function EnlightenPrompt:_set_autocmds(target_buf)
   local autocmd_ids = {}
 
   -- When the target buffer is not in any window -> close the prompt
@@ -284,7 +282,7 @@ function EnlightenPrompt._set_autocmds(target_buf)
     group = augroup,
     buffer = target_buf,
     callback = function()
-      vim.cmd("lua require('enlighten'):close_prompt()")
+      self:close()
       return true
     end,
   })
@@ -297,7 +295,10 @@ end
 ---@param autocommand_ids number[]
 function EnlightenPrompt._del_autocmds(autocommand_ids)
   for _, id in ipairs(autocommand_ids) do
-    api.nvim_del_autocmd(id)
+    local status, err = pcall(api.nvim_del_autocmd, id)
+    if not status then
+      Logger:log("prompt:_del_autocmds - error deleting autocommand", { id = id, error = err })
+    end
   end
 end
 

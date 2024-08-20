@@ -24,7 +24,6 @@ function Enlighten:new()
   local enlighten = setmetatable({
     config = config,
     logger = Logger,
-    prompt = nil,
     chat = nil,
     prompt_history = {},
     chat_history = {},
@@ -57,36 +56,21 @@ function Enlighten.setup(self, partial_config)
 end
 
 --- Focus the prompt window if it exists and create a new one otherwise
-function Enlighten:open_prompt()
-  if self.prompt ~= nil then
-    self.logger:log("enlighten:open_prompt - focusing")
-    self.prompt:focus()
-    return
+function Enlighten:edit()
+  local current_win = vim.api.nvim_get_current_win()
+  local popups = vim.api.nvim_list_wins()
+
+  for _, win in ipairs(popups) do
+    local config = vim.api.nvim_win_get_config(win)
+    local buf = vim.api.nvim_win_get_buf(win)
+    local buf_type = vim.api.nvim_buf_get_option(buf, "filetype")
+
+    if buf_type == "enlighten" and config.relative == "win" and config.win == current_win then
+      return
+    end
   end
 
-  self.logger:log("enlighten:open_prompt - new")
-  self.prompt = Prompt:new(self.ai, self.config.settings.prompt, self.prompt_history)
-end
-
---- Close the prompt window if it exists and open it otherwise
-function Enlighten:toggle_prompt()
-  if self.prompt ~= nil then
-    self.logger:log("enlighten:toggle_prompt - close")
-    self:close_prompt()
-    return
-  end
-
-  self.logger:log("enlighten:toggle_prompt - open")
-  self:open_prompt()
-end
-
---- Close the prompt window if it exists
-function Enlighten:close_prompt()
-  if self.prompt ~= nil then
-    self.logger:log("enlighten:close_prompt - closing")
-    self.prompt:close()
-    self.prompt = nil
-  end
+  Prompt:new(self.ai, self.config.settings.prompt, self.prompt_history)
 end
 
 --- Focus the prompt in the chat pane if it exists and create a new one otherwise
