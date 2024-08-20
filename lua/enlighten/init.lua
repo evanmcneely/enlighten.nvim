@@ -57,6 +57,14 @@ end
 
 function Enlighten:edit()
   local current_win = vim.api.nvim_get_current_win()
+  local current_buf = vim.api.nvim_get_current_buf()
+  local current_buf_type = vim.api.nvim_get_option_value("filetype", { buf = current_buf })
+
+  -- If the current buffer is one of ours, do nothing
+  if current_buf_type == "enlighten" then
+    return
+  end
+
   local popups = vim.api.nvim_list_wins()
 
   for _, win in ipairs(popups) do
@@ -64,6 +72,7 @@ function Enlighten:edit()
     local buf = vim.api.nvim_win_get_buf(win)
     local buf_type = vim.api.nvim_get_option_value("filetype", { buf = buf })
 
+    -- If we find an enlighten popup relative to the current window, focus it
     if buf_type == "enlighten" and config.relative == "win" and config.win == current_win then
       vim.api.nvim_set_current_win(win)
       return
