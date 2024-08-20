@@ -275,7 +275,7 @@ function EnlightenPrompt:cleanup()
     api.nvim_buf_del_extmark(self.target_buf, self.prompt_ns_id, self.prompt_ext_id)
   end
 
-  delete_autocmds(self.autocommands or {})
+  delete_autocmds(self)
 end
 
 --- Submit the current prompt for generation. Any previously generated content
