@@ -5,6 +5,7 @@ local Logger = require("enlighten/logger")
 local History = require("enlighten/history")
 
 ---@class EnlightenChat
+---@field id string
 ---@field settings EnlightenChatSettings
 --- The id of the chat buffer
 ---@field chat_buf number
@@ -20,8 +21,99 @@ local History = require("enlighten/history")
 --- A class responsible for interacting with supported AI providers.
 ---@field ai AI
 local EnlightenChat = {}
+EnlightenChat.__index = EnlightenChat
 
 local ROLE_PREFIX = ">>>"
+local USER = ROLE_PREFIX .. " Developer"
+local ASSISTANT = ROLE_PREFIX .. " Assistant"
+
+--- Create the chat buffer and popup window
+---@param id string
+---@param settings EnlightenChatSettings
+---@return { bufnr: number, win_id: number }
+local function create_window(id, settings)
+  if settings.split == "left" then
+    vim.cmd("leftabove vsplit")
+  else
+    vim.cmd("vsplit")
+  end
+
+  local win = vim.api.nvim_get_current_win()
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_win_set_buf(win, buf)
+  vim.api.nvim_win_set_width(win, settings.width)
+
+  api.nvim_set_option_value("number", false, { win = win })
+  api.nvim_set_option_value("signcolumn", "no", { win = win })
+  api.nvim_set_option_value("buftype", "nofile", { buf = buf })
+  api.nvim_buf_set_name(buf, "enlighten-chat" .. id)
+  api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
+  api.nvim_set_option_value("wrap", true, { win = win })
+
+  return {
+    bufnr = buf,
+    win_id = win,
+  }
+end
+
+--- Set all keymaps for the chat buffer needed for user interactions. This
+--- is the primary UX for the chat feature.
+---
+--- - q        : close the prompt buffer
+--- - <cr>     : submit prompt for generation
+--- - <C-o>    : scroll back in history
+--- - <C-i>    : scroll forward in history
+--- - <C-x>    : stop AI generation
+---@param context EnlightenChat
+local function set_keymaps(context)
+  api.nvim_buf_set_keymap(context.chat_buf, "n", "<CR>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      context:submit()
+    end,
+  })
+  api.nvim_buf_set_keymap(context.chat_buf, "n", "q", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      context:close()
+    end,
+  })
+  api.nvim_buf_set_keymap(context.chat_buf, "n", "<C-o>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      context:scroll_back()
+    end,
+  })
+  api.nvim_buf_set_keymap(context.chat_buf, "n", "<C-i>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      context:scroll_forward()
+    end,
+  })
+  api.nvim_buf_set_keymap(context.chat_buf, "n", "<C-x>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      context:stop()
+    end,
+  })
+end
+
+--- Insert the content at the end of the buffer with the specified highlight.
+---@param buf number
+---@param content string
+---@param highlight? string
+local function insert_line(buf, content, highlight)
+  api.nvim_buf_set_lines(buf, -1, -1, true, { content })
+  if highlight ~= nil then
+    local line = api.nvim_buf_line_count(buf)
+    api.nvim_buf_add_highlight(buf, -1, highlight, line - 1, 0, -1)
+  end
+end
 
 --- Initial gateway into the chat feature. Initialize all data, windows, keymaps
 --- and autocommands that the feature depend on.
@@ -30,10 +122,10 @@ local ROLE_PREFIX = ">>>"
 ---@param history string[][]
 ---@return EnlightenChat
 function EnlightenChat:new(ai, settings, history)
-  self.__index = self
-
+  local id = tostring(math.random(10000))
   local buf = api.nvim_get_current_buf()
   local range = buffer.get_range()
+  local chat_win = create_window(id, settings)
 
   --- Getting the current snippet must occur before we create the buffers
   ---@type string[] | nil
@@ -42,33 +134,30 @@ function EnlightenChat:new(ai, settings, history)
     snippet = buffer.get_lines(buf, range.row_start, range.row_end + 1)
   end
 
-  local chat_win = self._create_chat_window(settings)
+  local context = setmetatable({}, self)
+  context.id = id
+  context.ai = ai
+  context.settings = settings
+  context.chat_buf = chat_win.bufnr
+  context.chat_win = chat_win.win_id
+  context.target_buf = buf
+  context.history = History:new(chat_win.bufnr, history)
+  context.writer = Writer:new(chat_win.win_id, chat_win.bufnr, function()
+    context:_add_user()
+    context.history:update()
+  end)
 
-  self.ai = ai
-  self.settings = settings
-  self.chat_buf = chat_win.bufnr
-  self.chat_win = chat_win.win_id
-  self.target_buf = buf
-  self.history = History:new(chat_win.bufnr, history)
+  set_keymaps(context)
+  context:_add_user(snippet)
 
-  local function on_done()
-    self:_add_user()
-    self.history:update()
-  end
-
-  self.writer = Writer:new(chat_win.win_id, chat_win.bufnr, on_done)
-
-  self:_set_chat_keymaps()
-  self:_add_user(snippet)
-
-  vim.cmd("startinsert")
+  api.nvim_command("startinsert")
 
   Logger:log(
     "chat:new",
-    { chat_buf = chat_win.bufnr, chat_win = chat_win.win_id, target_buf = buf }
+    { id = id, chat_buf = chat_win.bufnr, chat_win = chat_win.win_id, target_buf = buf }
   )
 
-  return self
+  return context
 end
 
 --- Close the chat buffer. Any content that is currently being writen to the
@@ -118,80 +207,6 @@ function EnlightenChat:submit()
   end
 end
 
---- Create the chat buffer and popup window
----@param settings EnlightenChatSettings
----@return { bufnr: number, win_id: number }
-function EnlightenChat._create_chat_window(settings)
-  if settings.split == "left" then
-    vim.cmd("leftabove vsplit")
-  else
-    vim.cmd("vsplit")
-  end
-
-  local win = vim.api.nvim_get_current_win()
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_win_set_buf(win, buf)
-  vim.api.nvim_win_set_width(win, settings.width)
-
-  api.nvim_set_option_value("number", false, { win = win })
-  api.nvim_set_option_value("signcolumn", "no", { win = win })
-  api.nvim_set_option_value("buftype", "nofile", { buf = buf })
-  api.nvim_buf_set_name(buf, "enlighten-chat")
-  api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
-  api.nvim_set_option_value("wrap", true, { win = win })
-
-  return {
-    bufnr = buf,
-    win_id = win,
-  }
-end
-
---- Set all keymaps for the chat buffer needed for user interactions. This
---- is the primary UX for the chat feature.
----
---- - q        : close the prompt buffer
---- - <cr>     : submit prompt for generation
---- - <C-o>    : scroll back in history
---- - <C-i>    : scroll forward in history
---- - <C-x>    : stop AI generation
-function EnlightenChat:_set_chat_keymaps()
-  api.nvim_buf_set_keymap(
-    self.chat_buf,
-    "n",
-    "<CR>",
-    "<Cmd>lua require('enlighten').chat:submit()<CR>",
-    {}
-  )
-  api.nvim_buf_set_keymap(
-    self.chat_buf,
-    "n",
-    "q",
-    "<Cmd>lua require('enlighten'):close_chat()<CR>",
-    {}
-  )
-  api.nvim_buf_set_keymap(
-    self.chat_buf,
-    "n",
-    "<C-o>",
-    "<Cmd>lua require('enlighten').chat:_scroll_back()<CR>",
-    {}
-  )
-  api.nvim_buf_set_keymap(
-    self.chat_buf,
-    "n",
-    "<C-i>",
-    "<Cmd>lua require('enlighten').chat:_scroll_forward()<CR>",
-    {}
-  )
-  api.nvim_buf_set_keymap(
-    self.chat_buf,
-    "n",
-    "<C-x>",
-    "<Cmd>lua require('enlighten').chat:_stop()<CR>",
-    {}
-  )
-end
-
 --- Format the prompt for generating a response. The conversation is not broken up
 --- into user/assistant roles when passed to the AI provider for completion.
 ---@return AiMessages
@@ -205,7 +220,7 @@ function EnlightenChat:_build_prompt()
 
   for line in content:gmatch("[^\r\n]+") do
     -- TODO: It is not great how dependant this is on these strings
-    if line:match("^" .. ROLE_PREFIX .. " Developer") then
+    if line:match("^" .. USER) then
       if current_role then
         table.insert(
           messages,
@@ -214,7 +229,7 @@ function EnlightenChat:_build_prompt()
         message_content = {}
       end
       current_role = "user"
-    elseif line:match("^" .. ROLE_PREFIX .. " Assistant") then
+    elseif line:match("^" .. ASSISTANT) then
       if current_role then
         table.insert(
           messages,
@@ -235,18 +250,6 @@ function EnlightenChat:_build_prompt()
   return messages
 end
 
---- Insert the content at the end of the buffer with the specified highlight.
----@param buf number
----@param content string
----@param highlight? string
-local function insert_line(buf, content, highlight)
-  api.nvim_buf_set_lines(buf, -1, -1, true, { content })
-  if highlight ~= nil then
-    local line = api.nvim_buf_line_count(buf)
-    api.nvim_buf_add_highlight(buf, -1, highlight, line - 1, 0, -1)
-  end
-end
-
 --- Add the "User" role to the buffer and prepopulate the prompt
 --- with the provided snippet (if any).
 ---@param snippet? string[]
@@ -256,7 +259,7 @@ function EnlightenChat:_add_user(snippet)
   -- the ">>> Developer" text being real so this is a bigger refactor.
 
   insert_line(self.chat_buf, "")
-  insert_line(self.chat_buf, ROLE_PREFIX .. " Developer", "EnlightenChatRole")
+  insert_line(self.chat_buf, USER, "EnlightenChatRole")
   insert_line(self.chat_buf, "")
 
   if snippet then
@@ -286,7 +289,7 @@ function EnlightenChat:_add_assistant()
   -- that it can't be removed? There is a lot of code dependant on
   -- the ">>> Assistant" text being real so this is a bigger refactor.
   insert_line(self.chat_buf, "")
-  insert_line(self.chat_buf, ROLE_PREFIX .. " Assistant", "EnlightenChatRole")
+  insert_line(self.chat_buf, ASSISTANT, "EnlightenChatRole")
   insert_line(self.chat_buf, "")
   insert_line(self.chat_buf, "")
 end
@@ -302,7 +305,7 @@ function EnlightenChat:_highlight_chat_roles()
 end
 
 --- If text content is currently being written to the buffer... stop doing that
-function EnlightenChat:_stop()
+function EnlightenChat:stop()
   if self.writer.active then
     self.writer:stop()
     self:_add_user()
@@ -310,15 +313,19 @@ function EnlightenChat:_stop()
 end
 
 --- Scroll back in history
-function EnlightenChat:_scroll_back()
-  self.history:scroll_back()
-  self:_highlight_chat_roles()
+function EnlightenChat:scroll_back()
+  if not self.writer.active then
+    self.history:scroll_back()
+    self:_highlight_chat_roles()
+  end
 end
 
 --- Scroll forward in history
-function EnlightenChat:_scroll_forward()
-  self.history:scroll_forward()
-  self:_highlight_chat_roles()
+function EnlightenChat:scroll_forward()
+  if not self.writer.active then
+    self.history:scroll_forward()
+    self:_highlight_chat_roles()
+  end
 end
 
 return EnlightenChat
