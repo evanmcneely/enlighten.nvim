@@ -33,11 +33,10 @@ Installation with [lazy.nvim](https://github.com/folke/lazy.nvim)
   event = "BufEnter",
   config = function()
     require('enlighten'):setup() -- REQUIRED
-    vim.keymap.set("v", "<leader>aa", function() require("enlighten"):toggle_prompt() end)
-    vim.keymap.set("n", "<leader>aa", function() require("enlighten"):toggle_prompt() end)
+    vim.keymap.set("v", "<leader>aa", function() require("enlighten"):edit() end)
+    vim.keymap.set("n", "<leader>aa", function() require("enlighten"):edit() end)
     vim.keymap.set("v", "<leader>ac", function() require("enlighten"):toggle_chat() end)
     vim.keymap.set("n", "<leader>ac", function() require("enlighten"):toggle_chat() end)
-    vim.keymap.set("n", "<leader>af", function() require("enlighten"):focus() end)
   end
 }
 ```
