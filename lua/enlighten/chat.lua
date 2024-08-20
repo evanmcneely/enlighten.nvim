@@ -1,4 +1,5 @@
 local api = vim.api
+local augroup = require("enlighten/autocmd")
 local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/stream")
 local Logger = require("enlighten/logger")
@@ -20,6 +21,8 @@ local History = require("enlighten/history")
 ---@field writer Writer
 --- A class responsible for interacting with supported AI providers.
 ---@field ai AI
+--- A list of ids of all autocommands that have been created for this feature.
+---@field autocommands number[]
 local EnlightenChat = {}
 EnlightenChat.__index = EnlightenChat
 
@@ -115,6 +118,36 @@ local function insert_line(buf, content, highlight)
   end
 end
 
+--- Set all autocommands that the feature is dependant on
+---@param context EnlightenChat
+---@return number[]
+local function set_autocmds(context)
+  local autocmd_ids = {
+    -- When the prompt window is closed with :q -> cleanup
+    api.nvim_create_autocmd("BufHidden", {
+      group = augroup,
+      buffer = context.chat_buf,
+      callback = function()
+        context:stop()
+        context:cleanup()
+      end,
+    }),
+  }
+
+  context.autocommands = autocmd_ids
+  return autocmd_ids
+end
+
+--- Clean up all autocommands that have been created
+---@param context EnlightenChat
+local function delete_autocmds(context)
+  for _, id in ipairs(context.autocommands or {}) do
+    local status, err = pcall(api.nvim_del_autocmd, id)
+    if not status then
+      Logger:log("delete_autocmds - error", { id = context.id, autocmd_id = id, error = err })
+    end
+  end
+end
 --- Initial gateway into the chat feature. Initialize all data, windows, keymaps
 --- and autocommands that the feature depend on.
 ---@param ai AI
@@ -148,8 +181,9 @@ function EnlightenChat:new(ai, settings, history)
   end)
 
   set_keymaps(context)
-  context:_add_user(snippet)
+  set_autocmds(context)
 
+  context:_add_user(snippet)
   api.nvim_command("startinsert")
 
   Logger:log(
@@ -176,6 +210,10 @@ function EnlightenChat:close()
   end
 
   Logger:log("chat:close", { id = self.id })
+end
+
+function EnlightenChat:cleanup()
+  delete_autocmds(self)
 end
 
 --- Submit the user question for a response.
