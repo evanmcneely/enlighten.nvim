@@ -34,7 +34,7 @@ describe("prompt", function()
 
     ---@type Enlighten
     enlighten = require("enlighten")
-    enlighten:setup()
+    enlighten.setup()
 
     -- Override the exec method so we can capture the stdout handler.
     ---@diagnostic disable-next-line: duplicate-set-field
@@ -63,7 +63,7 @@ describe("prompt", function()
     tu.feedkeys("Vjjj")
 
     -- Open the prompt and get the buffer
-    vim.cmd("lua require('enlighten'):edit()")
+    vim.cmd("lua require('enlighten').edit()")
     local buf = vim.api.nvim_get_current_buf()
 
     -- Enter our prompt
@@ -83,7 +83,7 @@ describe("prompt", function()
 
   it("should be able to generate code in the buffer", function()
     -- Open the prompt and get the buffer
-    vim.cmd("lua require('enlighten'):edit()")
+    vim.cmd("lua require('enlighten').edit()")
     local buf = vim.api.nvim_get_current_buf()
 
     -- Enter our prompt
@@ -106,7 +106,7 @@ describe("prompt", function()
     -- When we have prompt history items
     enlighten.prompt_history = { { "abc" }, { "def" } }
     -- And the prompt is opened
-    vim.cmd("lua require('enlighten'):edit()")
+    vim.cmd("lua require('enlighten').edit()")
     local buf = vim.api.nvim_get_current_buf()
 
     -- As we scroll through the history, we expect the buffer to be updated
@@ -125,13 +125,13 @@ describe("prompt", function()
 
   it("should save prompt to history after completion", function()
     -- When the prompt is opened and content is streamed
-    vim.cmd("lua require('enlighten'):edit()")
+    vim.cmd("lua require('enlighten').edit()")
     tu.feedkeys("ihello<Esc><CR>")
     stream(content_2)
 
     -- When the prompt is closed and then reopened
     tu.feedkeys("<Esc>q")
-    vim.cmd("lua require('enlighten'):edit()")
+    vim.cmd("lua require('enlighten').edit()")
     local buf = vim.api.nvim_get_current_buf()
 
     -- We expect the provious prompt to be in history on scroll

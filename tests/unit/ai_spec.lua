@@ -11,7 +11,7 @@ describe("ai", function()
   local writer
 
   before_each(function()
-    ai = Ai:new(config.merge_config().ai)
+    ai = Ai:new(config.build_config().ai)
 
     -- Override the exec method so we can capture the stdout handler.
     -- The exec method won't be tested here...
@@ -70,7 +70,7 @@ describe("ai", function()
 
   it("should process chunks with 'event:content_block_delta data:' prefix", function()
     -- update the config to use antthropic provider
-    ai = Ai:new(config.merge_config({ ai = { provider = "anthropic" } }).ai)
+    ai = Ai:new(config.build_config({ ai = { provider = "anthropic" } }).ai)
     ai:complete("prompt", writer)
 
     local text = "wassup"
@@ -142,7 +142,7 @@ describe("ai", function()
 
   it("should run through full anthropic streaming routine", function()
     -- update the config to use antthropic provider
-    ai = Ai:new(config.merge_config({ ai = { provider = "anthropic" } }).ai)
+    ai = Ai:new(config.build_config({ ai = { provider = "anthropic" } }).ai)
     ai:complete("prompt", writer)
 
     local routine = {

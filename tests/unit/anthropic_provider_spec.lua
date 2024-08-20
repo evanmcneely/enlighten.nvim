@@ -72,7 +72,7 @@ describe("provider anthropic", function()
   end)
 
   it("should build streaming request for chat", function()
-    local c = config.merge_config()
+    local c = config.build_config()
     local chat = {
       { role = "user", content = "a" },
       { role = "assistant", content = "b" },
@@ -88,7 +88,7 @@ describe("provider anthropic", function()
   end)
 
   it("should build streaming request for prompt", function()
-    local c = config.merge_config()
+    local c = config.build_config()
     local prompt = "hello"
     local body = anthropic.build_stream_request("prompt", prompt, c.ai.prompt)
 

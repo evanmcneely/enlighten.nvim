@@ -133,4 +133,17 @@ function M.scheduled_equals(want, got)
   end)
 end
 
+---@param substring string
+---@param content string
+function M.assert_substring_exists(substring, content)
+  assert(
+    string.find(content, substring, 1, true),
+    "Expected substring not found in buffer content\n\n"
+      .. "... Expected to find\n\n"
+      .. substring
+      .. "\n\n...Recieved\n"
+      .. content
+  )
+end
+
 return M

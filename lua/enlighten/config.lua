@@ -130,11 +130,11 @@ end
 ---@param partial_config EnlightenPartialConfig?
 ---@param latest_config EnlightenConfig?
 ---@return EnlightenConfig
-function M.merge_config(partial_config, latest_config)
+function M.build_config(partial_config, latest_config)
   partial_config = partial_config or {}
   local config = latest_config or M.get_default_config()
 
-  Logger:log("config.merge_config - user config", partial_config)
+  Logger:log("config.merge_config - user", partial_config)
 
   config.ai = vim.tbl_deep_extend("force", config.ai, partial_config.ai or {})
 
@@ -166,7 +166,7 @@ function M.merge_config(partial_config, latest_config)
       vim.tbl_deep_extend("force", config.settings.chat, partial_config.settings.chat or {})
   end
 
-  Logger:log("config.merge_config - final config", config)
+  Logger:log("config.merge_config - final", config)
 
   return config
 end

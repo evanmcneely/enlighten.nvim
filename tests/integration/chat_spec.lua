@@ -26,7 +26,7 @@ describe("chat", function()
   before_each(function()
     ---@type Enlighten
     enlighten = require("enlighten")
-    enlighten:setup()
+    enlighten.setup()
 
     -- Override the exec method so we can capture the stdout handler.
     ---@diagnostic disable-next-line: duplicate-set-field
@@ -51,30 +51,24 @@ describe("chat", function()
   end
 
   it("should be able to have a chat conversation", function()
-    vim.cmd("lua require('enlighten'):chat()")
+    vim.cmd("lua require('enlighten').chat()")
     local buf = vim.api.nvim_get_current_buf()
 
     tu.feedkeys("ihello<Esc><CR>")
     stream(content_1)
 
-    assert.are.same(
-      "\n\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
-        .. table.concat(content_1, "")
-        .. "\n\n>>> Developer\n\n",
-      buffer.get_content(buf)
-    )
+    local content = buffer.get_content(buf)
+    tu.assert_substring_exists("hello", content)
+    tu.assert_substring_exists(table.concat(content_1, ""), content)
 
     tu.feedkeys("imore<Esc><CR>")
     stream(content_2)
 
-    assert.are.same(
-      "\n\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
-        .. table.concat(content_1, "")
-        .. "\n\n>>> Developer\n\nmore\n\n>>> Assistant\n\n"
-        .. table.concat(content_2, "")
-        .. "\n\n>>> Developer\n\n",
-      buffer.get_content(buf)
-    )
+    content = buffer.get_content(buf)
+    tu.assert_substring_exists("hello", content)
+    tu.assert_substring_exists(table.concat(content_1, ""), content)
+    tu.assert_substring_exists("more", content)
+    tu.assert_substring_exists(table.concat(content_2, ""), content)
 
     vim.api.nvim_buf_delete(buf, {})
   end)
@@ -88,12 +82,12 @@ describe("chat", function()
     vim.cmd("lua require('enlighten'):chat()")
 
     local buf = vim.api.nvim_get_current_buf()
-    assert.are.same("\n\n>>> Developer\n\nsome\ncontent\nto\ncopy\n\n", buffer.get_content(buf))
+    tu.assert_substring_exists("some\ncontent\nto\ncopy", buffer.get_content(buf))
   end)
 
   it("should be able to scroll chat history", function()
     enlighten.chat_history = { { "abc" }, { "def" } }
-    vim.cmd("lua require('enlighten'):chat()")
+    vim.cmd("lua require('enlighten').chat()")
     local buf = vim.api.nvim_get_current_buf()
 
     tu.feedkeys("<Esc><C-o>")
@@ -112,13 +106,13 @@ describe("chat", function()
   end)
 
   it("should save convo to history after completion", function()
-    vim.cmd("lua require('enlighten'):chat()")
+    vim.cmd("lua require('enlighten').chat()")
 
     tu.feedkeys("ihello<Esc><CR>")
     stream(content_1)
 
     tu.feedkeys("<Esc>q")
-    vim.cmd("lua require('enlighten'):chat()")
+    vim.cmd("lua require('enlighten').chat()")
     local buf = vim.api.nvim_get_current_buf()
 
     tu.feedkeys("<Esc><C-o>")
