@@ -168,23 +168,14 @@ function EnlightenChat:close()
   end
 
   if api.nvim_win_is_valid(self.chat_win) then
-    Logger:log("chat:close - closing window", { chat_win = self.chat_win })
     api.nvim_win_close(self.chat_win, true)
   end
 
   if api.nvim_buf_is_valid(self.chat_buf) then
-    Logger:log("chat:close - deleting buffer", { chat_buf = self.chat_buf })
     api.nvim_buf_delete(self.chat_buf, { force = true })
   end
-end
 
---- Focus the chat buffer.
-function EnlightenChat:focus()
-  if api.nvim_buf_is_valid(self.chat_buf) and api.nvim_win_is_valid(self.chat_win) then
-    Logger:log("chat:focus - focusing", { buf = self.chat_buf, win = self.chat_win })
-    api.nvim_set_current_win(self.chat_win)
-    api.nvim_win_set_buf(self.chat_win, self.chat_buf)
-  end
+  Logger:log("chat:close", { id = self.id })
 end
 
 --- Submit the user question for a response.
