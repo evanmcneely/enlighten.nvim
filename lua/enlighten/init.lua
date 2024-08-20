@@ -55,7 +55,6 @@ function Enlighten.setup(self, partial_config)
   return self
 end
 
---- Focus the prompt window if it exists and create a new one otherwise
 function Enlighten:edit()
   local current_win = vim.api.nvim_get_current_win()
   local popups = vim.api.nvim_list_wins()
@@ -63,9 +62,10 @@ function Enlighten:edit()
   for _, win in ipairs(popups) do
     local config = vim.api.nvim_win_get_config(win)
     local buf = vim.api.nvim_win_get_buf(win)
-    local buf_type = vim.api.nvim_buf_get_option(buf, "filetype")
+    local buf_type = vim.api.nvim_get_option_value("filetype", { buf = buf })
 
     if buf_type == "enlighten" and config.relative == "win" and config.win == current_win then
+      vim.api.nvim_set_current_win(win)
       return
     end
   end
@@ -103,17 +103,6 @@ function Enlighten:close_chat()
     self.logger:log("enlighten:close_chat - closing")
     self.chat:close()
     self.chat = nil
-  end
-end
-
---- Focus the prompt window if it exists
-function Enlighten:focus()
-  if self.prompt ~= nil then
-    self.logger:log("enlighten:focus - focusing")
-    self.prompt:focus()
-  elseif self.chat ~= nil then
-    self.logger:log("enlighten:focus - focusing")
-    self.chat:focus()
   end
 end
 
