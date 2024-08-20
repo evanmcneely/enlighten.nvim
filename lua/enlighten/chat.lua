@@ -158,7 +158,6 @@ function EnlightenChat:new(ai, settings, history)
   local id = tostring(math.random(10000))
   local buf = api.nvim_get_current_buf()
   local range = buffer.get_range()
-  local chat_win = create_window(id, settings)
 
   --- Getting the current snippet must occur before we create the buffers
   ---@type string[] | nil
@@ -166,6 +165,8 @@ function EnlightenChat:new(ai, settings, history)
   if buffer.is_visual_mode() then
     snippet = buffer.get_lines(buf, range.row_start, range.row_end + 1)
   end
+
+  local chat_win = create_window(id, settings)
 
   local context = setmetatable({}, self)
   context.id = id

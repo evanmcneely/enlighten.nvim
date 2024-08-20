@@ -79,6 +79,18 @@ describe("chat", function()
     vim.api.nvim_buf_delete(buf, {})
   end)
 
+  it("should copy selected snippet to chat", function()
+    tu.prepare_buffer("some\ncontent\nto\ncopy")
+
+    -- Select the first four lines of the buffer
+    tu.feedkeys("Vjjj")
+
+    vim.cmd("lua require('enlighten'):chat()")
+
+    local buf = vim.api.nvim_get_current_buf()
+    assert.are.same("\n\n>>> Developer\n\nsome\ncontent\nto\ncopy\n\n", buffer.get_content(buf))
+  end)
+
   it("should be able to scroll chat history", function()
     enlighten.chat_history = { { "abc" }, { "def" } }
     vim.cmd("lua require('enlighten'):chat()")
