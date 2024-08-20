@@ -6,7 +6,6 @@ local highlights = require("enlighten/highlights")
 
 ---@class Enlighten
 ---@field config EnlightenConfig
----@field ai AI
 ---@field prompt_history string[][]
 ---@field chat_history string[][]
 local enlighten = {}
