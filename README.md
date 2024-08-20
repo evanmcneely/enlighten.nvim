@@ -35,8 +35,8 @@ Installation with [lazy.nvim](https://github.com/folke/lazy.nvim)
     require('enlighten'):setup() -- REQUIRED
     vim.keymap.set("v", "<leader>aa", function() require("enlighten"):edit() end)
     vim.keymap.set("n", "<leader>aa", function() require("enlighten"):edit() end)
-    vim.keymap.set("v", "<leader>ac", function() require("enlighten"):toggle_chat() end)
-    vim.keymap.set("n", "<leader>ac", function() require("enlighten"):toggle_chat() end)
+    vim.keymap.set("v", "<leader>ac", function() require("enlighten"):chat() end)
+    vim.keymap.set("n", "<leader>ac", function() require("enlighten"):chat() end)
   end
 }
 ```
