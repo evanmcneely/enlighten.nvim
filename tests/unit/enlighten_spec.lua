@@ -1,3 +1,5 @@
+local tu = require("tests.testutils")
+
 describe("enlighten commands and keymaps", function()
   local enlighten
   local target_buf
@@ -41,36 +43,23 @@ describe("enlighten commands and keymaps", function()
     )
   end)
 
-  describe("prompt", function()
-    it("should open and close the prompt when toggle_prompt is invoked", function()
-      -- prompt should open and initialize the prompt
-      vim.cmd("lua require('enlighten'):toggle_prompt()")
+  describe("edit", function()
+    it("should open the prompt when edit is invoked", function()
+      vim.cmd("lua require('enlighten'):edit()")
 
       local buf = vim.api.nvim_get_current_buf()
-      assert.are_truthy(enlighten.prompt)
-      assert.are.same(buf, enlighten.prompt.prompt_buf)
-      assert.are.same(target_buf, enlighten.prompt.target_buf)
-
-      -- prompt should close
-      vim.cmd("lua require('enlighten'):toggle_prompt()")
-      assert.are_nil(enlighten.prompt)
+      assert.are.same("enlighten", vim.api.nvim_get_option_value("filetype", { buf = buf }))
+      assert.are.same("enlighten-prompt", vim.api.nvim_buf_get_name(buf):match("enlighten%-prompt"))
     end)
 
-    it(
-      "should open the prompt when open_prompt is invoked and close it when close_prompt is invoked",
-      function()
-        -- prompt should open and initialize the prompt
-        vim.cmd("lua require('enlighten'):open_prompt()")
+    it("should focus prompt when edit is invoked and prompt already exists for buffer", function()
+      vim.cmd("lua require('enlighten'):edit()")
+      local prompt_buf = vim.api.nvim_get_current_buf()
 
-        local buf = vim.api.nvim_get_current_buf()
-        assert.are_truthy(enlighten.prompt)
-        assert.are.same(buf, enlighten.prompt.prompt_buf)
-        assert.are.same(target_buf, enlighten.prompt.target_buf)
+      vim.api.nvim_set_current_buf(target_buf)
 
-        -- prompt should close
-        vim.cmd("lua require('enlighten'):close_prompt()")
-        assert.are_nil(enlighten.prompt)
-      end
-    )
+      vim.cmd("lua require('enlighten'):edit()")
+      tu.scheduled_equals(prompt_buf, vim.api.nvim_get_current_buf())
+    end)
   end)
 end)
