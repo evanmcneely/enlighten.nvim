@@ -45,7 +45,6 @@ describe("prompt", function()
   end)
 
   after_each(function()
-    vim.cmd("lua require('enlighten'):close_prompt()")
     enlighten.prompt_history = {}
   end)
 
@@ -63,12 +62,15 @@ describe("prompt", function()
     -- Select the first four lines of the buffer
     tu.feedkeys("Vjjj")
 
-    vim.cmd("lua require('enlighten'):toggle_prompt()")
+    -- Open the prompt and get the buffer
+    vim.cmd("lua require('enlighten'):edit()")
+    local buf = vim.api.nvim_get_current_buf()
 
+    -- Enter our prompt
     tu.feedkeys("ihello<Esc>")
+    assert.are.same("hello", buffer.get_content(buf))
 
-    assert.are.same("hello", buffer.get_content(enlighten.prompt.prompt_buf))
-
+    -- Submit prompt and stream some content back in
     tu.feedkeys("<CR>")
     stream(content_2)
 
@@ -77,20 +79,22 @@ describe("prompt", function()
       table.concat(content_2, "") .. "\n" .. content_1[5] .. "\n\n" .. content_1[7],
       buffer.get_content(target_buf)
     )
-
-    vim.cmd("lua require('enlighten'):toggle_prompt()")
   end)
 
   it("should be able to generate code in the buffer", function()
-    vim.cmd("lua require('enlighten'):toggle_prompt()")
+    -- Open the prompt and get the buffer
+    vim.cmd("lua require('enlighten'):edit()")
+    local buf = vim.api.nvim_get_current_buf()
 
+    -- Enter our prompt
     tu.feedkeys("ihello<Esc>")
+    assert.are.same("hello", buffer.get_content(buf))
 
-    assert.are.same("hello", buffer.get_content(enlighten.prompt.prompt_buf))
-
+    -- Submit the prompt and stream some content back in
     tu.feedkeys("<CR>")
     stream(content_2)
 
+    -- New content is written
     table.remove(content_1, 1)
     assert.are.same(
       table.concat(content_2, "") .. "\n" .. table.concat(content_1, "\n"),
@@ -99,33 +103,40 @@ describe("prompt", function()
   end)
 
   it("should be able to scroll prompt history", function()
+    -- When we have prompt history items
     enlighten.prompt_history = { { "abc" }, { "def" } }
-    vim.cmd("lua require('enlighten'):toggle_prompt()")
+    -- And the prompt is opened
+    vim.cmd("lua require('enlighten'):edit()")
+    local buf = vim.api.nvim_get_current_buf()
 
+    -- As we scroll through the history, we expect the buffer to be updated
     tu.feedkeys("<Esc><C-o>")
-    tu.scheduled_equals("abc", buffer.get_content(enlighten.prompt.prompt_buf))
+    tu.scheduled_equals("abc", buffer.get_content(buf))
 
     tu.feedkeys("<C-o>")
-    tu.scheduled_equals("def", buffer.get_content(enlighten.prompt.prompt_buf))
+    tu.scheduled_equals("def", buffer.get_content(buf))
 
     tu.feedkeys("<C-i>")
-    tu.scheduled_equals("abc", buffer.get_content(enlighten.prompt.prompt_buf))
+    tu.scheduled_equals("abc", buffer.get_content(buf))
 
     tu.feedkeys("<C-i>")
-    tu.scheduled_equals("", buffer.get_content(enlighten.prompt.prompt_buf))
+    tu.scheduled_equals("", buffer.get_content(buf))
   end)
 
   it("should save prompt to history after completion", function()
-    vim.cmd("lua require('enlighten'):toggle_prompt()")
-
+    -- When the prompt is opened and content is streamed
+    vim.cmd("lua require('enlighten'):edit()")
     tu.feedkeys("ihello<Esc><CR>")
     stream(content_2)
 
-    vim.cmd("lua require('enlighten'):toggle_prompt()")
-    vim.cmd("lua require('enlighten'):toggle_prompt()")
+    -- When the prompt is closed and then reopened
+    tu.feedkeys("<Esc>q")
+    vim.cmd("lua require('enlighten'):edit()")
+    local buf = vim.api.nvim_get_current_buf()
 
+    -- We expect the provious prompt to be in history on scroll
     tu.feedkeys("<Esc><C-o>")
-    tu.scheduled_equals("hello", buffer.get_content(enlighten.prompt.prompt_buf))
+    tu.scheduled_equals("hello", buffer.get_content(buf))
     assert.are.same({ { "hello" } }, enlighten.prompt_history)
   end)
 end)

@@ -121,7 +121,6 @@ end
 
 function StreamWriter:stop()
   self.shortcircuit = true
-  self.active = false
 end
 
 return StreamWriter
