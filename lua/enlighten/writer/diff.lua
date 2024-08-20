@@ -76,6 +76,10 @@ end
 
 ---@param text string
 function DiffWriter:on_data(text)
+  if self.shortcircuit then
+    return
+  end
+
   self.accumulated_line = self.accumulated_line .. text
   self.accumulated_text = self.accumulated_text .. text
 
@@ -110,6 +114,10 @@ function DiffWriter:on_complete(err)
   if err then
     Logger:log("diff:on_complete - error", err)
     api.nvim_err_writeln("Enlighten: " .. err)
+    return
+  end
+
+  if self.shortcircuit then
     return
   end
 
@@ -205,7 +213,10 @@ function DiffWriter:_highlight_diff(left, right)
       local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
 
       for _, line in pairs(hunk.remove) do
-        table.insert(virt_lines, { { line .. string.rep(" ", vim.o.columns), "EnlightenDiffDelete" } })
+        table.insert(
+          virt_lines,
+          { { line .. string.rep(" ", vim.o.columns), "EnlightenDiffDelete" } }
+        )
       end
 
       api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, -1, {
@@ -243,6 +254,7 @@ function DiffWriter:_clear_state()
   self.accumulated_line = ""
   self.accumulated_lines = {}
   self.diff = {}
+  self.shortcircuit = false
 end
 
 function DiffWriter:reset()
@@ -263,10 +275,11 @@ end
 
 function DiffWriter:start()
   self.active = true
+  self.shortcircuit = false
 end
 
-function DiffWriter.stop()
-  -- nothing
+function DiffWriter:stop()
+  self.shortcircuit = true
 end
 
 return DiffWriter
