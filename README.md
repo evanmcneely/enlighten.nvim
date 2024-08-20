@@ -28,17 +28,17 @@ You will also need to set the environment variable `$OPENAI_API_KEY` or `$ANTHRO
 Installation with [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
-{
-  "evanmcneely/enlighten.nvim",
-  event = "BufEnter",
-  config = function()
-    require('enlighten').setup() -- REQUIRED
-    vim.keymap.set("v", "<leader>aa", function() require("enlighten").edit() end)
-    vim.keymap.set("n", "<leader>aa", function() require("enlighten").edit() end)
-    vim.keymap.set("v", "<leader>ac", function() require("enlighten").chat() end)
-    vim.keymap.set("n", "<leader>ac", function() require("enlighten").chat() end)
-  end
-}
+  {
+    "evanmcneely/enlighten.nvim",
+    event = "VeryLazy",
+    opts = { 
+      -- ...
+    },
+    keys = {
+      { "<leader>ae", function() require("enlighten").edit() end, desc = "Edit", mode = { "n", "v" } },
+      { "<leader>ac", function() require("enlighten").chat() end, desc = "Chat", mode = { "n", "v" } },
+    },
+  },
 ```
 
 ### ⚙️ Configuration
