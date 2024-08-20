@@ -8,8 +8,6 @@ local highlights = require("enlighten/highlights")
 ---@class Enlighten
 ---@field config EnlightenConfig
 ---@field logger EnlightenLog
----@field prompt EnlightenPrompt
----@field chat EnlightenChat
 ---@field prompt_history string[][]
 ---@field chat_history string[][]
 ---@field ai AI
@@ -24,7 +22,6 @@ function Enlighten:new()
   local enlighten = setmetatable({
     config = config,
     logger = Logger,
-    chat = nil,
     prompt_history = {},
     chat_history = {},
   }, self)
@@ -83,36 +80,16 @@ function Enlighten:edit()
 end
 
 --- Focus the prompt in the chat pane if it exists and create a new one otherwise
-function Enlighten:open_chat()
-  if self.chat ~= nil then
-    self.logger:log("enlighten:open_chat - focusing")
-    self.chat:focus()
+function Enlighten:chat()
+  local current_buf = vim.api.nvim_get_current_buf()
+  local current_buf_type = vim.api.nvim_get_option_value("filetype", { buf = current_buf })
+
+  -- If the current buffer is one of ours, do nothing
+  if current_buf_type == "enlighten" then
     return
   end
 
-  self.logger:log("enlighten:open_chat - new")
-  self.chat = Chat:new(self.ai, self.config.settings.chat, self.chat_history)
-end
-
---- Close the chat pane if it exists and open it otherwise
-function Enlighten:toggle_chat()
-  if self.chat ~= nil then
-    self.logger:log("enlighten:toggle_chat - close")
-    self:close_chat()
-    return
-  end
-
-  self.logger:log("enlighten:toggle_chat - open")
-  self:open_chat()
-end
-
---- Close the chat if it exists
-function Enlighten:close_chat()
-  if self.chat ~= nil then
-    self.logger:log("enlighten:close_chat - closing")
-    self.chat:close()
-    self.chat = nil
-  end
+  Chat:new(self.ai, self.config.settings.chat, self.chat_history)
 end
 
 return enlighten_me

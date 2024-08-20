@@ -37,7 +37,6 @@ describe("chat", function()
   end)
 
   after_each(function()
-    vim.cmd("lua require('enlighten'):close_chat()")
     enlighten.chat_history = {}
   end)
 
@@ -52,7 +51,8 @@ describe("chat", function()
   end
 
   it("should be able to have a chat conversation", function()
-    vim.cmd("lua require('enlighten'):toggle_chat()")
+    vim.cmd("lua require('enlighten'):chat()")
+    local buf = vim.api.nvim_get_current_buf()
 
     tu.feedkeys("ihello<Esc><CR>")
     stream(content_1)
@@ -61,7 +61,7 @@ describe("chat", function()
       "\n\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
         .. table.concat(content_1, "")
         .. "\n\n>>> Developer\n\n",
-      buffer.get_content(enlighten.chat.chat_buf)
+      buffer.get_content(buf)
     )
 
     tu.feedkeys("imore<Esc><CR>")
@@ -73,42 +73,62 @@ describe("chat", function()
         .. "\n\n>>> Developer\n\nmore\n\n>>> Assistant\n\n"
         .. table.concat(content_2, "")
         .. "\n\n>>> Developer\n\n",
-      buffer.get_content(enlighten.chat.chat_buf)
+      buffer.get_content(buf)
     )
+
+    vim.api.nvim_buf_delete(buf, {})
+  end)
+
+  it("should copy selected snippet to chat", function()
+    tu.prepare_buffer("some\ncontent\nto\ncopy")
+
+    -- Select the first four lines of the buffer
+    tu.feedkeys("Vjjj")
+
+    vim.cmd("lua require('enlighten'):chat()")
+
+    local buf = vim.api.nvim_get_current_buf()
+    assert.are.same("\n\n>>> Developer\n\nsome\ncontent\nto\ncopy\n\n", buffer.get_content(buf))
   end)
 
   it("should be able to scroll chat history", function()
     enlighten.chat_history = { { "abc" }, { "def" } }
-    vim.cmd("lua require('enlighten'):toggle_chat()")
+    vim.cmd("lua require('enlighten'):chat()")
+    local buf = vim.api.nvim_get_current_buf()
 
     tu.feedkeys("<Esc><C-o>")
-    tu.scheduled_equals("abc", buffer.get_content(enlighten.chat.chat_buf))
+    tu.scheduled_equals("abc", buffer.get_content(buf))
 
     tu.feedkeys("<C-o>")
-    tu.scheduled_equals("def", buffer.get_content(enlighten.chat.chat_buf))
+    tu.scheduled_equals("def", buffer.get_content(buf))
 
     tu.feedkeys("<C-i>")
-    tu.scheduled_equals("abc", buffer.get_content(enlighten.chat.chat_buf))
+    tu.scheduled_equals("abc", buffer.get_content(buf))
 
     tu.feedkeys("<C-i>")
-    tu.scheduled_equals("\n\n>>> Developer\n\n", buffer.get_content(enlighten.chat.chat_buf))
+    tu.scheduled_equals("\n\n>>> Developer\n\n", buffer.get_content(buf))
+
+    vim.api.nvim_buf_delete(buf, {})
   end)
 
   it("should save convo to history after completion", function()
-    vim.cmd("lua require('enlighten'):toggle_chat()")
+    vim.cmd("lua require('enlighten'):chat()")
 
     tu.feedkeys("ihello<Esc><CR>")
     stream(content_1)
 
-    vim.cmd("lua require('enlighten'):toggle_chat()")
-    vim.cmd("lua require('enlighten'):toggle_chat()")
+    tu.feedkeys("<Esc>q")
+    vim.cmd("lua require('enlighten'):chat()")
+    local buf = vim.api.nvim_get_current_buf()
 
     tu.feedkeys("<Esc><C-o>")
     local want = "\n\n>>> Developer\n\nhello\n\n>>> Assistant\n\n"
       .. table.concat(content_1, "")
       .. "\n\n>>> Developer\n\n"
 
-    tu.scheduled_equals(want, buffer.get_content(enlighten.chat.chat_buf))
+    tu.scheduled_equals(want, buffer.get_content(buf))
     assert.are.same({ vim.split(want, "\n") }, enlighten.chat_history)
+
+    vim.api.nvim_buf_delete(buf, {})
   end)
 end)
