@@ -32,11 +32,11 @@ Installation with [lazy.nvim](https://github.com/folke/lazy.nvim)
   "evanmcneely/enlighten.nvim",
   event = "BufEnter",
   config = function()
-    require('enlighten'):setup() -- REQUIRED
-    vim.keymap.set("v", "<leader>aa", function() require("enlighten"):edit() end)
-    vim.keymap.set("n", "<leader>aa", function() require("enlighten"):edit() end)
-    vim.keymap.set("v", "<leader>ac", function() require("enlighten"):chat() end)
-    vim.keymap.set("n", "<leader>ac", function() require("enlighten"):chat() end)
+    require('enlighten').setup() -- REQUIRED
+    vim.keymap.set("v", "<leader>aa", function() require("enlighten").edit() end)
+    vim.keymap.set("n", "<leader>aa", function() require("enlighten").edit() end)
+    vim.keymap.set("v", "<leader>ac", function() require("enlighten").chat() end)
+    vim.keymap.set("n", "<leader>ac", function() require("enlighten").chat() end)
   end
 }
 ```
@@ -69,7 +69,7 @@ This is the default configuration.
   }
 ```
 
-To customize this configuration, pass overrides into setup: `require('enlighten'):setup({...}) `.
+To customize this configuration, pass overrides into setup: `require('enlighten').setup({...}) `.
 
 #### Using Anthropic as the provider
 
