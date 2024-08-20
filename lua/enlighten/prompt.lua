@@ -165,18 +165,24 @@ end
 ---@param context EnlightenPrompt
 ---@return number[]
 local function set_autocmds(context)
-  local autocmd_ids = {}
-
-  -- When the target buffer is not in any window -> close the prompt
-  local id = api.nvim_create_autocmd("BufWinLeave", {
-    group = augroup,
-    buffer = context.target_buf,
-    callback = function()
-      context:close()
-      return true
-    end,
-  })
-  table.insert(autocmd_ids, id)
+  local autocmd_ids = {
+    -- When the target buffer is not in any window -> close the prompt
+    api.nvim_create_autocmd("BufWinLeave", {
+      group = augroup,
+      buffer = context.target_buf,
+      callback = function()
+        context:close()
+      end,
+    }),
+    -- When the prompt window is closed with :q -> cleanup
+    api.nvim_create_autocmd("BufHidden", {
+      group = augroup,
+      buffer = context.prompt_buf,
+      callback = function()
+        context:cleanup()
+      end,
+    }),
+  }
 
   context.autocommands = autocmd_ids
   return autocmd_ids
@@ -231,7 +237,7 @@ function EnlightenPrompt:new(ai, settings, history)
     prompt_buf = prompt_win.bufnr,
     target_buf = buf,
     target_range = range,
-    autocmd = context.autocommands,
+    autocmds = context.autocommands,
   })
 
   return context
@@ -247,10 +253,7 @@ function EnlightenPrompt:close()
     return
   end
 
-  Logger:log("prompt:close", { buf = self.prompt_buf, win = self.prompt_win, id = self.id })
-
-  -- Reset the buffer to it's previous state
-  self.writer:reset()
+  Logger:log("prompt:close", { id = self.id })
 
   if api.nvim_win_is_valid(self.prompt_win) then
     api.nvim_win_close(self.prompt_win, true)
@@ -259,6 +262,14 @@ function EnlightenPrompt:close()
   if api.nvim_buf_is_valid(self.prompt_buf) then
     api.nvim_buf_delete(self.prompt_buf, { force = true })
   end
+
+  self:cleanup()
+end
+
+-- Clean side effects like autocommands, highlights, extmarks, etc. that
+-- not related to the prompt buffer on window
+function EnlightenPrompt:cleanup()
+  self.writer:reset()
 
   if api.nvim_buf_is_valid(self.target_buf) and self.prompt_ext_id then
     api.nvim_buf_del_extmark(self.target_buf, self.prompt_ns_id, self.prompt_ext_id)
@@ -276,6 +287,7 @@ function EnlightenPrompt:submit()
     and api.nvim_buf_is_valid(self.target_buf)
     and not self.writer.active
   then
+    Logger:log("prompt:sumbit", { id = self.id })
     self.writer:reset()
     local prompt = self:_build_prompt()
     self.ai:complete(prompt, self.writer)
@@ -285,8 +297,8 @@ end
 --- Keep (approve) AI generated content and close the buffer. If no content
 --- has been generated, this will do nothing. This is mapped to a key on the prompt buffer.
 function EnlightenPrompt:confirm()
-  if self.writer.accumulated_text ~= "" then
-    Logger:log("prompt:keep - confirmed")
+  if self.writer.accumulated_text ~= "" and not self.writer.active then
+    Logger:log("prompt:confirm", { id = self.id })
     self.writer:keep()
     self:close()
   end
