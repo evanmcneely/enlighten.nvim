@@ -270,6 +270,7 @@ end
 -- not related to the prompt buffer on window
 function EnlightenPrompt:cleanup()
   self.writer:reset()
+  self.writer:stop()
 
   if api.nvim_buf_is_valid(self.target_buf) and self.prompt_ext_id then
     api.nvim_buf_del_extmark(self.target_buf, self.prompt_ns_id, self.prompt_ext_id)
