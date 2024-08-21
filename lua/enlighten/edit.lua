@@ -6,7 +6,7 @@ local Logger = require("enlighten/logger")
 local History = require("enlighten/history")
 
 ---@class EnlightenPrompt
----@field settings EnlightenPromptSettings
+---@field settings EnlightenEditSettings
 --- A random id to distinguish this instance from others
 ---@field id string
 --- The id of the prompt buffer
@@ -34,8 +34,8 @@ local History = require("enlighten/history")
 ---@field prompt_ext_id number|nil
 --- A list of ids of all autocommands that have been created for this feature.
 ---@field autocommands number[]
-local EnlightenPrompt = {}
-EnlightenPrompt.__index = EnlightenPrompt
+local EnlightenEdit = {}
+EnlightenEdit.__index = EnlightenEdit
 
 --- Create the prompt buffer and popup window.
 ---
@@ -48,7 +48,7 @@ EnlightenPrompt.__index = EnlightenPrompt
 ---@param id string
 ---@param target_buf number
 ---@param range Range
----@param settings EnlightenPromptSettings
+---@param settings EnlightenEditSettings
 ---@return { bufnr:number, win_id:number, ns_id:number, ext_id:number|nil }
 local function create_window(id, target_buf, range, settings)
   local ns_id = api.nvim_create_namespace("EnlightenPrompt-" .. id)
@@ -101,7 +101,7 @@ local function create_window(id, target_buf, range, settings)
 
   local win = api.nvim_open_win(buf, true, win_opts)
   api.nvim_set_option_value("buftype", "nofile", { buf = buf })
-  api.nvim_buf_set_name(buf, "enlighten-prompt-" .. id)
+  api.nvim_buf_set_name(buf, "enlighten-edit-" .. id)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
   api.nvim_set_option_value("winhl", "FloatBorder:EnlightenPromptBorder", { win = win })
@@ -202,10 +202,10 @@ end
 --- Initial gateway into the "prompt" feature. Initialize all data, windows,
 --- keymaps and autocommands that the feature depends on.
 ---@param ai AI
----@param settings EnlightenPromptSettings
+---@param settings EnlightenEditSettings
 ---@param history string[][]
 ---@return EnlightenPrompt
-function EnlightenPrompt:new(ai, settings, history)
+function EnlightenEdit:new(ai, settings, history)
   local id = tostring(math.random(10000))
   local buf = api.nvim_get_current_buf()
   local range = buffer.get_range()
@@ -231,7 +231,7 @@ function EnlightenPrompt:new(ai, settings, history)
 
   api.nvim_command("startinsert")
 
-  Logger:log("prompt:new", {
+  Logger:log("edit:new", {
     id = id,
     prompt_win = prompt_win.win_id,
     prompt_buf = prompt_win.bufnr,
@@ -245,7 +245,7 @@ end
 
 --- Reset the buffer to the state it was in before AI content was generated (if any)
 --- and close the popup window.
-function EnlightenPrompt:close()
+function EnlightenEdit:close()
   -- We prevent the prompt window from being closed if text is being written to the
   -- buffer. The prompt window has all the keymaps to clear the text and highlights
   -- but is dependant on the writer being "done" to behave as expected.
@@ -253,7 +253,7 @@ function EnlightenPrompt:close()
     return
   end
 
-  Logger:log("prompt:close", { id = self.id })
+  Logger:log("edit:close", { id = self.id })
 
   if api.nvim_win_is_valid(self.prompt_win) then
     api.nvim_win_close(self.prompt_win, true)
@@ -268,7 +268,7 @@ end
 
 -- Clean side effects like autocommands, highlights, extmarks, etc. that
 -- not related to the prompt buffer on window
-function EnlightenPrompt:cleanup()
+function EnlightenEdit:cleanup()
   self.writer:reset()
   self.writer:stop()
 
@@ -281,14 +281,14 @@ end
 
 --- Submit the current prompt for generation. Any previously generated content
 --- will be cleared. This is mapped to a key on the prompt buffer.
-function EnlightenPrompt:submit()
+function EnlightenEdit:submit()
   if
     api.nvim_buf_is_valid(self.prompt_buf)
     and api.nvim_win_is_valid(self.prompt_win)
     and api.nvim_buf_is_valid(self.target_buf)
     and not self.writer.active
   then
-    Logger:log("prompt:sumbit", { id = self.id })
+    Logger:log("edit:sumbit", { id = self.id })
     self.writer:reset()
     local prompt = self:_build_prompt()
     self.ai:complete(prompt, self.writer)
@@ -297,9 +297,9 @@ end
 
 --- Keep (approve) AI generated content and close the buffer. If no content
 --- has been generated, this will do nothing. This is mapped to a key on the prompt buffer.
-function EnlightenPrompt:confirm()
+function EnlightenEdit:confirm()
   if self.writer.accumulated_text ~= "" and not self.writer.active then
-    Logger:log("prompt:confirm", { id = self.id })
+    Logger:log("edit:confirm", { id = self.id })
     self.writer:keep()
     self:close()
   end
@@ -310,7 +310,7 @@ end
 --- feature (if any) as well as the current file name so that the model can know what
 --- file type this is and what language to write code in.
 ---@return string
-function EnlightenPrompt:_build_prompt()
+function EnlightenEdit:_build_prompt()
   local prompt = buffer.get_content(self.prompt_buf)
   local snippet =
     buffer.get_content(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1)
@@ -327,13 +327,13 @@ function EnlightenPrompt:_build_prompt()
 end
 
 --- Scroll back in history. This is mapped to a key on the prompt buffer.
-function EnlightenPrompt:scroll_back()
+function EnlightenEdit:scroll_back()
   self.history:scroll_back()
 end
 
 --- Scroll forward in history. This is mapped to a key on the prompt buffer.
-function EnlightenPrompt:scroll_forward()
+function EnlightenEdit:scroll_forward()
   self.history:scroll_forward()
 end
 
-return EnlightenPrompt
+return EnlightenEdit

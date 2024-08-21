@@ -29,7 +29,7 @@ describe("enlighten commands and keymaps", function()
 
       local buf = vim.api.nvim_get_current_buf()
       assert.are.same("enlighten", vim.api.nvim_get_option_value("filetype", { buf = buf }))
-      assert.are.same("enlighten-prompt", vim.api.nvim_buf_get_name(buf):match("enlighten%-prompt"))
+      assert.are.same("enlighten-edit", vim.api.nvim_buf_get_name(buf):match("enlighten%-edit"))
     end)
 
     it("should focus prompt when edit is invoked and prompt already exists for buffer", function()

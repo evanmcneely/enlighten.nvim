@@ -55,7 +55,7 @@ This is the default configuration.
       timeout = 60,
     },
     settings = {
-      prompt = {
+      edit = {
         width = 80, -- prompt window width
         height = 5, -- prompt window height
         showTitle = true, -- show the title in the prompt window
@@ -93,7 +93,7 @@ You can override the AI configuration for the prompt-completion or chat feature 
 ```lua
   {
     ai = {
-      prompt = {
+      edit = {
         timeout = 10, -- set a lower timeout for the prompt feature only
       },
       chat = {
@@ -139,7 +139,6 @@ Chat responses are streamed into the chat buffer. Chat conversations will only b
 
 ### 🏎️ TODO
 
-- Allow cancelling/stopping generation.
-- Chat: @use directive to edit buffer with context from the chat.
-- Completion without prompt - just use code context to try and generate code (inserting at the cursor).
-- Prompt and Chat: @ directive for searching codebase for functions, classes, etc. to be added to context when generating a completion. Create codebase embeddings.
+- Persist history.
+- Edit buffer with context from the chat.
+- Use codebase as context (files, functions, classes, etc.).
