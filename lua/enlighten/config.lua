@@ -18,7 +18,7 @@ local M = {}
 
 ---@class EnlightenAiConfig
 ---@field chat EnlightenAiProviderConfig
----@field prompt EnlightenAiProviderConfig
+---@field edit EnlightenAiProviderConfig
 ---@field timeout number
 ---@field provider string -- AI model provider
 ---@field model string -- model used for completions
@@ -27,24 +27,24 @@ local M = {}
 
 ---@class EnlightenPartialAiConfig
 ---@field chat? EnlightenPartialAiProviderConfig
----@field prompt? EnlightenPartialAiProviderConfig
+---@field edit? EnlightenPartialAiProviderConfig
 ---@field timeout? number
 ---@field provider? string
 ---@field model? string
 ---@field temperature? number
 ---@field tokens? number
 
----@class EnlightenPromptSettings
----@field width number -- prompt window width (number of columns)
----@field height number -- prompt window height (number of rows)
----@field showTitle boolean -- whether to render a title in the prompt UI
----@field showHelp boolean -- whether to render help footer in the prompt UI
+---@class EnlightenEditSettings
+---@field width number -- edit window width (number of columns)
+---@field height number -- edit window height (number of rows)
+---@field showTitle boolean -- whether to render a title in the edit UI
+---@field showHelp boolean -- whether to render help footer in the edit UI
 
 ---@class EnlightenChatSettings
 ---@field width number -- chat pane width (number of columns)
 ---@field split string -- side to vsplit that into (default right)
 
----@class EnlightenPartialPromptSettings
+---@class EnlightenPartialEditSettings
 ---@field width? number
 ---@field height? number
 ---@field showTitle? boolean
@@ -55,11 +55,11 @@ local M = {}
 ---@field split? string
 
 ---@class EnlightenSettings
----@field prompt EnlightenPromptSettings
+---@field edit EnlightenEditSettings
 ---@field chat EnlightenChatSettings
 
 ---@class EnlightenPartialSettings
----@field prompt? EnlightenPartialPromptSettings
+---@field edit? EnlightenPartialEditSettings
 ---@field chat? EnlightenPartialChatSettings
 
 ---@class EnlightenConfig
@@ -81,7 +81,7 @@ function M.get_default_config()
       timeout = 60,
     },
     settings = {
-      prompt = {
+      edit = {
         width = 80,
         height = 5,
         showTitle = true,
@@ -146,12 +146,12 @@ function M.build_config(partial_config, latest_config)
     temperature = config.ai.temperature,
   }
 
-  config.ai.prompt = vim.tbl_deep_extend("force", base_provider_config, config.ai.prompt or {})
+  config.ai.edit = vim.tbl_deep_extend("force", base_provider_config, config.ai.edit or {})
   config.ai.chat = vim.tbl_deep_extend("force", base_provider_config, config.ai.chat or {})
 
-  if not M.is_valid_ai_provider(config.ai.prompt.provider) then
-    M.warn("Invalid provider " .. config.ai.prompt.provider .. " for prompt, using default openai")
-    config.ai.prompt.provider = "openai"
+  if not M.is_valid_ai_provider(config.ai.edit.provider) then
+    M.warn("Invalid provider " .. config.ai.edit.provider .. " for edit, using default openai")
+    config.ai.edit.provider = "openai"
   end
 
   if not M.is_valid_ai_provider(config.ai.chat.provider) then
@@ -160,8 +160,8 @@ function M.build_config(partial_config, latest_config)
   end
 
   if partial_config.settings then
-    config.settings.prompt =
-      vim.tbl_deep_extend("force", config.settings.prompt, partial_config.settings.prompt or {})
+    config.settings.edit =
+      vim.tbl_deep_extend("force", config.settings.edit, partial_config.settings.edit or {})
     config.settings.chat =
       vim.tbl_deep_extend("force", config.settings.chat, partial_config.settings.chat or {})
   end

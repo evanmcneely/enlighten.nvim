@@ -1,4 +1,4 @@
-local Prompt = require("enlighten/prompt")
+local Edit = require("enlighten/edit")
 local Chat = require("enlighten/chat")
 local Ai = require("enlighten/ai")
 local config = require("enlighten/config")
@@ -6,7 +6,7 @@ local highlights = require("enlighten/highlights")
 
 ---@class Enlighten
 ---@field config EnlightenConfig
----@field prompt_history string[][]
+---@field edit_history string[][]
 ---@field chat_history string[][]
 local enlighten = {}
 
@@ -22,7 +22,7 @@ function enlighten.setup(user_config)
   enlighten.config = config.build_config(user_config)
   enlighten.ai = Ai:new(enlighten.config.ai)
   enlighten.chat_history = {}
-  enlighten.prompt_history = {}
+  enlighten.edit_history = {}
 
   highlights.setup()
 end
@@ -55,10 +55,9 @@ function enlighten.edit()
     end
   end
 
-  Prompt:new(enlighten.ai, enlighten.config.settings.prompt, enlighten.prompt_history)
+  Edit:new(enlighten.ai, enlighten.config.settings.edit, enlighten.edit_history)
 end
 
---- Focus the prompt in the chat pane if it exists and create a new one otherwise
 function enlighten.chat()
   local current_buf = vim.api.nvim_get_current_buf()
   local current_buf_type = vim.api.nvim_get_option_value("filetype", { buf = current_buf })

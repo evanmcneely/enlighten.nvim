@@ -21,7 +21,7 @@ local content_2 = {
   "end",
 }
 
-describe("prompt", function()
+describe("edit", function()
   local target_buf
   local buffer_chunk
   local complete
@@ -45,7 +45,7 @@ describe("prompt", function()
   end)
 
   after_each(function()
-    enlighten.prompt_history = {}
+    enlighten.edit_history = {}
   end)
 
   -- Mock the streaming of response chunks, stop sequence and copmletion
@@ -102,9 +102,9 @@ describe("prompt", function()
     )
   end)
 
-  it("should be able to scroll prompt history", function()
+  it("should be able to scroll edit history", function()
     -- When we have prompt history items
-    enlighten.prompt_history = { { "abc" }, { "def" } }
+    enlighten.edit_history = { { "abc" }, { "def" } }
     -- And the prompt is opened
     vim.cmd("lua require('enlighten').edit()")
     local buf = vim.api.nvim_get_current_buf()
@@ -137,6 +137,6 @@ describe("prompt", function()
     -- We expect the provious prompt to be in history on scroll
     tu.feedkeys("<Esc><C-o>")
     tu.scheduled_equals("hello", buffer.get_content(buf))
-    assert.are.same({ { "hello" } }, enlighten.prompt_history)
+    assert.are.same({ { "hello" } }, enlighten.edit_history)
   end)
 end)

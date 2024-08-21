@@ -101,7 +101,7 @@ function M.get_system_prompt(feature)
   local system_prompt = ""
   if feature == "chat" then
     system_prompt = chat_system_prompt
-  elseif feature == "prompt" then
+  elseif feature == "edit" then
     system_prompt = prompt_system_prompt
   end
   return system_prompt
