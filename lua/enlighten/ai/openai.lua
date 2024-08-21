@@ -19,7 +19,7 @@
 --- The response is passed straight to curl as command line arguments.
 ---@field build_stream_headers fun(): string[]
 ---A function to build a streaming request body to send to the API.
----@field build_stream_request fun(feat: string, prompt: string|AiMessages, config: EnlightenAiProviderConfig): table
+---@field build_stream_request fun(prompt: string|AiMessages, config: EnlightenAiProviderConfig): table
 
 --- General format for chat messages.
 ---@alias AiRole "user"|"assistant"
@@ -141,23 +141,22 @@ function M.get_system_prompt(feature)
   return system_prompt
 end
 
----@param feat string
 ---@param prompt string | AiMessages
----@param config EnlightenAiProviderConfig
+---@param opts CompletionOptions
 ---@return OpenAIRequest
-function M.build_stream_request(feat, prompt, config)
+function M.build_stream_request(prompt, opts)
   local messages = type(prompt) == "string"
       and {
-        { role = "system", content = M.get_system_prompt(feat) },
+        { role = "system", content = M.get_system_prompt(opts.feature) },
         { role = "user", content = prompt },
       }
     or prompt
 
   return {
-    model = config.model,
-    max_tokens = config.tokens,
-    temperature = config.temperature,
-    stream = true,
+    model = opts.model,
+    max_tokens = opts.tokens,
+    temperature = opts.temperature,
+    stream = opts.stream,
     messages = messages,
   }
 end

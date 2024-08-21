@@ -107,19 +107,18 @@ function M.get_system_prompt(feature)
   return system_prompt
 end
 
----@param feat string
 ---@param prompt string | AiMessages
----@param config EnlightenAiProviderConfig
+---@param opts CompletionOptions
 ---@return AnthropicRequest
-function M.build_stream_request(feat, prompt, config)
+function M.build_stream_request(prompt, opts)
   local messages = type(prompt) == "string" and { { role = "user", content = prompt } } or prompt
 
   return {
-    model = config.model,
-    max_tokens = config.tokens,
-    temperature = config.temperature,
-    stream = true,
-    system = M.get_system_prompt(feat),
+    model = opts.model,
+    max_tokens = opts.tokens,
+    temperature = opts.temperature,
+    stream = opts.stream,
+    system = M.get_system_prompt(opts.feature),
     messages = messages,
   }
 end

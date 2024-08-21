@@ -1,4 +1,4 @@
-local Ai = require("enlighten.ai")
+local ai = require("enlighten.ai")
 local tu = require("tests.testutils")
 local MockWriter = require("tests.mock_writer")
 local config = require("enlighten.config")
@@ -7,12 +7,9 @@ local equals = assert.are.same
 
 describe("ai", function()
   local buffer_chunk
-  local ai
   local writer
 
   before_each(function()
-    ai = Ai:new(config.build_config().ai)
-
     -- Override the exec method so we can capture the stdout handler.
     -- The exec method won't be tested here...
     ---@diagnostic disable-next-line: duplicate-set-field
@@ -21,7 +18,8 @@ describe("ai", function()
     end
 
     writer = MockWriter:new(0)
-    ai:complete("prompt", writer)
+    ---@diagnostic disable-next-line: param-type-mismatch
+    ai.complete("prompt", writer, tu.build_completion_opts(config.build_config().ai.edit))
   end)
 
   it("should not call writer:on_data when completion is ''", function()
@@ -69,9 +67,13 @@ describe("ai", function()
   end)
 
   it("should process chunks with 'event:content_block_delta data:' prefix", function()
-    -- update the config to use antthropic provider
-    ai = Ai:new(config.build_config({ ai = { provider = "anthropic" } }).ai)
-    ai:complete("prompt", writer)
+    -- update the config to use anthropic provider
+    ai.complete(
+      "prompt",
+      writer,
+      ---@diagnostic disable-next-line: param-type-mismatch
+      tu.build_completion_opts(config.build_config({ ai = { provider = "anthropic" } }).ai.edit)
+    )
 
     local text = "wassup"
     local obj = tu.anthropic_response("content_block_delta", text)
@@ -141,9 +143,13 @@ describe("ai", function()
   end)
 
   it("should run through full anthropic streaming routine", function()
-    -- update the config to use antthropic provider
-    ai = Ai:new(config.build_config({ ai = { provider = "anthropic" } }).ai)
-    ai:complete("prompt", writer)
+    -- update the config to use anthropic provider
+    ai.complete(
+      "prompt",
+      writer,
+      ---@diagnostic disable-next-line: param-type-mismatch
+      tu.build_completion_opts(config.build_config({ ai = { provider = "anthropic" } }).ai.edit)
+    )
 
     local routine = {
       tu.anthropic_response("message_start"),

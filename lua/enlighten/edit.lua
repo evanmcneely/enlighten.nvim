@@ -1,4 +1,5 @@
 local api = vim.api
+local ai = require("enlighten/ai")
 local buffer = require("enlighten/buffer")
 local augroup = require("enlighten/autocmd")
 local Writer = require("enlighten/writer/diff")
@@ -7,6 +8,7 @@ local History = require("enlighten/history")
 
 ---@class EnlightenPrompt
 ---@field settings EnlightenEditSettings
+---@field aiConfig EnlightenAiProviderConfig
 --- A random id to distinguish this instance from others
 ---@field id string
 --- The id of the prompt buffer
@@ -24,8 +26,6 @@ local History = require("enlighten/history")
 ---@field writer DiffWriter
 --- A class responsible for interacting with supported AI providers.
 ---@field history History
---- A class responsible for interacting with supported AI providers.
----@field ai AI
 --- The namespace id of the prompt window virtual lines
 ---@field prompt_ns_id number
 --- The extmark id of the injected virtual lines in the target buffer over which the
@@ -201,11 +201,11 @@ end
 
 --- Initial gateway into the "prompt" feature. Initialize all data, windows,
 --- keymaps and autocommands that the feature depends on.
----@param ai AI
+---@param aiConfig EnlightenAiProviderConfig
 ---@param settings EnlightenEditSettings
 ---@param history string[][]
 ---@return EnlightenPrompt
-function EnlightenEdit:new(ai, settings, history)
+function EnlightenEdit:new(aiConfig, settings, history)
   local id = tostring(math.random(10000))
   local buf = api.nvim_get_current_buf()
   local range = buffer.get_range()
@@ -220,7 +220,7 @@ function EnlightenEdit:new(ai, settings, history)
   context.prompt_ns_id = prompt_win.ns_id
   context.prompt_ext_id = prompt_win.ext_id
   context.settings = settings
-  context.ai = ai
+  context.aiConfig = aiConfig
   context.history = History:new(prompt_win.bufnr, history)
   context.writer = Writer:new(buf, range, function()
     context.history:update()
@@ -291,7 +291,16 @@ function EnlightenEdit:submit()
     Logger:log("edit:sumbit", { id = self.id })
     self.writer:reset()
     local prompt = self:_build_prompt()
-    self.ai:complete(prompt, self.writer)
+    local opts = {
+      provider = self.aiConfig.provider,
+      model = self.aiConfig.model,
+      tokens = self.aiConfig.tokens,
+      timeout = self.aiConfig.timeout,
+      temperature = self.aiConfig.temperature,
+      feature = "edit",
+      stream = true,
+    }
+    ai.complete(prompt, self.writer, opts)
   end
 end
 

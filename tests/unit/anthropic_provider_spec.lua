@@ -72,30 +72,30 @@ describe("provider anthropic", function()
   end)
 
   it("should build streaming request for chat", function()
-    local c = config.build_config()
+    local opts = tu.build_completion_opts({ provider = "anthropic", feature = "chat" })
     local chat = {
       { role = "user", content = "a" },
       { role = "assistant", content = "b" },
       { role = "user", content = "c" },
     }
-    local body = anthropic.build_stream_request("chat", chat, c.ai.chat)
+    local body = anthropic.build_stream_request(chat, opts)
 
     equals(chat, body.messages)
-    equals(c.ai.chat.temperature, body.temperature)
-    equals(c.ai.chat.model, body.model)
-    equals(c.ai.chat.tokens, body.max_tokens)
-    equals(true, body.stream)
+    equals(opts.temperature, body.temperature)
+    equals(opts.model, body.model)
+    equals(opts.tokens, body.max_tokens)
+    equals(opts.stream, body.stream)
   end)
 
-  it("should build streaming request for prompt", function()
-    local c = config.build_config()
+  it("should build streaming request for edit", function()
+    local opts = tu.build_completion_opts({ provider = "anthropic", feature = "edit" })
     local prompt = "hello"
-    local body = anthropic.build_stream_request("prompt", prompt, c.ai.edit)
+    local body = anthropic.build_stream_request(prompt, opts)
 
     equals({ { role = "user", content = "hello" } }, body.messages)
-    equals(c.ai.edit.temperature, body.temperature)
-    equals(c.ai.edit.model, body.model)
-    equals(c.ai.edit.tokens, body.max_tokens)
+    equals(opts.temperature, body.temperature)
+    equals(opts.model, body.model)
+    equals(opts.tokens, body.max_tokens)
     equals(true, body.stream)
   end)
 end)

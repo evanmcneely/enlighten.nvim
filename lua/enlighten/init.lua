@@ -1,6 +1,5 @@
 local Edit = require("enlighten/edit")
 local Chat = require("enlighten/chat")
-local Ai = require("enlighten/ai")
 local config = require("enlighten/config")
 local highlights = require("enlighten/highlights")
 
@@ -20,7 +19,6 @@ function enlighten.setup(user_config)
   config.validate_environment()
 
   enlighten.config = config.build_config(user_config)
-  enlighten.ai = Ai:new(enlighten.config.ai)
   enlighten.chat_history = {}
   enlighten.edit_history = {}
 
@@ -55,7 +53,7 @@ function enlighten.edit()
     end
   end
 
-  Edit:new(enlighten.ai, enlighten.config.settings.edit, enlighten.edit_history)
+  Edit:new(enlighten.config.ai.edit, enlighten.config.settings.edit, enlighten.edit_history)
 end
 
 function enlighten.chat()
@@ -67,7 +65,7 @@ function enlighten.chat()
     return
   end
 
-  Chat:new(enlighten.ai, enlighten.config.settings.chat, enlighten.chat_history)
+  Chat:new(enlighten.config.ai.chat, enlighten.config.settings.chat, enlighten.chat_history)
 end
 
 return enlighten
