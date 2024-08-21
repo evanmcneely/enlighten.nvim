@@ -194,7 +194,7 @@ end
 function AI:complete(prompt, writer)
   ---@type AiProvider
   local provider = require("enlighten.ai." .. self.config.edit.provider)
-  local body = provider.build_stream_request("prompt", prompt, self.config.edit)
+  local body = provider.build_stream_request("edit", prompt, self.config.edit)
   self:request(body, writer, provider)
 end
 
