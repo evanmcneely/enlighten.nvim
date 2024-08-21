@@ -145,7 +145,7 @@ function M.request(body, writer, provider, opts)
     "-d",
     vim.json.encode(body),
   }
-  for _, arg in ipairs(provider.build_stream_headers()) do
+  for _, arg in ipairs(provider.build_headers()) do
     table.insert(curl_args, arg)
   end
 
@@ -185,9 +185,9 @@ function M.request(body, writer, provider, opts)
       local json = vim.json.decode(json_str)
 
       if provider.is_error(json) then
-        writer:on_complete(provider.get_error_text(json))
+        writer:on_complete(provider.get_error_message(json))
       elseif not provider.is_streaming_finished(json) then
-        local text = provider.get_streamed_text(json)
+        local text = provider.get_text(json)
         if #text > 0 then
           writer:on_data(text)
         end
@@ -221,7 +221,7 @@ function M.complete(prompt, writer, opts)
     return
   end
 
-  local body = provider.build_stream_request(prompt, opts)
+  local body = provider.build_request(prompt, opts)
   M.request(body, writer, provider, opts)
 end
 

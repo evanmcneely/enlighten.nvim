@@ -12,14 +12,14 @@
 --- A function to interpret a response from the API and determine if the streaming is finished.
 ---@field is_streaming_finished fun(body: table): boolean
 --- A function to get the generated text out of the response body (assuming it is a successful response).
----@field get_streamed_text fun(body: table): string
+---@field get_text fun(body: table): string
 --- A function to get the error message out of the response body (assuming it is an error repsonse).
----@field get_error_text fun(body: table): string
+---@field get_error_message fun(body: table): string
 --- A function to build the curl header flags we need to send to the endpoint (usually auth or API version headers).
 --- The response is passed straight to curl as command line arguments.
----@field build_stream_headers fun(): string[]
+---@field build_headers fun(): string[]
 ---A function to build a streaming request body to send to the API.
----@field build_stream_request fun(prompt: string|AiMessages, config: EnlightenAiProviderConfig): table
+---@field build_request fun(prompt: string|AiMessages, config: EnlightenAiProviderConfig): table
 
 --- General format for chat messages.
 ---@alias AiRole "user"|"assistant"
@@ -104,7 +104,7 @@ end
 
 ---@param body OpenAIError
 ---@return string
-function M.get_error_text(body)
+function M.get_error_message(body)
   if M.is_error(body) then
     return body.error.message
   end
@@ -114,7 +114,7 @@ end
 
 ---@param body OpenAIStreamingResponse
 ---@return string
-function M.get_streamed_text(body)
+function M.get_text(body)
   local completion = body.choices[1]
 
   if not completion.finish_reason or completion.finish_reason == vim.NIL then
@@ -125,13 +125,13 @@ function M.get_streamed_text(body)
 end
 
 ---@return string[]
-function M.build_stream_headers()
+function M.build_headers()
   return { "-H", "Authorization: Bearer " .. M.get_api_key() }
 end
 
 ---@param feature string
 ---@return string
-function M.get_system_prompt(feature)
+function M._get_system_prompt(feature)
   local system_prompt = ""
   if feature == "chat" then
     system_prompt = chat_system_prompt
@@ -144,10 +144,10 @@ end
 ---@param prompt string | AiMessages
 ---@param opts CompletionOptions
 ---@return OpenAIRequest
-function M.build_stream_request(prompt, opts)
+function M.build_request(prompt, opts)
   local messages = type(prompt) == "string"
       and {
-        { role = "system", content = M.get_system_prompt(opts.feature) },
+        { role = "system", content = M._get_system_prompt(opts.feature) },
         { role = "user", content = prompt },
       }
     or prompt

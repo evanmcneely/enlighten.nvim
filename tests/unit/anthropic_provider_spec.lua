@@ -15,42 +15,42 @@ describe("provider anthropic", function()
 
   it("should return error messages", function()
     local error = tu.anthropic_error()
-    equals(error.error.message, anthropic.get_error_text(error))
+    equals(error.error.message, anthropic.get_error_message(error))
   end)
 
   it("should return no text for message_start events", function()
     local res = tu.anthropic_response("message_start")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should return no text for content_block_start events", function()
     local res = tu.anthropic_response("content_block_start")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should return no text for ping events", function()
     local res = tu.anthropic_response("ping")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should text for content_block_delta events", function()
     local res = tu.anthropic_response("content_block_delta", "hello")
-    equals("hello", anthropic.get_streamed_text(res))
+    equals("hello", anthropic.get_text(res))
   end)
 
   it("should return no text for content_block_stop events", function()
     local res = tu.anthropic_response("content_block_stop")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should return no text for message_delta events", function()
     local res = tu.anthropic_response("message_delta")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should return no text for message_stop events", function()
     local res = tu.anthropic_response("message_stop")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should identify when streaming has finished", function()
@@ -78,7 +78,7 @@ describe("provider anthropic", function()
       { role = "assistant", content = "b" },
       { role = "user", content = "c" },
     }
-    local body = anthropic.build_stream_request(chat, opts)
+    local body = anthropic.build_request(chat, opts)
 
     equals(chat, body.messages)
     equals(opts.temperature, body.temperature)
@@ -90,7 +90,7 @@ describe("provider anthropic", function()
   it("should build streaming request for edit", function()
     local opts = tu.build_completion_opts({ provider = "anthropic", feature = "edit" })
     local prompt = "hello"
-    local body = anthropic.build_stream_request(prompt, opts)
+    local body = anthropic.build_request(prompt, opts)
 
     equals({ { role = "user", content = "hello" } }, body.messages)
     equals(opts.temperature, body.temperature)

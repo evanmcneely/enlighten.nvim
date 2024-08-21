@@ -70,7 +70,7 @@ end
 
 ---@param body AnthropicError
 ---@return string
-function M.get_error_text(body)
+function M.get_error_message(body)
   if M.is_error(body) then
     return body.error.message
   end
@@ -80,7 +80,7 @@ end
 
 ---@param body AnthropicStreamingResponse
 ---@return string
-function M.get_streamed_text(body)
+function M.get_text(body)
   local completion = body.delta
 
   if completion then
@@ -91,13 +91,13 @@ function M.get_streamed_text(body)
 end
 
 ---@return string[]
-function M.build_stream_headers()
+function M.build_headers()
   return { "-H", "x-api-key: " .. M.get_api_key(), "-H", "anthropic-version: 2023-06-01" }
 end
 
 ---@param feature string
 ---@return string
-function M.get_system_prompt(feature)
+function M._get_system_prompt(feature)
   local system_prompt = ""
   if feature == "chat" then
     system_prompt = chat_system_prompt
@@ -110,7 +110,7 @@ end
 ---@param prompt string | AiMessages
 ---@param opts CompletionOptions
 ---@return AnthropicRequest
-function M.build_stream_request(prompt, opts)
+function M.build_request(prompt, opts)
   local messages = type(prompt) == "string" and { { role = "user", content = prompt } } or prompt
 
   return {
@@ -118,7 +118,7 @@ function M.build_stream_request(prompt, opts)
     max_tokens = opts.tokens,
     temperature = opts.temperature,
     stream = opts.stream,
-    system = M.get_system_prompt(opts.feature),
+    system = M._get_system_prompt(opts.feature),
     messages = messages,
   }
 end

@@ -1,5 +1,7 @@
 local tu = require("tests.testutils")
 local buffer = require("enlighten.buffer")
+local ai = require("enlighten/ai")
+local stub = require("luassert.stub")
 
 -- stylua: ignore
 local content_1 = {
@@ -38,10 +40,10 @@ describe("edit", function()
 
     -- Override the exec method so we can capture the stdout handler.
     ---@diagnostic disable-next-line: duplicate-set-field
-    enlighten.ai.exec = function(_, _, on_stdout_chunk, on_complete)
+    stub.new(ai, "exec", function(_, _, on_stdout_chunk, on_complete)
       buffer_chunk = on_stdout_chunk
       complete = on_complete
-    end
+    end)
   end)
 
   after_each(function()
