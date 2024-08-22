@@ -1,6 +1,5 @@
 local tu = require("tests.testutils")
 local anthropic = require("enlighten.ai.anthropic")
-local config = require("enlighten.config")
 
 local equals = assert.are.same
 
