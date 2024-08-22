@@ -324,9 +324,12 @@ function EnlightenEdit:_build_prompt()
   local snippet =
     buffer.get_content(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1)
   local file_name = api.nvim_buf_get_name(self.target_buf)
+  local indent = vim.api.nvim_get_option_value("tabstop", { buf = self.target_buf })
 
   return "File name of the file in the buffer is "
     .. file_name
+    .. " with intation (tabstop) of "
+    .. indent
     .. "\n"
     .. "Rewrite the following code snippet following these instructions: "
     .. prompt
