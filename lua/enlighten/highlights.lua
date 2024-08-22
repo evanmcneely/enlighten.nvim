@@ -6,10 +6,12 @@ local function get_highlights()
   local float_border_hl = vim.api.nvim_get_hl(0, { name = "FloatBorder", link = false })
   local comment_hl = vim.api.nvim_get_hl(0, { name = "Comment", link = false })
   local function_hl = vim.api.nvim_get_hl(0, { name = "Function", link = false })
+  local removed_fg_hl = vim.api.nvim_get_hl(0, { name = "diffRemoved", link = false })
+  local removed_bg_hl = vim.api.nvim_get_hl(0, { name = "DiffDelete", link = false })
 
   return {
     EnlightenDiffAdd = { default = true, link = "DiffAdd" },
-    EnlightenDiffDelete = { default = true, link = "DiffDelete" },
+    EnlightenDiffDelete = { fg = removed_fg_hl.fg, bg = removed_bg_hl.bg },
     EnlightenChatRole = { default = true, link = "ModeMsg" },
     EnlightenPromptTitle = { fg = function_hl.fg, bg = float_title_hl.bg },
     EnlightenPromptBorder = { fg = comment_hl.fg, bg = float_border_hl.bg },
