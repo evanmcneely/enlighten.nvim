@@ -197,7 +197,7 @@ function DiffWriter:_highlight_diff(left, right)
   local hunks = differ.extract_hunks(self.orig_range[1], diff_new)
 
   for row, hunk in pairs(hunks) do
-    if #hunk.add and not #hunk.remove then
+    if #hunk.add > 0 and #hunk.remove == 0 then
       -- Has the potential to error when writing/highlighting content at the end of the buffer.
       pcall(function()
         api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
@@ -207,7 +207,7 @@ function DiffWriter:_highlight_diff(left, right)
           priority = 1000,
         })
       end)
-    elseif #hunk.remove and not #hunk.add then
+    elseif #hunk.remove > 0 and #hunk.add == 0 then
       local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
 
       for _, line in pairs(hunk.remove) do
