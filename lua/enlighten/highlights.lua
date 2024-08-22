@@ -11,6 +11,7 @@ local function get_highlights()
 
   return {
     EnlightenDiffAdd = { default = true, link = "DiffAdd" },
+    EnlightenDiffChange = { default = true, link = "DiffText" },
     EnlightenDiffDelete = { fg = removed_fg_hl.fg, bg = removed_bg_hl.bg },
     EnlightenChatRole = { default = true, link = "ModeMsg" },
     EnlightenPromptTitle = { fg = function_hl.fg, bg = float_title_hl.bg },
