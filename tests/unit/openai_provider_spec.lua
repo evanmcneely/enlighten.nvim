@@ -14,12 +14,12 @@ describe("provider openai", function()
 
   it("should return error messages", function()
     local error = tu.openai_error()
-    equals(error.error.message, openai.get_error_text(error))
+    equals(error.error.message, openai.get_error_message(error))
   end)
 
   it("should return streamed text", function()
     local success = tu.openai_response("hello")
-    equals("hello", openai.get_streamed_text(success))
+    equals("hello", openai.get_text(success))
   end)
 
   it("should identify when streaming has finished", function()
@@ -32,6 +32,6 @@ describe("provider openai", function()
 
   it("should return no content if streaming is finished", function()
     local success = tu.openai_response("hello", "done")
-    equals("", openai.get_streamed_text(success))
+    equals("", openai.get_text(success))
   end)
 end)

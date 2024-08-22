@@ -9,6 +9,21 @@ function M.prepare_buffer(content)
   return buf
 end
 
+---@param opts PartialCompletionOptions
+---@return CompletionOptions
+function M.build_completion_opts(opts)
+  return vim.tbl_extend("force", {
+    provider = "openai",
+    model = "gpt-4o",
+    tokens = 4096,
+    temperature = 0,
+    timeout = 100,
+    feature = "edit",
+    stream = true,
+    json = false,
+  }, opts)
+end
+
 ---@param text string
 ---@param finish_reason? string
 ---@return OpenAIStreamingResponse

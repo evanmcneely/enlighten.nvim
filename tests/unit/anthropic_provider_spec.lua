@@ -1,6 +1,5 @@
 local tu = require("tests.testutils")
 local anthropic = require("enlighten.ai.anthropic")
-local config = require("enlighten.config")
 
 local equals = assert.are.same
 
@@ -15,42 +14,42 @@ describe("provider anthropic", function()
 
   it("should return error messages", function()
     local error = tu.anthropic_error()
-    equals(error.error.message, anthropic.get_error_text(error))
+    equals(error.error.message, anthropic.get_error_message(error))
   end)
 
   it("should return no text for message_start events", function()
     local res = tu.anthropic_response("message_start")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should return no text for content_block_start events", function()
     local res = tu.anthropic_response("content_block_start")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should return no text for ping events", function()
     local res = tu.anthropic_response("ping")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should text for content_block_delta events", function()
     local res = tu.anthropic_response("content_block_delta", "hello")
-    equals("hello", anthropic.get_streamed_text(res))
+    equals("hello", anthropic.get_text(res))
   end)
 
   it("should return no text for content_block_stop events", function()
     local res = tu.anthropic_response("content_block_stop")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should return no text for message_delta events", function()
     local res = tu.anthropic_response("message_delta")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should return no text for message_stop events", function()
     local res = tu.anthropic_response("message_stop")
-    equals("", anthropic.get_streamed_text(res))
+    equals("", anthropic.get_text(res))
   end)
 
   it("should identify when streaming has finished", function()
@@ -72,30 +71,30 @@ describe("provider anthropic", function()
   end)
 
   it("should build streaming request for chat", function()
-    local c = config.build_config()
+    local opts = tu.build_completion_opts({ provider = "anthropic", feature = "chat" })
     local chat = {
       { role = "user", content = "a" },
       { role = "assistant", content = "b" },
       { role = "user", content = "c" },
     }
-    local body = anthropic.build_stream_request("chat", chat, c.ai.chat)
+    local body = anthropic.build_request(chat, opts)
 
     equals(chat, body.messages)
-    equals(c.ai.chat.temperature, body.temperature)
-    equals(c.ai.chat.model, body.model)
-    equals(c.ai.chat.tokens, body.max_tokens)
-    equals(true, body.stream)
+    equals(opts.temperature, body.temperature)
+    equals(opts.model, body.model)
+    equals(opts.tokens, body.max_tokens)
+    equals(opts.stream, body.stream)
   end)
 
-  it("should build streaming request for prompt", function()
-    local c = config.build_config()
+  it("should build streaming request for edit", function()
+    local opts = tu.build_completion_opts({ provider = "anthropic", feature = "edit" })
     local prompt = "hello"
-    local body = anthropic.build_stream_request("prompt", prompt, c.ai.edit)
+    local body = anthropic.build_request(prompt, opts)
 
     equals({ { role = "user", content = "hello" } }, body.messages)
-    equals(c.ai.edit.temperature, body.temperature)
-    equals(c.ai.edit.model, body.model)
-    equals(c.ai.edit.tokens, body.max_tokens)
+    equals(opts.temperature, body.temperature)
+    equals(opts.model, body.model)
+    equals(opts.tokens, body.max_tokens)
     equals(true, body.stream)
   end)
 end)

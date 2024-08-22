@@ -1,4 +1,5 @@
 local api = vim.api
+local ai = require("enlighten/ai")
 local augroup = require("enlighten/autocmd")
 local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/stream")
@@ -8,6 +9,7 @@ local History = require("enlighten/history")
 ---@class EnlightenChat
 ---@field id string
 ---@field settings EnlightenChatSettings
+---@field aiConfig EnlightenAiProviderConfig
 --- The id of the chat buffer
 ---@field chat_buf number
 --- The id of the window that hosts the chat buffer
@@ -19,8 +21,6 @@ local History = require("enlighten/history")
 --- A class responsible for writing text to a buffer. This feature uses the
 --- streaming writer to stream AI completions into the chat buffer.
 ---@field writer Writer
---- A class responsible for interacting with supported AI providers.
----@field ai AI
 --- A list of ids of all autocommands that have been created for this feature.
 ---@field autocommands number[]
 local EnlightenChat = {}
@@ -150,11 +150,11 @@ local function delete_autocmds(context)
 end
 --- Initial gateway into the chat feature. Initialize all data, windows, keymaps
 --- and autocommands that the feature depend on.
----@param ai AI
+---@param aiConfig EnlightenAiProviderConfig
 ---@param settings EnlightenChatSettings
 ---@param history string[][]
 ---@return EnlightenChat
-function EnlightenChat:new(ai, settings, history)
+function EnlightenChat:new(aiConfig, settings, history)
   local id = tostring(math.random(10000))
   local buf = api.nvim_get_current_buf()
   local range = buffer.get_range()
@@ -170,7 +170,7 @@ function EnlightenChat:new(ai, settings, history)
 
   local context = setmetatable({}, self)
   context.id = id
-  context.ai = ai
+  context.aiConfig = aiConfig
   context.settings = settings
   context.chat_buf = chat_win.bufnr
   context.chat_win = chat_win.win_id
@@ -233,7 +233,16 @@ function EnlightenChat:submit()
     self:_add_assistant()
 
     local prompt = self:_build_prompt()
-    self.ai:chat(prompt, self.writer)
+    local opts = {
+      provider = self.aiConfig.provider,
+      model = self.aiConfig.model,
+      tokens = self.aiConfig.tokens,
+      timeout = self.aiConfig.timeout,
+      temperature = self.aiConfig.temperature,
+      feature = "chat",
+      stream = true,
+    }
+    ai.complete(prompt, self.writer, opts)
   end
 end
 

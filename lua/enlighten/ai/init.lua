@@ -2,9 +2,27 @@
 
 local Logger = require("enlighten/logger")
 
----@class AI
----@field config EnlightenAiConfig
-local AI = {}
+---@class CompletionOptions
+---@field provider string
+---@field model string
+---@field temperature number
+---@field tokens number
+---@field timeout number
+---@field feature string
+---@field stream? boolean
+---@field json? boolean
+
+---@class PartialCompletionOptions
+---@field provider? string
+---@field model? string
+---@field temperature? number
+---@field tokens? number
+---@field timeout? number
+---@field feature? string
+---@field stream? boolean
+---@field json? boolean
+
+local M = {}
 
 -- Try's to extract as many complete JSON strings out of the input
 -- string and returns them along with whatever junk si left over.
@@ -50,19 +68,11 @@ local function extract_json(s)
   return complete_json_strings, remaining_string
 end
 
----@param config EnlightenAiConfig
----@return AI
-function AI:new(config)
-  self.__index = self
-  self.config = config
-  return self
-end
-
 ---@param cmd string
 ---@param args string[]
 ---@param on_stdout_chunk fun(chunk: string): nil
 ---@param on_complete fun(err: string?, output: string?): nil
-function AI.exec(cmd, args, on_stdout_chunk, on_complete)
+function M.exec(cmd, args, on_stdout_chunk, on_complete)
   local stdout = vim.loop.new_pipe()
   local function on_stdout_read(_, chunk)
     if chunk then
@@ -111,7 +121,8 @@ end
 ---@param body table
 ---@param writer Writer
 ---@param provider AiProvider
-function AI:request(body, writer, provider)
+---@param opts CompletionOptions
+function M.request(body, writer, provider, opts)
   local api_key = provider.get_api_key()
   if not api_key then
     Logger:log("ai:request - no api key")
@@ -124,7 +135,7 @@ function AI:request(body, writer, provider)
     "--show-error",
     "--no-buffer",
     "--max-time",
-    self.config.timeout,
+    opts.timeout,
     "-L",
     provider.endpoint,
     "-X",
@@ -134,7 +145,7 @@ function AI:request(body, writer, provider)
     "-d",
     vim.json.encode(body),
   }
-  for _, arg in ipairs(provider.build_stream_headers()) do
+  for _, arg in ipairs(provider.build_headers()) do
     table.insert(curl_args, arg)
   end
 
@@ -174,9 +185,9 @@ function AI:request(body, writer, provider)
       local json = vim.json.decode(json_str)
 
       if provider.is_error(json) then
-        writer:on_complete(provider.get_error_text(json))
+        writer:on_complete(provider.get_error_message(json))
       elseif not provider.is_streaming_finished(json) then
-        local text = provider.get_streamed_text(json)
+        local text = provider.get_text(json)
         if #text > 0 then
           writer:on_data(text)
         end
@@ -184,27 +195,34 @@ function AI:request(body, writer, provider)
     end
   end
 
-  self.exec("curl", curl_args, on_stdout_chunk, function(err)
+  M.exec("curl", curl_args, on_stdout_chunk, function(err)
     writer:on_complete(err)
   end)
 end
 
 ---@param writer Writer
----@param prompt string
-function AI:complete(prompt, writer)
+---@param prompt string | AiMessages
+---@param opts CompletionOptions
+function M.complete(prompt, writer, opts)
+  local defaults = { stream = true, json = false }
+  opts = vim.tbl_extend("force", defaults, opts)
+
   ---@type AiProvider
-  local provider = require("enlighten.ai." .. self.config.edit.provider)
-  local body = provider.build_stream_request("edit", prompt, self.config.edit)
-  self:request(body, writer, provider)
+  local provider
+  local success, _ = pcall(function()
+    provider = require("enlighten.ai." .. opts.provider)
+  end)
+
+  if not success then
+    vim.notify(
+      "AI provider " .. opts.provider .. " is unkown. Try something else.",
+      vim.log.levels.ERROR
+    )
+    return
+  end
+
+  local body = provider.build_request(prompt, opts)
+  M.request(body, writer, provider, opts)
 end
 
----@param writer Writer
----@param prompt AiMessages
-function AI:chat(prompt, writer)
-  ---@type AiProvider
-  local provider = require("enlighten.ai." .. self.config.chat.provider)
-  local body = provider.build_stream_request("chat", prompt, self.config.chat)
-  self:request(body, writer, provider)
-end
-
-return AI
+return M
