@@ -252,10 +252,8 @@ end
 --- into user/assistant roles when passed to the AI provider for completion.
 ---@return AiMessages
 function EnlightenChat:_build_messages()
-  -- local content = buffer.get_content(self.chat_buf)
   local message_marks =
     api.nvim_buf_get_extmarks(self.chat_buf, self.messages_nsid, 0, -1, { details = true })
-  print(vim.inspect(message_marks))
   local messages = {} ---@type AiMessages
 
   for i = 1, #message_marks do
