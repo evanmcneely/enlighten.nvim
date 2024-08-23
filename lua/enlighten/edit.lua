@@ -221,9 +221,9 @@ function EnlightenEdit:new(aiConfig, settings, history)
   context.prompt_ext_id = prompt_win.ext_id
   context.settings = settings
   context.aiConfig = aiConfig
-  context.history = History:new(prompt_win.bufnr, history)
+  context.history = History:new(history)
   context.writer = Writer:new(buf, range, function()
-    context.history:update()
+    -- context.history:update()
   end)
 
   set_keymaps(context)
@@ -340,12 +340,12 @@ end
 
 --- Scroll back in history. This is mapped to a key on the prompt buffer.
 function EnlightenEdit:scroll_back()
-  self.history:scroll_back()
+  -- self.history:scroll_back()
 end
 
 --- Scroll forward in history. This is mapped to a key on the prompt buffer.
 function EnlightenEdit:scroll_forward()
-  self.history:scroll_forward()
+  -- self.history:scroll_forward()
 end
 
 return EnlightenEdit

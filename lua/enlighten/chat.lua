@@ -16,19 +16,20 @@ local History = require("enlighten/history")
 ---@field chat_win number
 --- The id of the buffer that the cursor was when the chat was opened
 ---@field target_buf number
---- A class that helps manage history of past conversiations.
+--- A class that helps manage history of past conversations.
 ---@field history History
 --- A class responsible for writing text to a buffer. This feature uses the
 --- streaming writer to stream AI completions into the chat buffer.
 ---@field writer Writer
 --- A list of ids of all autocommands that have been created for this feature.
 ---@field autocommands number[]
+---@field messages AiMessages
+---@field messages_nsid number
 local EnlightenChat = {}
 EnlightenChat.__index = EnlightenChat
 
-local ROLE_PREFIX = ">>>"
-local USER = ROLE_PREFIX .. " Developer"
-local ASSISTANT = ROLE_PREFIX .. " Assistant"
+local USER = " > User"
+local ASSISTANT = " > Assistant"
 
 --- Create the chat buffer and popup window
 ---@param id string
@@ -47,7 +48,7 @@ local function create_window(id, settings)
   vim.api.nvim_win_set_width(win, settings.width)
 
   api.nvim_set_option_value("number", false, { win = win })
-  api.nvim_set_option_value("signcolumn", "no", { win = win })
+  api.nvim_set_option_value("cursorline", false, { win = win })
   api.nvim_set_option_value("buftype", "nofile", { buf = buf })
   api.nvim_buf_set_name(buf, "enlighten-chat" .. id)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
@@ -170,15 +171,16 @@ function EnlightenChat:new(aiConfig, settings, history)
 
   local context = setmetatable({}, self)
   context.id = id
+  context.messages_nsid = api.nvim_create_namespace("EnlightenChatMessages")
   context.aiConfig = aiConfig
   context.settings = settings
   context.chat_buf = chat_win.bufnr
   context.chat_win = chat_win.win_id
   context.target_buf = buf
-  context.history = History:new(chat_win.bufnr, history)
+  context.history = History:new(history)
   context.writer = Writer:new(chat_win.win_id, chat_win.bufnr, function()
     context:_add_user()
-    context.history:update()
+    -- context.history:update(context:_build_messages())
   end)
 
   set_keymaps(context)
@@ -232,7 +234,7 @@ function EnlightenChat:submit()
 
     self:_add_assistant()
 
-    local prompt = self:_build_prompt()
+    local prompt = self:_build_messages()
     local opts = {
       provider = self.aiConfig.provider,
       model = self.aiConfig.model,
@@ -249,41 +251,22 @@ end
 --- Format the prompt for generating a response. The conversation is not broken up
 --- into user/assistant roles when passed to the AI provider for completion.
 ---@return AiMessages
-function EnlightenChat:_build_prompt()
-  -- At the moment the entire buffer is treated as the prompt.
-  local content = buffer.get_content(self.chat_buf)
-
+function EnlightenChat:_build_messages()
+  -- local content = buffer.get_content(self.chat_buf)
+  local message_marks =
+    api.nvim_buf_get_extmarks(self.chat_buf, self.messages_nsid, 0, -1, { details = true })
+  print(vim.inspect(message_marks))
   local messages = {} ---@type AiMessages
-  local current_role = nil ---@type string|nil
-  local message_content = {} ---@type string[]
 
-  for line in content:gmatch("[^\r\n]+") do
-    -- TODO: It is not great how dependant this is on these strings
-    if line:match("^" .. USER) then
-      if current_role then
-        table.insert(
-          messages,
-          { role = current_role, content = table.concat(message_content, "\n") }
-        )
-        message_content = {}
-      end
-      current_role = "user"
-    elseif line:match("^" .. ASSISTANT) then
-      if current_role then
-        table.insert(
-          messages,
-          { role = current_role, content = table.concat(message_content, "\n") }
-        )
-        message_content = {}
-      end
-      current_role = "assistant"
-    elseif current_role then
-      table.insert(message_content, line)
-    end
-  end
-
-  if current_role then
-    table.insert(messages, { role = current_role, content = table.concat(message_content, "\n") })
+  for i = 1, #message_marks do
+    local mark = message_marks[i]
+    local next_mark = message_marks[i + 1]
+    local role = mark[4].sign_hl_group == "EnlightenChatRoleUser" and "user" or "assistant"
+    local start_line = mark[1]
+    local end_line = next_mark and next_mark[1] - 1 or -1
+    local content_lines =
+      table.concat(vim.api.nvim_buf_get_lines(self.chat_buf, start_line, end_line, false), "\n")
+    table.insert(messages, { role = role, content = content_lines })
   end
 
   return messages
@@ -293,12 +276,18 @@ end
 --- with the provided snippet (if any).
 ---@param snippet? string[]
 function EnlightenChat:_add_user(snippet)
-  -- TODO: Might be better to use extmarks for this identifier so
-  -- that it can't be removed? There is a lot of code dependant on
-  -- the ">>> Developer" text being real so this is a bigger refactor.
-
   insert_line(self.chat_buf, "")
-  insert_line(self.chat_buf, USER, "EnlightenChatRole")
+  insert_line(self.chat_buf, "")
+
+  local count = api.nvim_buf_line_count(self.chat_buf)
+  api.nvim_buf_set_extmark(self.chat_buf, self.messages_nsid, count - 1, 0, {
+    virt_text = { { USER, "EnlightenChatRoleUser" } },
+    sign_hl_group = "EnlightenChatRoleSign",
+    line_hl_group = "EnlightenChatRoleUser",
+    virt_text_pos = "overlay",
+    sign_text = "",
+  })
+
   insert_line(self.chat_buf, "")
 
   if snippet then
@@ -314,33 +303,40 @@ function EnlightenChat:_add_user(snippet)
       insert_line(self.chat_buf, "```")
     end
   end
-
   insert_line(self.chat_buf, "")
 
-  local count = api.nvim_buf_line_count(self.chat_buf)
+  count = api.nvim_buf_line_count(self.chat_buf)
   vim.api.nvim_win_set_cursor(self.chat_win, { count, 0 })
   vim.cmd("startinsert")
 end
 
 --- Add the "Assistant" role to the buffer.
 function EnlightenChat:_add_assistant()
-  -- TODO: Might be better to use extmarks for this identifier so
-  -- that it can't be removed? There is a lot of code dependant on
-  -- the ">>> Assistant" text being real so this is a bigger refactor.
   insert_line(self.chat_buf, "")
-  insert_line(self.chat_buf, ASSISTANT, "EnlightenChatRole")
+  insert_line(self.chat_buf, "")
+
+  local count = api.nvim_buf_line_count(self.chat_buf)
+  api.nvim_buf_set_extmark(self.chat_buf, self.messages_nsid, count - 1, 0, {
+    virt_text = { { ASSISTANT, "EnlightenChatRoleAssistant" } },
+    sign_hl_group = "EnlightenChatRoleSign",
+    line_hl_group = "EnlightenChatRoleAssistant",
+    virt_text_pos = "overlay",
+    sign_text = "ﮧ",
+  })
+
   insert_line(self.chat_buf, "")
   insert_line(self.chat_buf, "")
 end
 
 -- Highlight the chat user/assistant markers
-function EnlightenChat:_highlight_chat_roles()
-  local lines = vim.api.nvim_buf_get_lines(self.chat_buf, 0, -1, false)
-  for i, line in ipairs(lines) do
-    if line:match("^" .. ROLE_PREFIX) then
-      vim.api.nvim_buf_add_highlight(self.chat_buf, -1, "EnlightenChatRole", i - 1, 0, -1)
-    end
-  end
+---@param data HistoryItem
+function EnlightenChat:_write_messages(data)
+  -- local lines = vim.api.nvim_buf_get_lines(self.chat_buf, 0, -1, false)
+  -- for i, line in ipairs(lines) do
+  --   if line:match("^" .. ROLE_PREFIX) then
+  --     vim.api.nvim_buf_add_highlight(self.chat_buf, -1, "EnlightenChatRole", i - 1, 0, -1)
+  --   end
+  -- end
 end
 
 --- If text content is currently being written to the buffer... stop doing that
@@ -354,16 +350,24 @@ end
 --- Scroll back in history
 function EnlightenChat:scroll_back()
   if not self.writer.active then
-    self.history:scroll_back()
-    self:_highlight_chat_roles()
+    local data = self.history:scroll_back()
+    if data and data == -1 then
+      -- use current
+    elseif data then
+      -- self:_write_messages(data)
+    end
   end
 end
 
 --- Scroll forward in history
 function EnlightenChat:scroll_forward()
   if not self.writer.active then
-    self.history:scroll_forward()
-    self:_highlight_chat_roles()
+    local data = self.history:scroll_forward()
+    if data and data == -1 then
+      -- use current
+    elseif data then
+      -- self:_write_messages(data)
+    end
   end
 end
 
