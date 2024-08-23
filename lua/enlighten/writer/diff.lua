@@ -22,13 +22,13 @@ local utils = require("enlighten/utils")
 --- The start and end rows of a range of text in the buffer (end inclusive). ex: [1, 3]
 --- At a minimum the range covers one line, so one line can always be replaced. This
 --- is for simplicity, only one case where a range of text is being written to, rather
---- than trying to write to no line (inbetween lines).
+--- than trying to write to no line (in-between lines).
 ---@field orig_range {[1]: number, [2]: number}
 --- The text content for the `orig_range` in the buffer. This is the text we diff generated content against.
 ---@field orig_lines string[]
 --- All text that has been generated.
 ---@field accumulated_text string
---- The text of the current line (from the last \n) that has been generated. Only complpete lines are
+--- The text of the current line (from the last \n) that has been generated. Only complete lines are
 --- writen to the buffer, so this can be considered a staging area for the next line to be written.
 ---@field accumulated_line string
 --- All lines of text that have been written to the buffer.
@@ -44,6 +44,8 @@ local utils = require("enlighten/utils")
 ---@field diff_ns_id number
 --- The most recent line diff that has been computed.
 ---@field diff LineDiff
+--- A flag for whether changed lines (additions and deletions) should be shown with a change
+--- highlight all lines with addition and removal highlights.
 ---@field show_diff boolean
 local DiffWriter = {}
 
@@ -227,7 +229,8 @@ function DiffWriter:_highlight_diff(left, right)
     })
   end
 
-  local function change(row, hunk) -- Has the potential to error when writing/highlighting content at the end of the buffer.
+  local function change(row, hunk)
+    -- Has the potential to error when writing/highlighting content at the end of the buffer.
     pcall(function()
       api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
         end_row = row + #hunk.add,
