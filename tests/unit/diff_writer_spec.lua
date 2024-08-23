@@ -230,8 +230,40 @@ describe("DiffWriter", function()
     end)
 
     describe("highlights", function()
+      it("should highlight changes at middle of buffer", function()
+        local writer = DiffWriter:new(buf, range)
+
+        writer:on_data("hello\n")
+
+        local ext = get_extmarks_for_buffer(writer)
+        assert_highlight(ext, 2, 3, "EnlightenDiffChange")
+      end)
+
+      it("should highlight changes at start of buffer", function()
+        range.row_start = 0
+        range.row_end = 0
+        local writer = DiffWriter:new(buf, range)
+
+        writer:on_data("hello\n")
+
+        local ext = get_extmarks_for_buffer(writer)
+        assert_highlight(ext, 0, 1, "EnlightenDiffChange")
+      end)
+
+      it("should highlight changes at the end of buffer", function()
+        range.row_start = 4
+        range.row_end = 4
+        local writer = DiffWriter:new(buf, range)
+
+        writer:on_data("hello\n")
+
+        local ext = get_extmarks_for_buffer(writer)
+        assert_highlight(ext, 4, 5, "EnlightenDiffChange")
+      end)
+
       it("should highlight diffs at middle of buffer", function()
         local writer = DiffWriter:new(buf, range)
+        writer.show_diff = true
 
         writer:on_data("hello\n")
 
@@ -244,6 +276,7 @@ describe("DiffWriter", function()
         range.row_start = 0
         range.row_end = 0
         local writer = DiffWriter:new(buf, range)
+        writer.show_diff = true
 
         writer:on_data("hello\n")
 
@@ -256,6 +289,7 @@ describe("DiffWriter", function()
         range.row_start = 4
         range.row_end = 4
         local writer = DiffWriter:new(buf, range)
+        writer.show_diff = true
 
         writer:on_data("hello\n")
 
@@ -276,12 +310,13 @@ describe("DiffWriter", function()
       it("should highlight multiple added lines", function()
         local writer = DiffWriter:new(buf, range)
 
+        writer:on_data("ccc\n")
         writer:on_data("xxx\n")
         writer:on_data("yyy\n")
         writer:on_data("zzz\n")
 
         local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 2, 5, "EnlightenDiffAdd")
+        assert_highlight(ext, 3, 6, "EnlightenDiffAdd")
       end)
 
       it("should highlight multiple hunks", function()
