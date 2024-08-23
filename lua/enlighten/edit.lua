@@ -81,7 +81,7 @@ local function create_window(id, target_buf, range, settings)
   end
 
   if settings.showTitle then
-    win_opts.title = { { " Prompt ", "EnlightenPromptTitle" } }
+    win_opts.title = { { " Enlighten Edit ", "EnlightenPromptTitle" } }
   end
 
   if settings.showHelp and vim.fn.has("nvim-0.10.0") == 1 then
