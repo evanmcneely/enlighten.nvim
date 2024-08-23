@@ -22,13 +22,13 @@ local utils = require("enlighten/utils")
 --- The start and end rows of a range of text in the buffer (end inclusive). ex: [1, 3]
 --- At a minimum the range covers one line, so one line can always be replaced. This
 --- is for simplicity, only one case where a range of text is being written to, rather
---- than trying to write to no line (inbetween lines).
+--- than trying to write to no line (in-between lines).
 ---@field orig_range {[1]: number, [2]: number}
 --- The text content for the `orig_range` in the buffer. This is the text we diff generated content against.
 ---@field orig_lines string[]
 --- All text that has been generated.
 ---@field accumulated_text string
---- The text of the current line (from the last \n) that has been generated. Only complpete lines are
+--- The text of the current line (from the last \n) that has been generated. Only complete lines are
 --- writen to the buffer, so this can be considered a staging area for the next line to be written.
 ---@field accumulated_line string
 --- All lines of text that have been written to the buffer.
@@ -44,6 +44,9 @@ local utils = require("enlighten/utils")
 ---@field diff_ns_id number
 --- The most recent line diff that has been computed.
 ---@field diff LineDiff
+--- A flag for whether changed lines (additions and deletions) should be shown with a change
+--- highlight all lines with addition and removal highlights.
+---@field show_diff boolean
 local DiffWriter = {}
 
 ---@param buf number
@@ -59,6 +62,7 @@ function DiffWriter:new(buf, range, on_done)
   return setmetatable({
     active = false,
     shortcircuit = false,
+    show_diff = false,
     buffer = buf,
     on_done = on_done or function() end,
     orig_lines = vim.api.nvim_buf_get_lines(buf, range.row_start, range.row_end + 1, false),
@@ -196,34 +200,61 @@ function DiffWriter:_highlight_diff(left, right)
   local diff_new = differ.diff(left, right)
   local hunks = differ.extract_hunks(self.orig_range[1], diff_new)
 
-  for row, hunk in pairs(hunks) do
-    if #hunk.add then
-      -- Has the potential to error when writing/highlighting content at the end of the buffer.
-      pcall(function()
-        api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
-          end_row = row + #hunk.add,
-          hl_group = "EnlightenDiffAdd",
-          hl_eol = true,
-          priority = 1000,
-        })
-      end)
+  local function add(row, hunk)
+    -- Has the potential to error when writing/highlighting content at the end of the buffer.
+    pcall(function()
+      api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
+        end_row = row + #hunk.add,
+        hl_group = "EnlightenDiffAdd",
+        hl_eol = true,
+        priority = 1000,
+      })
+    end)
+  end
+
+  local function remove(row, hunk)
+    local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
+
+    for _, line in pairs(hunk.remove) do
+      table.insert(
+        virt_lines,
+        { { line .. string.rep(" ", vim.o.columns), "EnlightenDiffDelete" } }
+      )
     end
 
-    if #hunk.remove then
-      local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
+    api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, -1, {
+      virt_lines = virt_lines,
+      -- TODO: virt_lines_above doesn't work on row 0 neovim/neovim#16166
+      virt_lines_above = true,
+    })
+  end
 
-      for _, line in pairs(hunk.remove) do
-        table.insert(
-          virt_lines,
-          { { line .. string.rep(" ", vim.o.columns), "EnlightenDiffDelete" } }
-        )
-      end
-
-      api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, -1, {
-        virt_lines = virt_lines,
-        -- TODO: virt_lines_above doesn't work on row 0 neovim/neovim#16166
-        virt_lines_above = true,
+  local function change(row, hunk)
+    -- Has the potential to error when writing/highlighting content at the end of the buffer.
+    pcall(function()
+      api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
+        end_row = row + #hunk.add,
+        hl_group = "EnlightenDiffChange",
+        hl_eol = true,
+        priority = 1000,
       })
+    end)
+  end
+
+  for row, hunk in pairs(hunks) do
+    if self.show_diff then
+      if #hunk.add then
+        add(row, hunk)
+      end
+      if #hunk.remove then
+        remove(row, hunk)
+      end
+    elseif #hunk.add > 0 and #hunk.remove == 0 then
+      add(row, hunk)
+    elseif #hunk.remove > 0 and #hunk.add == 0 then
+      remove(row, hunk)
+    else
+      change(row, hunk)
     end
   end
 

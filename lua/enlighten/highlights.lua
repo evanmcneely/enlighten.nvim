@@ -14,6 +14,7 @@ local function get_highlights()
 
   return {
     EnlightenDiffAdd = { default = true, link = "DiffAdd" },
+    EnlightenDiffChange = { default = true, link = "DiffText" },
     EnlightenDiffDelete = { fg = removed_fg_hl.fg, bg = removed_bg_hl.bg },
     EnlightenChatRoleUser = { fg = string_hl.fg, bg = cursorline_hl.bg },
     EnlightenChatRoleAssistant = { fg = number_hl.fg, bg = cursorline_hl.bg },
