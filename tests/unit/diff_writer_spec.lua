@@ -236,8 +236,7 @@ describe("DiffWriter", function()
         writer:on_data("hello\n")
 
         local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 2, 3, "EnlightenDiffAdd")
-        assert_virtual_line(ext, 2, "ccc", "EnlightenDiffDelete")
+        assert_highlight(ext, 2, 3, "EnlightenDiffChange")
       end)
 
       it("should highlight diffs at start of buffer", function()
@@ -248,8 +247,7 @@ describe("DiffWriter", function()
         writer:on_data("hello\n")
 
         local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 0, 1, "EnlightenDiffAdd")
-        assert_virtual_line(ext, 0, "aaa", "EnlightenDiffDelete")
+        assert_highlight(ext, 0, 1, "EnlightenDiffChange")
       end)
 
       it("should highlight diffs at the end of buffer", function()
@@ -260,8 +258,7 @@ describe("DiffWriter", function()
         writer:on_data("hello\n")
 
         local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 4, 5, "EnlightenDiffAdd")
-        assert_virtual_line(ext, 4, "eee", "EnlightenDiffDelete")
+        assert_highlight(ext, 4, 5, "EnlightenDiffChange")
       end)
 
       it("should not highlight diff when content hasn't changed", function()
@@ -276,12 +273,13 @@ describe("DiffWriter", function()
       it("should highlight multiple added lines", function()
         local writer = DiffWriter:new(buf, range)
 
+        writer:on_data("ccc\n")
         writer:on_data("xxx\n")
         writer:on_data("yyy\n")
         writer:on_data("zzz\n")
 
         local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 2, 5, "EnlightenDiffAdd")
+        assert_highlight(ext, 3, 6, "EnlightenDiffAdd")
       end)
 
       it("should highlight multiple hunks", function()
