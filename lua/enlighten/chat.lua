@@ -14,6 +14,10 @@ local History = require("enlighten/history")
 ---@field chat_buf number
 --- The id of the window that hosts the chat buffer
 ---@field chat_win number
+--- The id of the title popup buffer
+---@field title_buf number
+--- The id of the window that hosts the title buffer
+---@field title_win number
 --- The id of the buffer that the cursor was when the chat was opened
 ---@field target_buf number
 --- A class that helps manage history of past conversations.
@@ -28,6 +32,7 @@ local History = require("enlighten/history")
 local EnlightenChat = {}
 EnlightenChat.__index = EnlightenChat
 
+local TITLE = "💬 Enlighten Chat"
 local USER = " > User"
 local ASSISTANT = " > Assistant"
 local USER_SIGN = " "
@@ -48,7 +53,7 @@ end
 --- Create the chat buffer and popup window
 ---@param id string
 ---@param settings EnlightenChatSettings
----@return { bufnr: number, win_id: number }
+---@return { bufnr: number, win_id: number, title_win: number, title_buf: number }
 local function create_window(id, settings)
   if settings.split == "left" then
     vim.cmd("leftabove vsplit")
@@ -67,10 +72,34 @@ local function create_window(id, settings)
   api.nvim_buf_set_name(buf, "enlighten-chat" .. id)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
+  api.nvim_set_option_value("foldmethod", "manual", { win = win })
+
+  local title_buf = api.nvim_create_buf(false, true)
+  local title_win = api.nvim_open_win(title_buf, false, {
+    relative = "win",
+    win = win,
+    width = settings.width,
+    height = 1,
+    row = 0,
+    col = 0,
+    style = "minimal",
+    focusable = false,
+  })
+
+  api.nvim_set_option_value("modifiable", false, { buf = title_buf })
+
+  local title_ns = api.nvim_create_namespace("ChatTitle")
+  api.nvim_buf_set_extmark(title_buf, title_ns, 0, 0, {
+    virt_text = { { TITLE, "Function" } },
+    virt_text_pos = "overlay",
+    virt_text_win_col = math.floor(((settings.width - #TITLE - 1) / 2) / 2) * 2,
+  })
 
   return {
     bufnr = buf,
     win_id = win,
+    title_win = title_win,
+    title_buf = title_buf,
   }
 end
 
@@ -145,6 +174,7 @@ local function set_autocmds(context)
       callback = function()
         context:stop()
         context:cleanup()
+        context:_close_title_win()
       end,
     }),
   }
@@ -190,6 +220,8 @@ function EnlightenChat:new(aiConfig, settings, history)
   context.settings = settings
   context.chat_buf = chat_win.bufnr
   context.chat_win = chat_win.win_id
+  context.title_win = chat_win.title_win
+  context.title_buf = chat_win.title_buf
   context.target_buf = buf
   context.history = History:new(history)
   context.writer = Writer:new(chat_win.win_id, chat_win.bufnr, function()
@@ -211,13 +243,18 @@ function EnlightenChat:new(aiConfig, settings, history)
   return context
 end
 
---- Close the chat buffer. Any content that is currently being writen to the
---- buffer will be lost.
 function EnlightenChat:close()
   if self.writer.active then
     self.writer:stop()
   end
 
+  self:_close_chat_win()
+  self:_close_title_win()
+
+  Logger:log("chat:close", { id = self.id })
+end
+
+function EnlightenChat:_close_chat_win()
   if api.nvim_win_is_valid(self.chat_win) then
     api.nvim_win_close(self.chat_win, true)
   end
@@ -225,8 +262,16 @@ function EnlightenChat:close()
   if api.nvim_buf_is_valid(self.chat_buf) then
     api.nvim_buf_delete(self.chat_buf, { force = true })
   end
+end
 
-  Logger:log("chat:close", { id = self.id })
+function EnlightenChat:_close_title_win()
+  if api.nvim_win_is_valid(self.title_win) then
+    api.nvim_win_close(self.title_win, true)
+  end
+
+  if api.nvim_buf_is_valid(self.title_buf) then
+    api.nvim_buf_delete(self.title_buf, { force = true })
+  end
 end
 
 function EnlightenChat:cleanup()
