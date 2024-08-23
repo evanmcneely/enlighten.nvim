@@ -230,7 +230,7 @@ describe("DiffWriter", function()
     end)
 
     describe("highlights", function()
-      it("should highlight diffs at middle of buffer", function()
+      it("should highlight changes at middle of buffer", function()
         local writer = DiffWriter:new(buf, range)
 
         writer:on_data("hello\n")
@@ -239,7 +239,7 @@ describe("DiffWriter", function()
         assert_highlight(ext, 2, 3, "EnlightenDiffChange")
       end)
 
-      it("should highlight diffs at start of buffer", function()
+      it("should highlight changes at start of buffer", function()
         range.row_start = 0
         range.row_end = 0
         local writer = DiffWriter:new(buf, range)
@@ -250,7 +250,7 @@ describe("DiffWriter", function()
         assert_highlight(ext, 0, 1, "EnlightenDiffChange")
       end)
 
-      it("should highlight diffs at the end of buffer", function()
+      it("should highlight changes at the end of buffer", function()
         range.row_start = 4
         range.row_end = 4
         local writer = DiffWriter:new(buf, range)
@@ -259,6 +259,43 @@ describe("DiffWriter", function()
 
         local ext = get_extmarks_for_buffer(writer)
         assert_highlight(ext, 4, 5, "EnlightenDiffChange")
+      end)
+
+      it("should highlight diffs at middle of buffer", function()
+        local writer = DiffWriter:new(buf, range)
+        writer.show_diff = true
+
+        writer:on_data("hello\n")
+
+        local ext = get_extmarks_for_buffer(writer)
+        assert_highlight(ext, 2, 3, "EnlightenDiffAdd")
+        assert_virtual_line(ext, 2, "ccc", "EnlightenDiffDelete")
+      end)
+
+      it("should highlight diffs at start of buffer", function()
+        range.row_start = 0
+        range.row_end = 0
+        local writer = DiffWriter:new(buf, range)
+        writer.show_diff = true
+
+        writer:on_data("hello\n")
+
+        local ext = get_extmarks_for_buffer(writer)
+        assert_highlight(ext, 0, 1, "EnlightenDiffAdd")
+        assert_virtual_line(ext, 0, "aaa", "EnlightenDiffDelete")
+      end)
+
+      it("should highlight diffs at the end of buffer", function()
+        range.row_start = 4
+        range.row_end = 4
+        local writer = DiffWriter:new(buf, range)
+        writer.show_diff = true
+
+        writer:on_data("hello\n")
+
+        local ext = get_extmarks_for_buffer(writer)
+        assert_highlight(ext, 4, 5, "EnlightenDiffAdd")
+        assert_virtual_line(ext, 4, "eee", "EnlightenDiffDelete")
       end)
 
       it("should not highlight diff when content hasn't changed", function()
