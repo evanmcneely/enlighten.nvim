@@ -30,6 +30,20 @@ EnlightenChat.__index = EnlightenChat
 
 local USER = " > User"
 local ASSISTANT = " > Assistant"
+local USER_SIGN = " "
+local ASSISTANT_SIGN = "ﮧ "
+
+---@param tbl string[]
+local function trim_empty_lines(tbl)
+  while tbl[1] == "" do
+    table.remove(tbl, 1)
+  end
+  while tbl[#tbl] == "" do
+    table.remove(tbl)
+  end
+
+  return tbl
+end
 
 --- Create the chat buffer and popup window
 ---@param id string
@@ -232,9 +246,10 @@ function EnlightenChat:submit()
 
     self.writer:reset()
 
+    local prompt = self:_build_messages()
+
     self:_add_assistant()
 
-    local prompt = self:_build_messages()
     local opts = {
       provider = self.aiConfig.provider,
       model = self.aiConfig.model,
@@ -259,12 +274,12 @@ function EnlightenChat:_build_messages()
   for i = 1, #message_marks do
     local mark = message_marks[i]
     local next_mark = message_marks[i + 1]
-    local role = mark[4].sign_hl_group == "EnlightenChatRoleUser" and "user" or "assistant"
-    local start_line = mark[1]
-    local end_line = next_mark and next_mark[1] - 1 or -1
-    local content_lines =
-      table.concat(vim.api.nvim_buf_get_lines(self.chat_buf, start_line, end_line, false), "\n")
-    table.insert(messages, { role = role, content = content_lines })
+    local role = mark[4].sign_text == USER_SIGN and "user" or "assistant"
+    local start = mark[1]
+    local finish = next_mark and next_mark[1] - 1 or -1
+    local content =
+      table.concat(trim_empty_lines(buffer.get_lines(self.chat_buf, start, finish)), "\n")
+    table.insert(messages, { role = role, content = content })
   end
 
   return messages
@@ -283,7 +298,7 @@ function EnlightenChat:_add_user(snippet)
     sign_hl_group = "EnlightenChatRoleSign",
     line_hl_group = "EnlightenChatRoleUser",
     virt_text_pos = "overlay",
-    sign_text = "",
+    sign_text = USER_SIGN,
   })
 
   insert_line(self.chat_buf, "")
@@ -319,7 +334,7 @@ function EnlightenChat:_add_assistant()
     sign_hl_group = "EnlightenChatRoleSign",
     line_hl_group = "EnlightenChatRoleAssistant",
     virt_text_pos = "overlay",
-    sign_text = "ﮧ",
+    sign_text = ASSISTANT_SIGN,
   })
 
   insert_line(self.chat_buf, "")
