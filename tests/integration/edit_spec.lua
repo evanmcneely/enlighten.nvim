@@ -106,7 +106,10 @@ describe("edit", function()
 
   it("should be able to scroll edit history", function()
     -- When we have prompt history items
-    enlighten.edit_history = { { "abc" }, { "def" } }
+    enlighten.edit_history = {
+      { messages = { { role = "user", content = "abc" } } },
+      { messages = { { role = "user", content = "def" } } },
+    }
     -- And the prompt is opened
     vim.cmd("lua require('enlighten').edit()")
     local buf = vim.api.nvim_get_current_buf()
@@ -139,6 +142,6 @@ describe("edit", function()
     -- We expect the provious prompt to be in history on scroll
     tu.feedkeys("<Esc><C-o>")
     tu.scheduled_equals("hello", buffer.get_content(buf))
-    assert.are.same({ { "hello" } }, enlighten.edit_history)
+    assert.are.same({ { role = "user", content = "hello" } }, enlighten.edit_history[1].messages)
   end)
 end)

@@ -8,7 +8,7 @@ local content_1 = {
   "In lines of", "code, we", "find our way,\n",
   "Through ", "logic's path, bot","h night and"," day.\nWith ",
   "functions",", loops, and vari","ables bright,","\nWe",
-  " craft ","our dreams in ","digital light.\n",
+  " craft ","our dreams in ","digital light.",
 }
 
 -- stylua: ignore
@@ -123,7 +123,14 @@ describe("chat", function()
       .. "\n\n>>> Developer\n\n"
 
     tu.scheduled_equals(want, buffer.get_content(buf))
-    assert.are.same({ vim.split(want, "\n") }, enlighten.chat_history)
+    assert.are.same({
+      { role = "user", content = "hello" },
+      {
+        role = "assistant",
+        content = table.concat(content_1, ""),
+      },
+      { role = "user", content = "" },
+    }, enlighten.chat_history[1].messages)
 
     vim.api.nvim_buf_delete(buf, {})
   end)

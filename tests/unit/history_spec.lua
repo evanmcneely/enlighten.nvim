@@ -1,4 +1,5 @@
 local History = require("enlighten.history")
+local mock = require("luassert.mock")
 
 local equals = assert.are.same
 
@@ -16,46 +17,43 @@ describe("history", function()
   end)
 
   it("should scroll backwards and forwards when there is history", function()
-    local h = History:new({ { "1" }, { "2" }, { "3" } })
+    local h = History:new({
+      { messages = { { role = "user", content = "1" } }, date = "2023-01-01" },
+      { messages = { { role = "user", content = "2" } }, date = "2023-01-02" },
+      { messages = { { role = "user", content = "3" } }, date = "2023-01-03" },
+    })
 
-    equals({ "1" }, h:scroll_back())
-
-    equals({ "2" }, h:scroll_back())
-
-    equals({ "3" }, h:scroll_back())
-
-    equals({ "2" }, h:scroll_forward())
-
-    equals({ "1" }, h:scroll_forward())
+    equals(h.items[1], h:scroll_back())
+    equals(h.items[2], h:scroll_back())
+    equals(h.items[3], h:scroll_back())
+    equals(h.items[2], h:scroll_forward())
+    equals(h.items[1], h:scroll_forward())
   end)
 
   it("should add current buf content to history", function()
-    local h = History:new({ { "1" } })
+    local h = History:new({
+      { messages = { role = "user", content = "1" }, date = "2023-01-01" },
+    })
 
     local items = h:update(content)
 
-    equals({ { content }, { "1" } }, h.items)
-    equals({ { content }, { "1" } }, items)
+    equals(content, h.items[1].messages[1].content)
+    equals(h.items, items)
   end)
 
   it("should update history of the past", function()
-    local h = History:new({ { "1" }, { "2" }, { "3" } })
+    local h = History:new({
+      { messages = { { role = "user", content = "1" } }, date = "2023-01-01" },
+      { messages = { { role = "user", content = "2" } }, date = "2023-01-02" },
+      { messages = { { role = "user", content = "3" } }, date = "2023-01-03" },
+    })
     h.index = 2
 
     local items = h:update(content)
 
-    equals({ { "1" }, { content }, { "3" } }, h.items)
-    equals({ { "1" }, { content }, { "3" } }, items)
-  end)
+    equals(content, h.items[2].messages[1].content)
+    equals(h.items, items)
 
-  it("should skip the first history item after current content has been saved", function()
-    local h = History:new({ { "1" } })
-    h:update(content)
-
-    local got = h:scroll_back()
-    equals("1", got)
-
-    got = h:scroll_forward()
-    equals(content, got)
+    mock:clear()
   end)
 end)

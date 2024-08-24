@@ -38,16 +38,16 @@ end
 
 --- Update the history item with the buffer content. Create a new history item
 --- if one has not been created yet.
----@param data AiMessages | string
+---@param messages AiMessages | string
 ---@return HistoryItem[]
-function History:update(data)
-  if type(data) == "string" then
-    data = { role = "user", content = data }
+function History:update(messages)
+  if type(messages) == "string" then
+    messages = {{ role = "user", content = messages }}
   end
 
   ---@type HistoryItem
   local item = {
-    messages = data,
+    messages =  messages ,
     date = tostring(os.date("%Y-%m-%d")),
   }
 
