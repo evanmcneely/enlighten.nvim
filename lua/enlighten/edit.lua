@@ -34,6 +34,8 @@ local History = require("enlighten/history")
 ---@field prompt_ext_id number|nil
 --- A list of ids of all autocommands that have been created for this feature.
 ---@field autocommands number[]
+---@field prompt string
+---@field has_generated boolean
 local EnlightenEdit = {}
 EnlightenEdit.__index = EnlightenEdit
 
@@ -199,6 +201,12 @@ local function delete_autocmds(context)
   end
 end
 
+---@param prompt string
+---@return AiMessages
+local function build_messages(prompt)
+  return { { role = "user", content = prompt } }
+end
+
 --- Initial gateway into the "prompt" feature. Initialize all data, windows,
 --- keymaps and autocommands that the feature depends on.
 ---@param aiConfig EnlightenAiProviderConfig
@@ -222,8 +230,10 @@ function EnlightenEdit:new(aiConfig, settings, history)
   context.settings = settings
   context.aiConfig = aiConfig
   context.history = History:new(history)
+  context.prompt = ""
+  context.has_generated = false
   context.writer = Writer:new(buf, range, function()
-    -- context.history:update()
+    context.has_generated = true
   end)
 
   set_keymaps(context)
@@ -251,6 +261,10 @@ function EnlightenEdit:close()
   -- but is dependant on the writer being "done" to behave as expected.
   if self.writer.active then
     return
+  end
+
+  if self.has_generated then
+    self.history:update(build_messages(buffer.get_content(self.prompt_buf)))
   end
 
   Logger:log("edit:close", { id = self.id })
@@ -289,8 +303,10 @@ function EnlightenEdit:submit()
     and not self.writer.active
   then
     Logger:log("edit:sumbit", { id = self.id })
+
     self.writer:reset()
     local prompt = self:_build_prompt()
+
     local opts = {
       provider = self.aiConfig.provider,
       model = self.aiConfig.model,
@@ -321,6 +337,7 @@ end
 ---@return string
 function EnlightenEdit:_build_prompt()
   local prompt = buffer.get_content(self.prompt_buf)
+  self.prompt = prompt
   local snippet =
     buffer.get_content(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1)
   local file_name = api.nvim_buf_get_name(self.target_buf)
@@ -340,12 +357,20 @@ end
 
 --- Scroll back in history. This is mapped to a key on the prompt buffer.
 function EnlightenEdit:scroll_back()
-  -- self.history:scroll_back()
+  local data = self.history:scroll_back()
+  if data then
+    api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(data.messages[1].content, "\n"))
+  end
 end
 
 --- Scroll forward in history. This is mapped to a key on the prompt buffer.
 function EnlightenEdit:scroll_forward()
-  -- self.history:scroll_forward()
+  local data = self.history:scroll_forward()
+  if data then
+    api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(data.messages[1].content, "\n"))
+  else
+    api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(self.prompt, "\n"))
+  end
 end
 
 return EnlightenEdit
