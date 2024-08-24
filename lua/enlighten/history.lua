@@ -32,6 +32,10 @@ function History:new(previous)
   return self
 end
 
+function History:is_current()
+  return self.index == 0
+end
+
 --- Update the history item with the buffer content. Create a new history item
 --- if one has not been created yet.
 ---@param data AiMessages | string
@@ -61,7 +65,7 @@ function History:update(data)
 end
 
 --- Scroll back through the history items.
----@return HistoryItem | nil | number
+---@return HistoryItem?
 function History:scroll_back()
   local old_index = self.index
 
@@ -81,7 +85,7 @@ function History:scroll_back()
 end
 
 --- Scroll forward through the history items.
----@return HistoryItem | nil | number
+---@return HistoryItem?
 function History:scroll_forward()
   local old_index = self.index
 
@@ -94,7 +98,7 @@ function History:scroll_forward()
   end
 
   if self.index == 0 then
-    return -1
+    return
   else
     return self.items[self.index]
   end

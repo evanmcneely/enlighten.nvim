@@ -29,12 +29,13 @@ local History = require("enlighten/history")
 ---@field autocommands number[]
 ---@field messages AiMessages
 ---@field messages_nsid number
+---@field has_generated boolean
 local EnlightenChat = {}
 EnlightenChat.__index = EnlightenChat
 
 local TITLE = "💬 Enlighten Chat"
-local USER = " > User"
-local ASSISTANT = " > Assistant"
+local USER = " User"
+local ASSISTANT = " Assistant"
 local USER_SIGN = " "
 local ASSISTANT_SIGN = "ﮧ "
 
@@ -72,7 +73,6 @@ local function create_window(id, settings)
   api.nvim_buf_set_name(buf, "enlighten-chat" .. id)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
-  api.nvim_set_option_value("foldmethod", "manual", { win = win })
 
   local title_buf = api.nvim_create_buf(false, true)
   local title_win = api.nvim_open_win(title_buf, false, {
@@ -224,9 +224,12 @@ function EnlightenChat:new(aiConfig, settings, history)
   context.title_buf = chat_win.title_buf
   context.target_buf = buf
   context.history = History:new(history)
+  context.has_generated = false
   context.writer = Writer:new(chat_win.win_id, chat_win.bufnr, function()
+    context.has_generated = true
     context:_add_user()
-    -- context.history:update(context:_build_messages())
+    context.messages = context:_build_messages()
+    vim.cmd("startinsert")
   end)
 
   set_keymaps(context)
@@ -234,6 +237,8 @@ function EnlightenChat:new(aiConfig, settings, history)
 
   context:_add_user(snippet)
   api.nvim_command("startinsert")
+
+  context.messages = context:_build_messages()
 
   Logger:log(
     "chat:new",
@@ -246,6 +251,10 @@ end
 function EnlightenChat:close()
   if self.writer.active then
     self.writer:stop()
+  end
+
+  if self.has_generated then
+    self.history:update(self.messages)
   end
 
   self:_close_chat_win()
@@ -280,18 +289,16 @@ end
 
 --- Submit the user question for a response.
 function EnlightenChat:submit()
-  if
-    api.nvim_buf_is_valid(self.chat_buf)
-    and api.nvim_win_is_valid(self.chat_win)
-    and api.nvim_buf_is_valid(self.target_buf)
-  then
+  if api.nvim_buf_is_valid(self.chat_buf) and api.nvim_win_is_valid(self.chat_win) then
     if self.writer.active then
       return
     end
 
     self.writer:reset()
+    local messages = self:_build_messages()
+    self.messages = messages
 
-    local prompt = self:_build_messages()
+    Logger:log("chat:submit - messages", messages)
 
     self:_add_assistant()
 
@@ -304,7 +311,7 @@ function EnlightenChat:submit()
       feature = "chat",
       stream = true,
     }
-    ai.complete(prompt, self.writer, opts)
+    ai.complete(messages, self.writer, opts)
   end
 end
 
@@ -320,8 +327,8 @@ function EnlightenChat:_build_messages()
     local mark = message_marks[i]
     local next_mark = message_marks[i + 1]
     local role = mark[4].sign_text == USER_SIGN and "user" or "assistant"
-    local start = mark[1]
-    local finish = next_mark and next_mark[1] - 1 or -1
+    local start = mark[2] + 1
+    local finish = next_mark and next_mark[2] - 1 or api.nvim_buf_line_count(self.chat_buf)
     local content =
       table.concat(trim_empty_lines(buffer.get_lines(self.chat_buf, start, finish)), "\n")
     table.insert(messages, { role = role, content = content })
@@ -365,7 +372,6 @@ function EnlightenChat:_add_user(snippet)
 
   count = api.nvim_buf_line_count(self.chat_buf)
   vim.api.nvim_win_set_cursor(self.chat_win, { count, 0 })
-  vim.cmd("startinsert")
 end
 
 --- Add the "Assistant" role to the buffer.
@@ -387,14 +393,22 @@ function EnlightenChat:_add_assistant()
 end
 
 -- Highlight the chat user/assistant markers
----@param data HistoryItem
-function EnlightenChat:_write_messages(data)
-  -- local lines = vim.api.nvim_buf_get_lines(self.chat_buf, 0, -1, false)
-  -- for i, line in ipairs(lines) do
-  --   if line:match("^" .. ROLE_PREFIX) then
-  --     vim.api.nvim_buf_add_highlight(self.chat_buf, -1, "EnlightenChatRole", i - 1, 0, -1)
-  --   end
-  -- end
+---@param messages AiMessages
+function EnlightenChat:_write_messages(messages)
+  -- Clear buffer content
+  api.nvim_buf_clear_namespace(self.chat_buf, self.messages_nsid, 0, -1)
+  api.nvim_buf_set_lines(self.chat_buf, 0, -1, false, {})
+
+  -- Then write the content from messages
+  for _, message in pairs(messages) do
+    if message.role == "user" then
+      self:_add_user()
+    else
+      self:_add_assistant()
+    end
+
+    api.nvim_buf_set_lines(self.chat_buf, -1, -1, false, vim.split(message.content, "\n"))
+  end
 end
 
 --- If text content is currently being written to the buffer... stop doing that
@@ -409,10 +423,8 @@ end
 function EnlightenChat:scroll_back()
   if not self.writer.active then
     local data = self.history:scroll_back()
-    if data and data == -1 then
-      -- use current
-    elseif data then
-      -- self:_write_messages(data)
+    if data then
+      self:_write_messages(data.messages)
     end
   end
 end
@@ -421,10 +433,10 @@ end
 function EnlightenChat:scroll_forward()
   if not self.writer.active then
     local data = self.history:scroll_forward()
-    if data and data == -1 then
-      -- use current
-    elseif data then
-      -- self:_write_messages(data)
+    if data then
+      self:_write_messages(data.messages)
+    else
+      self:_write_messages(self.messages)
     end
   end
 end
