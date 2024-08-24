@@ -27,8 +27,11 @@ local History = require("enlighten/history")
 ---@field writer Writer
 --- A list of ids of all autocommands that have been created for this feature.
 ---@field autocommands number[]
+--- A list of the current chat sessions messages. Used for scrolling chat history.
 ---@field messages AiMessages
+--- The namespace id of the chat role highlights
 ---@field messages_nsid number
+--- A flag for whether or not the user has generated completions this session.
 ---@field has_generated boolean
 local EnlightenChat = {}
 EnlightenChat.__index = EnlightenChat
@@ -62,6 +65,7 @@ local function create_window(id, settings)
     vim.cmd("vsplit")
   end
 
+  -- Chat window and buffer
   local win = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_win_set_buf(win, buf)
@@ -74,6 +78,7 @@ local function create_window(id, settings)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
 
+  -- Title window and buffer, positioned in a popup at the top of the window
   local title_buf = api.nvim_create_buf(false, true)
   local title_win = api.nvim_open_win(title_buf, false, {
     relative = "win",
@@ -92,6 +97,7 @@ local function create_window(id, settings)
   api.nvim_buf_set_extmark(title_buf, title_ns, 0, 0, {
     virt_text = { { TITLE, "Function" } },
     virt_text_pos = "overlay",
+    -- ensure that the value of is always an even, whole number
     virt_text_win_col = math.floor(((settings.width - #TITLE - 1) / 2) / 2) * 2,
   })
 

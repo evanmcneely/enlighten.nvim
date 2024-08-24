@@ -34,7 +34,10 @@ local History = require("enlighten/history")
 ---@field prompt_ext_id number|nil
 --- A list of ids of all autocommands that have been created for this feature.
 ---@field autocommands number[]
+--- The current prompt buffer text. Stored here when the prompt is built for AI completion
+--- so that prompt history can be scrolled.
 ---@field prompt string
+--- A flag for whether or the not the user has generated text this session.
 ---@field has_generated boolean
 local EnlightenEdit = {}
 EnlightenEdit.__index = EnlightenEdit
@@ -201,6 +204,7 @@ local function delete_autocmds(context)
   end
 end
 
+--- Format the prompt text in the universal "messages" format
 ---@param prompt string
 ---@return AiMessages
 local function build_messages(prompt)
@@ -336,12 +340,13 @@ end
 --- file type this is and what language to write code in.
 ---@return string
 function EnlightenEdit:_build_prompt()
-  local prompt = buffer.get_content(self.prompt_buf)
-  self.prompt = prompt
+  local user_prompt = buffer.get_content(self.prompt_buf)
   local snippet =
     buffer.get_content(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1)
   local file_name = api.nvim_buf_get_name(self.target_buf)
   local indent = vim.api.nvim_get_option_value("tabstop", { buf = self.target_buf })
+
+  self.prompt = user_prompt
 
   return "File name of the file in the buffer is "
     .. file_name
@@ -349,7 +354,7 @@ function EnlightenEdit:_build_prompt()
     .. indent
     .. "\n"
     .. "Rewrite the following code snippet following these instructions: "
-    .. prompt
+    .. user_prompt
     .. "\n"
     .. "\n"
     .. snippet
@@ -359,6 +364,7 @@ end
 function EnlightenEdit:scroll_back()
   local data = self.history:scroll_back()
   if data then
+    -- Only one message is expected
     api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(data.messages[1].content, "\n"))
   end
 end
@@ -367,8 +373,10 @@ end
 function EnlightenEdit:scroll_forward()
   local data = self.history:scroll_forward()
   if data then
+    -- Only one message is expected
     api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(data.messages[1].content, "\n"))
   else
+    -- Use the prompt from this session when no data is returned
     api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(self.prompt, "\n"))
   end
 end
