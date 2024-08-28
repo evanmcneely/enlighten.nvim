@@ -161,4 +161,24 @@ function M.assert_substring_exists(substring, content)
   )
 end
 
+---@param messages string[]
+function M.build_mock_history_item(messages)
+  local role = "user"
+  local data = {
+    messages = {},
+    date = "datestring",
+  }
+
+  for _, m in pairs(messages) do
+    table.insert(data.messages, { role = role, content = m })
+    if role == "user" then
+      role = "assistant"
+    else
+      role = "user"
+    end
+  end
+
+  return data
+end
+
 return M
