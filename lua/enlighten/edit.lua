@@ -42,6 +42,8 @@ local History = require("enlighten/history")
 local EnlightenEdit = {}
 EnlightenEdit.__index = EnlightenEdit
 
+local CONTEXT = 750
+
 --- Create the prompt buffer and popup window.
 ---
 --- The prompt popup window is rendered in one of two ways.
@@ -340,11 +342,21 @@ end
 --- file type this is and what language to write code in.
 ---@return string
 function EnlightenEdit:_build_prompt()
+  local buf = self.target_buf
+  local start = self.target_range.row_start
+  local finish = self.target_range.row_end
+  local lines = api.nvim_buf_line_count(buf)
+
+  local file_name = api.nvim_buf_get_name(buf)
+  local indent = vim.api.nvim_get_option_value("tabstop", { buf = buf })
   local user_prompt = buffer.get_content(self.prompt_buf)
-  local snippet =
-    buffer.get_content(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1)
-  local file_name = api.nvim_buf_get_name(self.target_buf)
-  local indent = vim.api.nvim_get_option_value("tabstop", { buf = self.target_buf })
+
+  local context = buffer.get_content(
+    buf,
+    start - CONTEXT < 0 and 0 or start - CONTEXT,
+    finish + CONTEXT > lines and -1 or finish + CONTEXT
+  )
+  local snippet = buffer.get_content(buf, start, finish + 1)
 
   self.prompt = user_prompt
 
@@ -352,12 +364,12 @@ function EnlightenEdit:_build_prompt()
     .. file_name
     .. " with intation (tabstop) of "
     .. indent
-    .. "\n"
-    .. "Rewrite the following code snippet following these instructions: "
-    .. user_prompt
-    .. "\n"
-    .. "\n"
+    .. ".\n\nContext:\n"
+    .. context
+    .. "\n\nSnippet:\n"
     .. snippet
+    .. "\n\nInstructions:\n"
+    .. user_prompt
 end
 
 --- Scroll back in history. This is mapped to a key on the prompt buffer.
