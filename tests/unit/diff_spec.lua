@@ -2,20 +2,6 @@ local diff = require("enlighten.diff")
 
 local equals = assert.are.same
 
--- Additions and Removals are out of order, for example:
---
---   { type = diff.constants.addition, value = "zz" },
---   { type = diff.constants.removal, value = "bb" },
---
--- should be
---
---   { type = diff.constants.removal, value = "bb" },
---   { type = diff.constants.addition, value = "zz" },
---
--- when the line is changed (removals before additions).
---
--- The tests are setup to expect this for now, but we should revisit and fix.
-
 describe("diff", function()
   describe("diff", function()
     local left
@@ -43,8 +29,8 @@ describe("diff", function()
       local got = diff.diff(left, right)
       local want = {
         { type = diff.constants.unchanged, value = "aa" },
-        { type = diff.constants.addition, value = "zz" },
         { type = diff.constants.removal, value = "bb" },
+        { type = diff.constants.addition, value = "zz" },
         { type = diff.constants.unchanged, value = "cc" },
         { type = diff.constants.unchanged, value = "dd" },
         { type = diff.constants.unchanged, value = "ee" },
@@ -57,10 +43,10 @@ describe("diff", function()
       local got = diff.diff(left, right)
       local want = {
         { type = diff.constants.unchanged, value = "aa" },
-        { type = diff.constants.addition, value = "zz" },
-        { type = diff.constants.addition, value = "yy" },
         { type = diff.constants.removal, value = "bb" },
         { type = diff.constants.removal, value = "cc" },
+        { type = diff.constants.addition, value = "zz" },
+        { type = diff.constants.addition, value = "yy" },
         { type = diff.constants.unchanged, value = "dd" },
         { type = diff.constants.unchanged, value = "ee" },
       }
@@ -72,11 +58,11 @@ describe("diff", function()
       local got = diff.diff(left, right)
       local want = {
         { type = diff.constants.unchanged, value = "aa" },
-        { type = diff.constants.addition, value = "zz" },
         { type = diff.constants.removal, value = "bb" },
+        { type = diff.constants.addition, value = "zz" },
         { type = diff.constants.unchanged, value = "cc" },
-        { type = diff.constants.addition, value = "yy" },
         { type = diff.constants.removal, value = "dd" },
+        { type = diff.constants.addition, value = "yy" },
         { type = diff.constants.unchanged, value = "ee" },
       }
       equals(want, got)
@@ -160,8 +146,8 @@ describe("diff", function()
       local row = 15
       local changes = {
         { type = diff.constants.unchanged, value = "aa" },
-        { type = diff.constants.addition, value = "zz" },
         { type = diff.constants.removal, value = "bb" },
+        { type = diff.constants.addition, value = "zz" },
         { type = diff.constants.unchanged, value = "cc" },
         { type = diff.constants.unchanged, value = "dd" },
         { type = diff.constants.unchanged, value = "ee" },
@@ -182,12 +168,12 @@ describe("diff", function()
       local row = 700
       local changes = {
         { type = diff.constants.unchanged, value = "aa" },
-        { type = diff.constants.addition, value = "zz" },
         { type = diff.constants.removal, value = "bb" },
+        { type = diff.constants.addition, value = "zz" },
         { type = diff.constants.unchanged, value = "cc" },
         { type = diff.constants.unchanged, value = "dd" },
-        { type = diff.constants.addition, value = "yy" },
         { type = diff.constants.removal, value = "ll" },
+        { type = diff.constants.addition, value = "yy" },
         { type = diff.constants.unchanged, value = "ee" },
       }
 
