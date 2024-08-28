@@ -357,6 +357,9 @@ function EnlightenChat:_add_user(snippet)
     line_hl_group = "EnlightenChatRoleUser",
     virt_text_pos = "overlay",
     sign_text = USER_SIGN,
+    -- Remove extmark when deleted
+    invalidate = true,
+    undo_restore = false,
   })
 
   insert_line(self.chat_buf, "")
@@ -392,6 +395,9 @@ function EnlightenChat:_add_assistant()
     line_hl_group = "EnlightenChatRoleAssistant",
     virt_text_pos = "overlay",
     sign_text = ASSISTANT_SIGN,
+    -- Remove extmark when deleted
+    invalidate = true,
+    undo_restore = false,
   })
 
   insert_line(self.chat_buf, "")
