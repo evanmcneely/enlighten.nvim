@@ -19,7 +19,7 @@
 
 ### 💾 Setup
 
-Neovim 0.9.0 and up are supported
+Must have Neovim 0.10.0+
 
 `curl` is required.
 
@@ -31,7 +31,7 @@ Installation with [lazy.nvim](https://github.com/folke/lazy.nvim)
   {
     "evanmcneely/enlighten.nvim",
     event = "VeryLazy",
-    opts = { 
+    opts = {
       -- ...
     },
     keys = {

@@ -1,5 +1,3 @@
-local tu = require("tests.testutils")
-
 describe("enlighten commands and keymaps", function()
   local target_buf
 
@@ -39,7 +37,7 @@ describe("enlighten commands and keymaps", function()
       vim.api.nvim_set_current_buf(target_buf)
 
       vim.cmd("lua require('enlighten').edit()")
-      tu.scheduled_equals(prompt_buf, vim.api.nvim_get_current_buf())
+      assert.are.same(prompt_buf, vim.api.nvim_get_current_buf())
     end)
   end)
 end)

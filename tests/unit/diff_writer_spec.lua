@@ -145,7 +145,7 @@ describe("DiffWriter", function()
       equals(buffer.get_content(buf), content)
 
       writer:on_complete()
-      tu.scheduled_equals("aaa\nbbb\nhello world\nddd\neee", buffer.get_content(buf))
+      equals("aaa\nbbb\nhello world\nddd\neee", buffer.get_content(buf))
     end)
 
     it("should write to an empty buffer with new line characters", function()

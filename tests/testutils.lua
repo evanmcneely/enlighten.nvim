@@ -140,14 +140,6 @@ function M.feedkeys(keys)
   vim.api.nvim_feedkeys(escape_keys(keys), "xm", true)
 end
 
----@param want any
----@param got any
-function M.scheduled_equals(want, got)
-  vim.schedule(function()
-    assert.are.same(want, got)
-  end)
-end
-
 ---@param substring string
 ---@param content string
 function M.assert_substring_exists(substring, content)
@@ -159,6 +151,26 @@ function M.assert_substring_exists(substring, content)
       .. "\n\n...Recieved\n"
       .. content
   )
+end
+
+---@param messages string[]
+function M.build_mock_history_item(messages)
+  local role = "user"
+  local data = {
+    messages = {},
+    date = "datestring",
+  }
+
+  for _, m in pairs(messages) do
+    table.insert(data.messages, { role = role, content = m })
+    if role == "user" then
+      role = "assistant"
+    else
+      role = "user"
+    end
+  end
+
+  return data
 end
 
 return M

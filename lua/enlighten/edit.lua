@@ -34,6 +34,11 @@ local History = require("enlighten/history")
 ---@field prompt_ext_id number|nil
 --- A list of ids of all autocommands that have been created for this feature.
 ---@field autocommands number[]
+--- The current prompt buffer text. Stored here when the prompt is built for AI completion
+--- so that prompt history can be scrolled.
+---@field prompt string
+--- A flag for whether or the not the user has generated text this session.
+---@field has_generated boolean
 local EnlightenEdit = {}
 EnlightenEdit.__index = EnlightenEdit
 
@@ -81,7 +86,7 @@ local function create_window(id, target_buf, range, settings)
   end
 
   if settings.showTitle then
-    win_opts.title = { { " Prompt ", "EnlightenPromptTitle" } }
+    win_opts.title = { { " Enlighten Edit ", "EnlightenPromptTitle" } }
   end
 
   if settings.showHelp and vim.fn.has("nvim-0.10.0") == 1 then
@@ -199,6 +204,13 @@ local function delete_autocmds(context)
   end
 end
 
+--- Format the prompt text in the universal "messages" format
+---@param prompt string
+---@return AiMessages
+local function build_messages(prompt)
+  return { { role = "user", content = prompt } }
+end
+
 --- Initial gateway into the "prompt" feature. Initialize all data, windows,
 --- keymaps and autocommands that the feature depends on.
 ---@param aiConfig EnlightenAiProviderConfig
@@ -221,9 +233,11 @@ function EnlightenEdit:new(aiConfig, settings, history)
   context.prompt_ext_id = prompt_win.ext_id
   context.settings = settings
   context.aiConfig = aiConfig
-  context.history = History:new(prompt_win.bufnr, history)
+  context.history = History:new(history)
+  context.prompt = ""
+  context.has_generated = false
   context.writer = Writer:new(buf, range, function()
-    context.history:update()
+    context.has_generated = true
   end)
 
   set_keymaps(context)
@@ -251,6 +265,10 @@ function EnlightenEdit:close()
   -- but is dependant on the writer being "done" to behave as expected.
   if self.writer.active then
     return
+  end
+
+  if self.has_generated then
+    self.history:update(build_messages(buffer.get_content(self.prompt_buf)))
   end
 
   Logger:log("edit:close", { id = self.id })
@@ -289,8 +307,10 @@ function EnlightenEdit:submit()
     and not self.writer.active
   then
     Logger:log("edit:sumbit", { id = self.id })
+
     self.writer:reset()
     local prompt = self:_build_prompt()
+
     local opts = {
       provider = self.aiConfig.provider,
       model = self.aiConfig.model,
@@ -320,11 +340,13 @@ end
 --- file type this is and what language to write code in.
 ---@return string
 function EnlightenEdit:_build_prompt()
-  local prompt = buffer.get_content(self.prompt_buf)
+  local user_prompt = buffer.get_content(self.prompt_buf)
   local snippet =
     buffer.get_content(self.target_buf, self.target_range.row_start, self.target_range.row_end + 1)
   local file_name = api.nvim_buf_get_name(self.target_buf)
   local indent = vim.api.nvim_get_option_value("tabstop", { buf = self.target_buf })
+
+  self.prompt = user_prompt
 
   return "File name of the file in the buffer is "
     .. file_name
@@ -332,7 +354,7 @@ function EnlightenEdit:_build_prompt()
     .. indent
     .. "\n"
     .. "Rewrite the following code snippet following these instructions: "
-    .. prompt
+    .. user_prompt
     .. "\n"
     .. "\n"
     .. snippet
@@ -340,12 +362,23 @@ end
 
 --- Scroll back in history. This is mapped to a key on the prompt buffer.
 function EnlightenEdit:scroll_back()
-  self.history:scroll_back()
+  local data = self.history:scroll_back()
+  if data then
+    -- Only one message is expected
+    api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(data.messages[1].content, "\n"))
+  end
 end
 
 --- Scroll forward in history. This is mapped to a key on the prompt buffer.
 function EnlightenEdit:scroll_forward()
-  self.history:scroll_forward()
+  local data = self.history:scroll_forward()
+  if data then
+    -- Only one message is expected
+    api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(data.messages[1].content, "\n"))
+  else
+    -- Use the prompt from this session when no data is returned
+    api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(self.prompt, "\n"))
+  end
 end
 
 return EnlightenEdit
