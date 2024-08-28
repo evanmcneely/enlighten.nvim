@@ -49,22 +49,16 @@ function M.diff(left, right)
   local j = #right
 
   while i > 0 or j > 0 do
-    if i == 0 then
-      table.insert(results, { type = M.constants.addition, value = right[j] })
-      j = j - 1
-    elseif j == 0 then
-      table.insert(results, { type = M.constants.removal, value = left[i] })
-      i = i - 1
-    elseif left[i] == right[j] then
+    if i > 0 and j > 0 and left[i] == right[j] then
       table.insert(results, { type = M.constants.unchanged, value = left[i] })
       i = i - 1
       j = j - 1
-    elseif lcs[i - 1][j] >= lcs[i][j - 1] then
-      table.insert(results, { type = M.constants.removal, value = left[i] })
-      i = i - 1
-    else
+    elseif j > 0 and (i == 0 or lcs[i][j - 1] >= lcs[i - 1][j]) then
       table.insert(results, { type = M.constants.addition, value = right[j] })
       j = j - 1
+    else
+      table.insert(results, { type = M.constants.removal, value = left[i] })
+      i = i - 1
     end
   end
 
