@@ -4,7 +4,7 @@
 
 ### Turn Neovim into an AI Code Editor
 
-![enlighten-demo](./demo.gif)
+<video src="https://github.com/user-attachments/assets/bb48765f-2aae-45e9-8458-c4367e693319" controls autoplay style="max-width: 100%;"></video>
 
 </div>
 
