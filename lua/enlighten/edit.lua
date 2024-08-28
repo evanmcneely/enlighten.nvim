@@ -42,8 +42,6 @@ local History = require("enlighten/history")
 local EnlightenEdit = {}
 EnlightenEdit.__index = EnlightenEdit
 
-local CONTEXT = 750
-
 --- Create the prompt buffer and popup window.
 ---
 --- The prompt popup window is rendered in one of two ways.
@@ -344,18 +342,17 @@ end
 function EnlightenEdit:_build_prompt()
   local buf = self.target_buf
   local start = self.target_range.row_start
-  local finish = self.target_range.row_end
+  local finish = self.target_range.row_end + 1
   local lines = api.nvim_buf_line_count(buf)
+  local context_start = start - self.settings.context < 0 and 0 or start - self.settings.context
+  local context_finish = finish + self.settings.context > lines and -1
+    or finish + self.settings.context
 
   local file_name = api.nvim_buf_get_name(buf)
   local indent = vim.api.nvim_get_option_value("tabstop", { buf = buf })
   local user_prompt = buffer.get_content(self.prompt_buf)
 
-  local context = buffer.get_content(
-    buf,
-    start - CONTEXT < 0 and 0 or start - CONTEXT,
-    finish + CONTEXT > lines and -1 or finish + CONTEXT
-  )
+  local context = buffer.get_content(buf, context_start, context_finish)
   local snippet = buffer.get_content(buf, start, finish + 1)
 
   self.prompt = user_prompt

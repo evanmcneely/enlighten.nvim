@@ -39,6 +39,7 @@ local M = {}
 ---@field height number -- edit window height (number of rows)
 ---@field showTitle boolean -- whether to render a title in the edit UI
 ---@field showHelp boolean -- whether to render help footer in the edit UI
+---@field context number
 
 ---@class EnlightenChatSettings
 ---@field width number -- chat pane width (number of columns)
@@ -49,6 +50,7 @@ local M = {}
 ---@field height? number
 ---@field showTitle? boolean
 ---@field showHelp? boolean
+---@field context? number
 
 ---@class EnlightenPartialChatSettings
 ---@field width? number
@@ -86,6 +88,7 @@ function M.get_default_config()
         height = 5,
         showTitle = true,
         showHelp = true,
+        context = 500,
       },
       chat = {
         width = 80,
