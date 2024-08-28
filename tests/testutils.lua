@@ -140,14 +140,6 @@ function M.feedkeys(keys)
   vim.api.nvim_feedkeys(escape_keys(keys), "xm", true)
 end
 
----@param want any
----@param got any
-function M.scheduled_equals(want, got)
-  vim.schedule(function()
-    assert.are.same(want, got)
-  end)
-end
-
 ---@param substring string
 ---@param content string
 function M.assert_substring_exists(substring, content)
