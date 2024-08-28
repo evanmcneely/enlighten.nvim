@@ -59,7 +59,8 @@ This is the default configuration.
         width = 80, -- prompt window width
         height = 5, -- prompt window height
         showTitle = true, -- show the title in the prompt window
-        showHelp = true, -- show the help footer in the prompt window (requires Neovim 0.10.0)
+        showHelp = true, -- show the help footer in the prompt window
+        context = 500 -- lines above and below the selected text passed to the model as context
       },
       chat = {
         width = 80, -- chat window width
