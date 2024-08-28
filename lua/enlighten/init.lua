@@ -11,8 +11,8 @@ local enlighten = {}
 
 ---@param user_config EnlightenPartialConfig?
 function enlighten.setup(user_config)
-  if vim.fn.has("nvim-0.9.0") == 0 then
-    vim.api.nvim_err_writeln("enlighten needs nvim >= 0.9.0")
+  if vim.fn.has("nvim-0.10.0") == 0 then
+    vim.api.nvim_err_writeln("enlighten needs nvim >= 0.10.0")
     return
   end
 
