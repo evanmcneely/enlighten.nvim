@@ -1,5 +1,3 @@
-local tu = require("tests.testutils")
-
 describe("enlighten commands and keymaps", function()
   local target_buf
 
