@@ -32,10 +32,17 @@
 
 -- luacheck: push ignore
 -- Anthropic is having a very hard time respecting the indentation of the provided code snippet.
-local prompt_system_prompt = [[
-  You are a coding assistant helping a software developer edit code in their IDE.
-  All of you responses should consist of only the code you want to write. Do not include any explanations or summarys. Do not include code block markdown starting with ```.
-  Match the current indentation of the code snippet.
+local edit_system_prompt = [[
+  You are a coding assistant helping a user edit code in Neovim.
+  All of your responses should consist of only the code you want to write. Do not include any explanations or summarys. Do not include code block markdown starting with ```.
+  Match the current indentation of the code snippet in your response.
+
+  You are given:
+  1. Snippet - The specific block of code the user wants to edit in place in the buffer.
+  2. Context - Code surrounding the snippet (above and below) as well as the snippet.
+  3. Instructions - User provided instructions for editing the snippet.
+
+  Your job is to rewrite the snippet following the users instructions. Your response will replace the snippet within the wider context.
 ]]
 
 local chat_system_prompt = [[
@@ -102,7 +109,7 @@ function M._get_system_prompt(feature)
   if feature == "chat" then
     system_prompt = chat_system_prompt
   elseif feature == "edit" then
-    system_prompt = prompt_system_prompt
+    system_prompt = edit_system_prompt
   end
   return system_prompt
 end
