@@ -222,6 +222,7 @@ end
 function EnlightenEdit:new(aiConfig, settings, history)
   local id = tostring(math.random(10000))
   local buf = api.nvim_get_current_buf()
+  local win = api.nvim_get_current_win()
   local range = buffer.get_range()
   local prompt_win = create_window(id, buf, range, settings)
 
@@ -238,7 +239,7 @@ function EnlightenEdit:new(aiConfig, settings, history)
   context.history = History:new(history)
   context.prompt = ""
   context.has_generated = false
-  context.writer = Writer:new(buf, range, function()
+  context.writer = Writer:new(buf, win, range, { mode = settings.diff_mode }, function()
     context.has_generated = true
   end)
 

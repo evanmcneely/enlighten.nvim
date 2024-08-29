@@ -41,6 +41,7 @@ local M = {}
 ---@field showHelp boolean -- whether to render help footer in the edit UI
 ---@field context number
 ---@field border string
+---@field diff_mode string
 
 ---@class EnlightenChatSettings
 ---@field width number -- chat pane width (number of columns)
@@ -53,6 +54,7 @@ local M = {}
 ---@field showHelp? boolean
 ---@field context? number
 ---@field border? string
+---@field diff_mode? string
 
 ---@class EnlightenPartialChatSettings
 ---@field width? number
@@ -92,6 +94,7 @@ function M.get_default_config()
         showHelp = true,
         context = 500,
         border = "═",
+        diff_mode = "diff",
       },
       chat = {
         width = 80,

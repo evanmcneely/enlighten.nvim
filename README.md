@@ -62,6 +62,11 @@ This is the default configuration.
         showHelp = true, -- show the help footer in the prompt window
         context = 500 -- lines above and below the selected text passed to the model as context
         border = "═" -- top/bottom border character of prompt window
+        -- Experimental: Can be "diff", "change" or "smart"
+        -- - "diff" will show added and removed lines with DiffAdd and DiffRemove highlights
+        -- - "change" when a hunk has both added and removed lines, this will show only added lines with DiffText highlights for a  (sometimes all added and removed lines is overwhelming)
+        -- - "smart" will act like "diff" unless the total number of changed lines exceeds 3/4 the buffer height (a heuristic for lots of changes), in which it acts like "change"
+        diff_mode = "diff"
       },
       chat = {
         width = 80, -- chat window width
