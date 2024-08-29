@@ -11,6 +11,7 @@ local Logger = require("enlighten/logger")
 ---@field feature string
 ---@field stream? boolean
 ---@field json? boolean
+---@field on_done? fun(success:boolean, message:string):nil
 
 ---@class PartialCompletionOptions
 ---@field provider? string
@@ -133,7 +134,7 @@ function M.request(body, writer, provider, opts)
   local curl_args = {
     "--silent",
     "--show-error",
-    "--no-buffer",
+    opts.stream and "--no-buffer",
     "--max-time",
     opts.timeout,
     "-L",
@@ -159,7 +160,22 @@ function M.request(body, writer, provider, opts)
   local processed_chunks = {}
 
   ---@param chunk string
-  local function on_stdout_chunk(chunk)
+  local function on_data(chunk)
+    if not opts.stream then
+      ---@type table
+      local data = vim.json.decode(chunk)
+
+      if provider.is_error(data) then
+        local error = provider.get_error_message(data)
+        Logger:log("ai:request:on_data - error", error)
+        opts.on_done(false, error)
+      else
+        opts.on_done(true, provider.get_text(data))
+      end
+
+      return
+    end
+
     -- A chunk here can look like three known things
     --  1. "data: {...} data: [done]" : a single JSON object with data and prefix/suffix
     --  2. "data: {...} data: {...} data: {...} ... data: [done]" : multiple JSON objects with data and prefix/suffix
@@ -195,16 +211,27 @@ function M.request(body, writer, provider, opts)
     end
   end
 
-  M.exec("curl", curl_args, on_stdout_chunk, function(err)
+  ---@param err? string
+  local function on_complete(err)
+    if not opts.stream then
+      if err then
+        Logger:log("ai:request:on_complete - error", err)
+        opts.on_done(false, err)
+      end
+      return
+    end
+
     writer:on_complete(err)
-  end)
+  end
+
+  M.exec("curl", curl_args, on_data, on_complete)
 end
 
 ---@param writer Writer
 ---@param prompt string | AiMessages
 ---@param opts CompletionOptions
 function M.complete(prompt, writer, opts)
-  local defaults = { stream = true, json = false }
+  local defaults = { stream = true, json = false, on_done = function() end }
   opts = vim.tbl_extend("force", defaults, opts)
 
   ---@type AiProvider
