@@ -60,15 +60,19 @@ end
 describe("DiffWriter", function()
   local content = "aaa\nbbb\nccc\nddd\neee"
   local buf
+  local win
   ---@type Range
   local range
+  local opts
 
   local function get_extmarks_for_buffer(writer)
     return vim.api.nvim_buf_get_extmarks(buf, writer.diff_ns_id, 0, -1, { details = true })
   end
 
   before_each(function()
+    opts = { mode = "diff" }
     buf = tu.prepare_buffer(content)
+    win = vim.api.nvim_get_current_win()
     range = {
       row_start = 2,
       row_end = 2,
@@ -82,7 +86,7 @@ describe("DiffWriter", function()
     local function on_done()
       done = true
     end
-    local writer = DiffWriter:new(buf, range, on_done)
+    local writer = DiffWriter:new(buf, win, range, opts, on_done)
 
     writer:on_complete()
 
@@ -90,7 +94,7 @@ describe("DiffWriter", function()
   end)
 
   it("should be active on start and inactive on complete", function()
-    local writer = DiffWriter:new(buf, range)
+    local writer = DiffWriter:new(buf, win, range, opts)
     equals(false, writer.active)
 
     writer:start()
@@ -103,7 +107,7 @@ describe("DiffWriter", function()
   -- current expected behaviour is for the line the cursor is on to always be selected
   describe("normal", function()
     it("should not write to buffer until there is a complete line", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("hello")
       writer:on_data(" ")
@@ -118,28 +122,28 @@ describe("DiffWriter", function()
     end)
 
     it("should handle double new line characters as input", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("\n\n")
       equals("aaa\nbbb\n\n\nddd\neee", buffer.get_content(buf))
     end)
 
     it("should handle double new line characters separated by text as input", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("\nhere\n")
       equals("aaa\nbbb\n\nhere\nddd\neee", buffer.get_content(buf))
     end)
 
     it("should not write characters after a new line character", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("\nhere")
       equals("aaa\nbbb\n\nddd\neee", buffer.get_content(buf))
     end)
 
     it("should write all unwritten text on complete", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("hello world")
       equals(buffer.get_content(buf), content)
@@ -152,7 +156,7 @@ describe("DiffWriter", function()
       range.row_end = 0
       range.row_start = 0
       buf = tu.prepare_buffer("")
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("aaa\n")
       writer:on_data("\n")
@@ -165,7 +169,7 @@ describe("DiffWriter", function()
     it("should write to the last line of a buffer", function()
       range.row_start = 4
       range.row_end = 4
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("xxx\n")
       writer:on_data("zzz\n")
@@ -175,7 +179,7 @@ describe("DiffWriter", function()
     it("should write to the last line of a buffer with new line characters", function()
       range.row_start = 4
       range.row_end = 4
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("xxx\n")
       writer:on_data("\n")
@@ -186,7 +190,7 @@ describe("DiffWriter", function()
     it("should write to the end of the buffer", function()
       range.row_start = 6
       range.row_end = 6
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("xxx\n")
       writer:on_data("\n")
@@ -197,7 +201,7 @@ describe("DiffWriter", function()
     it("should write to the beginning of the buffer with new line characters", function()
       range.row_start = 0
       range.row_end = 0
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("xxx\n")
       writer:on_data("\n")
@@ -208,7 +212,7 @@ describe("DiffWriter", function()
     it("should ignore columns in range (only write lines)", function()
       range.col_start = 2
       range.col_end = 2
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("xxx\n")
       writer:on_data("\n")
@@ -216,7 +220,7 @@ describe("DiffWriter", function()
     end)
 
     it("should reset buffer content on reset", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("xxx\n")
       writer:on_data("\n")
@@ -231,7 +235,7 @@ describe("DiffWriter", function()
 
     describe("highlights", function()
       it("should highlight changes at middle of buffer", function()
-        local writer = DiffWriter:new(buf, range)
+        local writer = DiffWriter:new(buf, win, range, { mode = "change" })
 
         writer:on_data("hello\n")
 
@@ -242,7 +246,7 @@ describe("DiffWriter", function()
       it("should highlight changes at start of buffer", function()
         range.row_start = 0
         range.row_end = 0
-        local writer = DiffWriter:new(buf, range)
+        local writer = DiffWriter:new(buf, win, range, { mode = "change" })
 
         writer:on_data("hello\n")
 
@@ -253,7 +257,7 @@ describe("DiffWriter", function()
       it("should highlight changes at the end of buffer", function()
         range.row_start = 4
         range.row_end = 4
-        local writer = DiffWriter:new(buf, range)
+        local writer = DiffWriter:new(buf, win, range, { mode = "change" })
 
         writer:on_data("hello\n")
 
@@ -262,8 +266,7 @@ describe("DiffWriter", function()
       end)
 
       it("should highlight diffs at middle of buffer", function()
-        local writer = DiffWriter:new(buf, range)
-        writer.show_diff = true
+        local writer = DiffWriter:new(buf, win, range, opts)
 
         writer:on_data("hello\n")
 
@@ -275,8 +278,7 @@ describe("DiffWriter", function()
       it("should highlight diffs at start of buffer", function()
         range.row_start = 0
         range.row_end = 0
-        local writer = DiffWriter:new(buf, range)
-        writer.show_diff = true
+        local writer = DiffWriter:new(buf, win, range, opts)
 
         writer:on_data("hello\n")
 
@@ -288,8 +290,7 @@ describe("DiffWriter", function()
       it("should highlight diffs at the end of buffer", function()
         range.row_start = 4
         range.row_end = 4
-        local writer = DiffWriter:new(buf, range)
-        writer.show_diff = true
+        local writer = DiffWriter:new(buf, win, range, opts)
 
         writer:on_data("hello\n")
 
@@ -299,7 +300,7 @@ describe("DiffWriter", function()
       end)
 
       it("should not highlight diff when content hasn't changed", function()
-        local writer = DiffWriter:new(buf, range)
+        local writer = DiffWriter:new(buf, win, range, opts)
 
         writer:on_data("ccc\n")
 
@@ -308,7 +309,7 @@ describe("DiffWriter", function()
       end)
 
       it("should highlight multiple added lines", function()
-        local writer = DiffWriter:new(buf, range)
+        local writer = DiffWriter:new(buf, win, range, opts)
 
         writer:on_data("ccc\n")
         writer:on_data("xxx\n")
@@ -320,7 +321,7 @@ describe("DiffWriter", function()
       end)
 
       it("should highlight multiple hunks", function()
-        local writer = DiffWriter:new(buf, range)
+        local writer = DiffWriter:new(buf, win, range, opts)
 
         writer:on_data("xxx\n")
         writer:on_data("ccc\n")
@@ -333,7 +334,7 @@ describe("DiffWriter", function()
       end)
 
       it("should reset diff highlights", function()
-        local writer = DiffWriter:new(buf, range)
+        local writer = DiffWriter:new(buf, win, range, opts)
 
         writer:on_data("hello\n")
 
@@ -359,14 +360,14 @@ describe("DiffWriter", function()
     end)
 
     it("should replace lines with new content", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("hello\n")
       equals("aaa\nbbb\nhello\nddd\neee", buffer.get_content(buf))
     end)
 
     it("should replace multiple lines with new content until end of range", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("one\n")
       equals("aaa\nbbb\none\nddd\neee", buffer.get_content(buf))
@@ -380,7 +381,7 @@ describe("DiffWriter", function()
 
     it("should remove excess selected lines on complete", function()
       range.row_start = 1
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("one\n")
       writer:on_complete()
@@ -392,7 +393,7 @@ describe("DiffWriter", function()
     end)
 
     it("should reset buffer content on reset when rows are selected", function()
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("hello world\n")
       writer:on_complete()
@@ -404,7 +405,7 @@ describe("DiffWriter", function()
     it("should reset buffer content on reset when only columns are selected", function()
       range.row_start = 3
       range.col_end = 1
-      local writer = DiffWriter:new(buf, range)
+      local writer = DiffWriter:new(buf, win, range, opts)
 
       writer:on_data("hello world\n")
       writer:on_complete()
@@ -424,7 +425,7 @@ describe("DiffWriter", function()
       end)
 
       it("should highlight focused line while generating", function()
-        local writer = DiffWriter:new(buf, range)
+        local writer = DiffWriter:new(buf, win, range, opts)
 
         assert.are_nil(writer.focused_line_id)
 
@@ -452,7 +453,7 @@ describe("DiffWriter", function()
       end)
 
       it("should reset diff highlights", function()
-        local writer = DiffWriter:new(buf, range)
+        local writer = DiffWriter:new(buf, win, range, opts)
 
         writer:on_data("hello\n")
 

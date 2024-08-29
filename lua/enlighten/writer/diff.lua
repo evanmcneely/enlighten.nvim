@@ -19,6 +19,7 @@ local utils = require("enlighten/utils")
 ---@field reset fun(): nil
 
 ---@class DiffWriter: Writer
+---@field window number
 --- The start and end rows of a range of text in the buffer (end inclusive). ex: [1, 3]
 --- At a minimum the range covers one line, so one line can always be replaced. This
 --- is for simplicity, only one case where a range of text is being written to, rather
@@ -44,16 +45,23 @@ local utils = require("enlighten/utils")
 ---@field diff_ns_id number
 --- The most recent line diff that has been computed.
 ---@field diff LineDiff
---- A flag for whether changed lines (additions and deletions) should be shown with a change
---- highlight all lines with addition and removal highlights.
----@field show_diff boolean
+---@field opts DiffWriterOpts
 local DiffWriter = {}
 
+---@class DiffWriterOpts
+--- Can be "diff", "change" or "smart"
+--- - "diff" will show added and removed lines with highlights
+--- - "change" will show only added lines with change highlights
+--- - "smart" will act like "diff" unless the total number of changed lines exceeds 3/4 the buffer hight
+---@field mode string
+
 ---@param buf number
+---@param win number
 ---@param range Range
+---@param opts DiffWriterOpts
 ---@param on_done? fun():nil
 ---@return DiffWriter
-function DiffWriter:new(buf, range, on_done)
+function DiffWriter:new(buf, win, range, opts, on_done)
   local diff_ns_id = api.nvim_create_namespace("EnlightenDiffHighlights")
   local line_ns_id = api.nvim_create_namespace("EnlightenLineHighlights")
   Logger:log("diff:new", { buffer = buf, range = range, ns_id = diff_ns_id })
@@ -64,6 +72,7 @@ function DiffWriter:new(buf, range, on_done)
     shortcircuit = false,
     show_diff = false,
     buffer = buf,
+    window = win,
     on_done = on_done or function() end,
     orig_lines = vim.api.nvim_buf_get_lines(buf, range.row_start, range.row_end + 1, false),
     orig_range = { range.row_start, range.row_end }, -- end inclusive
@@ -75,6 +84,7 @@ function DiffWriter:new(buf, range, on_done)
     line_ns_id = line_ns_id,
     diff_ns_id = diff_ns_id,
     diff = {},
+    opts = opts,
   }, self)
 end
 
@@ -241,8 +251,18 @@ function DiffWriter:_highlight_diff(left, right)
     end)
   end
 
+  local show_diff = self.opts.mode ~= "change"
+  local lines_changed = 0
+  local win_height = vim.api.nvim_win_get_height(self.window)
   for row, hunk in pairs(hunks) do
-    if self.show_diff then
+    lines_changed = lines_changed + #hunk.add
+    lines_changed = lines_changed + #hunk.remove
+
+    if lines_changed > (win_height * 3 / 4) and self.opts.mode == "smart" then
+      show_diff = false
+    end
+
+    if show_diff == true then
       if #hunk.add then
         add(row, hunk)
       end
