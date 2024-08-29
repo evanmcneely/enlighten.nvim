@@ -347,19 +347,21 @@ end
 ---@return string
 function EnlightenEdit:_build_prompt()
   local buf = self.target_buf
-  local start = self.target_range.row_start
-  local finish = self.target_range.row_end + 1
   local lines = api.nvim_buf_line_count(buf)
-  local context_start = start - self.settings.context < 0 and 0 or start - self.settings.context
-  local context_finish = finish + self.settings.context > lines and -1
-    or finish + self.settings.context
+  local snippet_start = self.target_range.row_start
+  local snippet_finish = self.target_range.row_end
+  local context_start = snippet_start - self.settings.context < 0 and 0
+    or snippet_start - self.settings.context
+  local context_finish = snippet_finish + self.settings.context > lines and -1
+    or snippet_finish + self.settings.context
 
   local file_name = api.nvim_buf_get_name(buf)
   local indent = vim.api.nvim_get_option_value("tabstop", { buf = buf })
   local user_prompt = buffer.get_content(self.prompt_buf)
 
-  local context = buffer.get_content(buf, context_start, context_finish)
-  local snippet = buffer.get_content(buf, start, finish + 1)
+  local context_above = buffer.get_content(buf, context_start, snippet_start)
+  local context_below = buffer.get_content(buf, snippet_finish + 1, context_finish)
+  local snippet = buffer.get_content(buf, snippet_start, snippet_finish + 1)
 
   self.prompt = user_prompt
 
@@ -368,9 +370,11 @@ function EnlightenEdit:_build_prompt()
     .. " with indentation (tabstop) of "
     .. indent
     .. ".\n\nContext:\n"
-    .. context
-    .. "\n\nSnippet:\n"
+    .. context_above
+    .. "\n--> snippet start <--\n"
     .. snippet
+    .. "\n--> snippet finish <--\n"
+    .. context_below
     .. "\n\nInstructions:\n"
     .. user_prompt
 end

@@ -65,8 +65,8 @@ local edit_system_prompt = [[
   Match the current indentation of the code snippet in your response.
 
   You are given:
-  1. Snippet - The specific block of code the user wants to edit in place in the buffer.
-  2. Context - Code surrounding the snippet (above and below) as well as the snippet.
+  1. Context - Code surrounding the snippet (above and below) as well as the snippet to edit.
+  2. Snippet - The specific block of code the user wants to edit in place in the buffer. Marked with "--> snippet start <--" and "--> snippet end <--"
   3. Instructions - User provided instructions for editing the snippet.
 
   Your job is to rewrite the snippet following the users instructions. Your response will replace the snippet within the wider context.
