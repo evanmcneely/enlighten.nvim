@@ -70,23 +70,6 @@ local function create_window(id, target_buf, range, settings)
     style = "minimal",
   }
 
-  if open_at_top then
-    win_opts.col = 80
-  else
-    -- Add line above and below to account for border if it isn't empty
-    local height = settings.border == "" and settings.height or settings.height + 2
-    local virt_lines = {}
-    for i = 1, height do
-      virt_lines[i] = { { "", "normal" } }
-    end
-    -- We need to position the window 1 line above the target range so that other virtual
-    -- text we want to add to that line (such as removed line highlights) work without any hassel.
-    local row = range.row_start - 2
-    extmark = api.nvim_buf_set_extmark(target_buf, ns_id, row, 0, {
-      virt_lines = virt_lines,
-    })
-  end
-
   if settings.showTitle then
     win_opts.title = { { " Enlighten Edit ", "EnlightenPromptTitle" } }
   end
@@ -112,6 +95,23 @@ local function create_window(id, target_buf, range, settings)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
   api.nvim_set_option_value("winhl", "FloatBorder:EnlightenPromptBorder", { win = win })
+
+  if open_at_top then
+    win_opts.col = 80
+  else
+    -- Add line above and below to account for border if it isn't empty
+    local height = settings.border == "" and settings.height or settings.height + 2
+    local virt_lines = {}
+    for i = 1, height do
+      virt_lines[i] = { { "", "normal" } }
+    end
+    -- We need to position the window 1 line above the target range so that other virtual
+    -- text we want to add to that line (such as removed line highlights) work without any hassel.
+    local row = range.row_start - 2
+    extmark = api.nvim_buf_set_extmark(target_buf, ns_id, row, 0, {
+      virt_lines = virt_lines,
+    })
+  end
 
   return {
     bufnr = buf,
