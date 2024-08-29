@@ -66,15 +66,17 @@ local function create_window(id, target_buf, range, settings)
     height = settings.height,
     bufpos = { range.row_start - 1, 0 },
     anchor = "SW",
-    border = { "", "═", "", "", "", "═", "", "" },
+    border = { "", settings.border, "", "", "", settings.border, "", "" },
     style = "minimal",
   }
 
   if open_at_top then
     win_opts.col = 80
   else
+    -- Add line above and below to account for border if it isn't empty
+    local height = settings.border == "" and settings.height or settings.height + 2
     local virt_lines = {}
-    for i = 1, settings.height + 2 do
+    for i = 1, height do
       virt_lines[i] = { { "", "normal" } }
     end
     -- We need to position the window 1 line above the target range so that other virtual
@@ -89,7 +91,7 @@ local function create_window(id, target_buf, range, settings)
     win_opts.title = { { " Enlighten Edit ", "EnlightenPromptTitle" } }
   end
 
-  if settings.showHelp and vim.fn.has("nvim-0.10.0") == 1 then
+  if settings.showHelp then
     -- help info in the footer
     win_opts.footer = {
       { " submit ", "EnlightenPromptHelpMsg" },

@@ -40,6 +40,7 @@ local M = {}
 ---@field showTitle boolean -- whether to render a title in the edit UI
 ---@field showHelp boolean -- whether to render help footer in the edit UI
 ---@field context number
+---@field border string
 
 ---@class EnlightenChatSettings
 ---@field width number -- chat pane width (number of columns)
@@ -51,6 +52,7 @@ local M = {}
 ---@field showTitle? boolean
 ---@field showHelp? boolean
 ---@field context? number
+---@field border? string
 
 ---@class EnlightenPartialChatSettings
 ---@field width? number
@@ -89,6 +91,7 @@ function M.get_default_config()
         showTitle = true,
         showHelp = true,
         context = 500,
+        border = "═",
       },
       chat = {
         width = 80,
@@ -167,6 +170,14 @@ function M.build_config(partial_config, latest_config)
       vim.tbl_deep_extend("force", config.settings.edit, partial_config.settings.edit or {})
     config.settings.chat =
       vim.tbl_deep_extend("force", config.settings.chat, partial_config.settings.chat or {})
+  end
+
+  -- set border to " " if title or footer is true
+  if
+    config.settings.edit.border == ""
+    and (config.settings.edit.showHelp == true or config.settings.edit.showTitle == true)
+  then
+    config.settings.edit.border = " "
   end
 
   Logger:log("config.merge_config - final", config)
