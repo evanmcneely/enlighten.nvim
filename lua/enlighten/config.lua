@@ -106,6 +106,7 @@ end
 
 M.config = M.get_default_config()
 
+---@return boolean
 function M.validate_environment()
   local function is_curl_installed()
     local handle = io.popen("command -v curl")
@@ -119,9 +120,17 @@ function M.validate_environment()
 
   if not is_curl_installed() then
     Logger:log("config.validate_environment - curl not installed")
-    M.warn("Enlighten: Curl is not installed. Please install curl to use this plugin.")
-    return
+    M.warn("Enlighten: Curl is not installed. Install curl to use this plugin.")
+    return false
   end
+
+  if vim.fn.has("nvim-0.10.0") == 0 then
+    Logger:log("config.validate_environment - neovim not v0.10.0+")
+    M.warn("Enlighten: Need nvim >= 0.10.0.")
+    return false
+  end
+
+  return true
 end
 
 ---@param p string
@@ -159,12 +168,20 @@ function M.build_config(partial_config, latest_config)
   config.ai.chat = vim.tbl_deep_extend("force", base_provider_config, config.ai.chat or {})
 
   if not M.is_valid_ai_provider(config.ai.edit.provider) then
-    M.warn("Invalid provider " .. config.ai.edit.provider .. " for edit, using default openai")
+    M.warn(
+      "Enlighten: Invalid provider "
+        .. config.ai.edit.provider
+        .. " for edit. Using default openai."
+    )
     config.ai.edit.provider = "openai"
   end
 
   if not M.is_valid_ai_provider(config.ai.chat.provider) then
-    M.warn("Invalid provider " .. config.ai.chat.provider .. " for chat, using default openai")
+    M.warn(
+      "Enlighten: Invalid provider "
+        .. config.ai.chat.provider
+        .. " for chat. Using default openai."
+    )
     config.ai.chat.provider = "openai"
   end
 

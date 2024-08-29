@@ -83,10 +83,10 @@ describe("DiffWriter", function()
 
   it("should call on_done when complete", function()
     local done = false
-    local function on_done()
+    opts.on_done = function()
       done = true
     end
-    local writer = DiffWriter:new(buf, win, range, opts, on_done)
+    local writer = DiffWriter:new(buf, win, range, opts)
 
     writer:on_complete()
 

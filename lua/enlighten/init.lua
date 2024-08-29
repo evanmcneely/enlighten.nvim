@@ -5,18 +5,16 @@ local highlights = require("enlighten/highlights")
 
 ---@class Enlighten
 ---@field config EnlightenConfig
----@field edit_history string[][]
----@field chat_history string[][]
+---@field edit_history HistoryItem[]
+---@field chat_history HistoryItem[]
 local enlighten = {}
 
 ---@param user_config EnlightenPartialConfig?
 function enlighten.setup(user_config)
-  if vim.fn.has("nvim-0.10.0") == 0 then
-    vim.api.nvim_err_writeln("enlighten needs nvim >= 0.10.0")
+  local all_good = config.validate_environment()
+  if not all_good then
     return
   end
-
-  config.validate_environment()
 
   enlighten.config = config.build_config(user_config)
   enlighten.chat_history = {}
@@ -26,6 +24,11 @@ function enlighten.setup(user_config)
 end
 
 function enlighten.edit()
+  local all_good = config.validate_environment()
+  if not all_good then
+    return
+  end
+
   local current_win = vim.api.nvim_get_current_win()
   local current_buf = vim.api.nvim_get_current_buf()
   local current_buf_type = vim.api.nvim_get_option_value("filetype", { buf = current_buf })
@@ -57,6 +60,11 @@ function enlighten.edit()
 end
 
 function enlighten.chat()
+  local all_good = config.validate_environment()
+  if not all_good then
+    return
+  end
+
   local current_buf = vim.api.nvim_get_current_buf()
   local current_buf_type = vim.api.nvim_get_option_value("filetype", { buf = current_buf })
 
