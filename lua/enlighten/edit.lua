@@ -217,7 +217,7 @@ end
 --- keymaps and autocommands that the feature depends on.
 ---@param aiConfig EnlightenAiProviderConfig
 ---@param settings EnlightenEditSettings
----@param history string[][]
+---@param history HistoryItem[]
 ---@return EnlightenPrompt
 function EnlightenEdit:new(aiConfig, settings, history)
   local id = tostring(math.random(10000))
@@ -239,9 +239,12 @@ function EnlightenEdit:new(aiConfig, settings, history)
   context.history = History:new(history)
   context.prompt = ""
   context.has_generated = false
-  context.writer = Writer:new(buf, win, range, { mode = settings.diff_mode }, function()
-    context.has_generated = true
-  end)
+  context.writer = Writer:new(buf, win, range, {
+    mode = settings.diff_mode,
+    on_done = function()
+      context.has_generated = true
+    end,
+  })
 
   set_keymaps(context)
   set_autocmds(context)
@@ -362,7 +365,7 @@ function EnlightenEdit:_build_prompt()
 
   return "File name of the file in the buffer is "
     .. file_name
-    .. " with intation (tabstop) of "
+    .. " with indentation (tabstop) of "
     .. indent
     .. ".\n\nContext:\n"
     .. context

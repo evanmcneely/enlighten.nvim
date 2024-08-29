@@ -19,6 +19,7 @@ local utils = require("enlighten/utils")
 ---@field reset fun(): nil
 
 ---@class DiffWriter: Writer
+---@field opts DiffWriterOpts
 ---@field window number
 --- The start and end rows of a range of text in the buffer (end inclusive). ex: [1, 3]
 --- At a minimum the range covers one line, so one line can always be replaced. This
@@ -45,7 +46,6 @@ local utils = require("enlighten/utils")
 ---@field diff_ns_id number
 --- The most recent line diff that has been computed.
 ---@field diff LineDiff
----@field opts DiffWriterOpts
 local DiffWriter = {}
 
 ---@class DiffWriterOpts
@@ -54,14 +54,15 @@ local DiffWriter = {}
 --- - "change" will show only added lines with change highlights
 --- - "smart" will act like "diff" unless the total number of changed lines exceeds 3/4 the buffer hight
 ---@field mode string
+--- A callback for when streaming content is complete
+---@field on_done? fun():nil
 
 ---@param buf number
 ---@param win number
 ---@param range Range
 ---@param opts DiffWriterOpts
----@param on_done? fun():nil
 ---@return DiffWriter
-function DiffWriter:new(buf, win, range, opts, on_done)
+function DiffWriter:new(buf, win, range, opts)
   local diff_ns_id = api.nvim_create_namespace("EnlightenDiffHighlights")
   local line_ns_id = api.nvim_create_namespace("EnlightenLineHighlights")
   Logger:log("diff:new", { buffer = buf, range = range, ns_id = diff_ns_id })
@@ -73,7 +74,7 @@ function DiffWriter:new(buf, win, range, opts, on_done)
     show_diff = false,
     buffer = buf,
     window = win,
-    on_done = on_done or function() end,
+    on_done = opts.on_done or function() end,
     orig_lines = vim.api.nvim_buf_get_lines(buf, range.row_start, range.row_end + 1, false),
     orig_range = { range.row_start, range.row_end }, -- end inclusive
     accumulated_text = "",

@@ -24,7 +24,7 @@ local History = require("enlighten/history")
 ---@field history History
 --- A class responsible for writing text to a buffer. This feature uses the
 --- streaming writer to stream AI completions into the chat buffer.
----@field writer Writer
+---@field writer StreamWriter
 --- A list of ids of all autocommands that have been created for this feature.
 ---@field autocommands number[]
 --- A list of the current chat sessions messages. Used for scrolling chat history.
@@ -203,7 +203,7 @@ end
 --- and autocommands that the feature depend on.
 ---@param aiConfig EnlightenAiProviderConfig
 ---@param settings EnlightenChatSettings
----@param history string[][]
+---@param history HistoryItem[]
 ---@return EnlightenChat
 function EnlightenChat:new(aiConfig, settings, history)
   local id = tostring(math.random(10000))

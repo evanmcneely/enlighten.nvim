@@ -21,7 +21,7 @@ local History = {}
 -- Only keep a max of 10 past prompts or conversations
 local MAX_HISTORY = 10
 
----@param previous string[][]
+---@param previous HistoryItem[]
 ---@return History
 function History:new(previous)
   self.__index = self
@@ -42,12 +42,12 @@ end
 ---@return HistoryItem[]
 function History:update(messages)
   if type(messages) == "string" then
-    messages = {{ role = "user", content = messages }}
+    messages = { { role = "user", content = messages } }
   end
 
   ---@type HistoryItem
   local item = {
-    messages =  messages ,
+    messages = messages,
     date = tostring(os.date("%Y-%m-%d")),
   }
 
