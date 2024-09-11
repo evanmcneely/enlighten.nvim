@@ -156,20 +156,20 @@ end
 function DiffWriter:_set_line(line)
   table.insert(self.accumulated_lines, line)
 
-  -- Short circuit if the line we would write is unchanged from the current line (always write new lines "").
-  -- This has cascading performance improvements (syntax highlighting, recomputing diff and highlights)
-  local orig_line = buffer.get_content(self.buffer, self.focused_line, self.focused_line + 1)
-  if line ~= "" and orig_line == line then
-    return false
-  end
-
   -- We want to replace existing text at the focused line if the command is run on
   -- a selection and fewer lines have been written than are in the selection.
   local set_lines = self.focused_line - self.orig_range[1]
   local selected_lines = self.orig_range[2] - self.orig_range[1]
   local replace_focused_line = set_lines <= selected_lines
-  local end_line = self.focused_line + (replace_focused_line and 1 or 0)
 
+  -- Short circuit if the line we would write is unchanged from the current line (always write new lines "").
+  -- This has cascading performance improvements (syntax highlighting, recomputing diff and highlights)
+  local orig_line = buffer.get_content(self.buffer, self.focused_line, self.focused_line + 1)
+  if line ~= "" and orig_line == line and replace_focused_line == true then
+    return false
+  end
+
+  local end_line = self.focused_line + (replace_focused_line and 1 or 0)
   api.nvim_buf_set_lines(self.buffer, self.focused_line, end_line, false, { line })
 
   return true
