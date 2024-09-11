@@ -374,9 +374,20 @@ describe("DiffWriter", function()
       writer:on_data("two\n")
       equals("aaa\nbbb\none\ntwo\neee", buffer.get_content(buf))
 
-      -- Insterts new text now
+      -- Inserts new text now
       writer:on_data("three\n")
       equals("aaa\nbbb\none\ntwo\nthree\neee", buffer.get_content(buf))
+    end)
+
+    it("should insert new lines with new content when out of range and lines are the same", function()
+      local writer = DiffWriter:new(buf, win, range, opts)
+
+      writer:on_data("one\n")
+      writer:on_data("two\n")
+
+      -- Insterts new text when this line is the same as the focused line
+      writer:on_data("eee\n")
+      equals("aaa\nbbb\none\ntwo\neee\neee", buffer.get_content(buf))
     end)
 
     it("should remove excess selected lines on complete", function()
