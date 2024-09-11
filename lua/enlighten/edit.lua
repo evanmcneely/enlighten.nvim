@@ -363,6 +363,14 @@ function EnlightenEdit:_build_prompt()
   local context_below = buffer.get_content(buf, snippet_finish + 1, context_finish)
   local snippet = buffer.get_content(buf, snippet_start, snippet_finish + 1)
 
+  -- Wrap the above and below context with backticks if they actually exist
+  if vim.trim(context_above) ~= "" then
+    context_above = "above\n```\n" .. context_above .. "\n```\n"
+  end
+  if vim.trim(context_below) ~= "" then
+    context_below = "below\n```\n" .. context_below .. "\n```\n"
+  end
+
   self.prompt = user_prompt
 
   return "File name of the file in the buffer is "
@@ -371,9 +379,9 @@ function EnlightenEdit:_build_prompt()
     .. indent
     .. ".\n\nContext:\n"
     .. context_above
-    .. "\n--> snippet start <--\n"
+    .. "snippet\n```\n`"
     .. snippet
-    .. "\n--> snippet finish <--\n"
+    .. "\n```\n\n"
     .. context_below
     .. "\n\nInstructions:\n"
     .. user_prompt
