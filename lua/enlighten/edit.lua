@@ -89,13 +89,6 @@ local function create_window(id, target_buf, range, settings)
     win_opts.footer_pos = "right"
   end
 
-  local win = api.nvim_open_win(buf, true, win_opts)
-  api.nvim_set_option_value("buftype", "nofile", { buf = buf })
-  api.nvim_buf_set_name(buf, "enlighten-edit-" .. id)
-  api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
-  api.nvim_set_option_value("wrap", true, { win = win })
-  api.nvim_set_option_value("winhl", "FloatBorder:EnlightenPromptBorder", { win = win })
-
   if open_at_top then
     win_opts.col = 80
   else
@@ -112,6 +105,13 @@ local function create_window(id, target_buf, range, settings)
       virt_lines = virt_lines,
     })
   end
+
+  local win = api.nvim_open_win(buf, true, win_opts)
+  api.nvim_set_option_value("buftype", "nofile", { buf = buf })
+  api.nvim_buf_set_name(buf, "enlighten-edit-" .. id)
+  api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
+  api.nvim_set_option_value("wrap", true, { win = win })
+  api.nvim_set_option_value("winhl", "FloatBorder:EnlightenPromptBorder", { win = win })
 
   return {
     bufnr = buf,
