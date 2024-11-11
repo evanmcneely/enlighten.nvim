@@ -365,10 +365,10 @@ function EnlightenEdit:_build_prompt()
 
   -- Wrap the above and below context with backticks if they actually exist
   if vim.trim(context_above) ~= "" then
-    context_above = "above\n```\n" .. context_above .. "\n```\n"
+    context_above = "Context above:\n" .. context_above .. "\n"
   end
   if vim.trim(context_below) ~= "" then
-    context_below = "below\n```\n" .. context_below .. "\n```\n"
+    context_below = "Context below\n" .. context_below .. "\n"
   end
 
   self.prompt = user_prompt
@@ -377,11 +377,11 @@ function EnlightenEdit:_build_prompt()
     .. file_name
     .. " with indentation (tabstop) of "
     .. indent
-    .. ".\n\nContext:\n"
+    .. ".\n\n"
     .. context_above
-    .. "snippet\n```\n`"
+    .. "Snippet:\n"
     .. snippet
-    .. "\n```\n\n"
+    .. "\n\n"
     .. context_below
     .. "\n\nInstructions:\n"
     .. user_prompt

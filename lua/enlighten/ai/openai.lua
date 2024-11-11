@@ -61,7 +61,7 @@
 -- luacheck: push ignore
 local edit_system_prompt = [[
   You are a coding assistant helping a user edit code in Neovim.
-  All of your responses should consist of only the code you want to write. Do not include any explanations or summarys. Do not include code block markdown starting with ```.
+  All of your responses should consist of only the code you want to write. Do not include any explanations or summaries. Do not include code block markdown starting with ```.
   Match the current indentation of the code snippet in your response.
 
   You are given:
