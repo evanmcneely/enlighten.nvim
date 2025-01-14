@@ -40,7 +40,7 @@ local TITLE = "💬 Enlighten Chat"
 local USER = " User"
 local ASSISTANT = " Assistant"
 local USER_SIGN = " "
-local ASSISTANT_SIGN = "ﮧ "
+local ASSISTANT_SIGN = " "
 
 ---@param tbl string[]
 local function trim_empty_lines(tbl)
