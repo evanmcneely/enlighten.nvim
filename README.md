@@ -10,6 +10,14 @@
 
 </div>
 
+### 🔦 Philosophy
+
+I like Neovim. I like writing the code. I also like _some_ AI editing features _sometimes_. 
+
+This plugin does not strive to implement every feature in AI code editors (such as Cursor). It should have just enough power to get you unblocked or plow through some tedium - without leaving the terminal - so you can get on with your day. It should feel like a native Neovim experience.  
+
+See __TODO__'s for a list of things I will eventually get to. 
+
 ### 🥖 Features
 
 - Generate code from a prompt.
@@ -148,6 +156,6 @@ Chat responses are streamed into the chat buffer. Chat conversations will only b
 
 ### 🏎️ TODO
 
-- Persist history.
+- Persist history across Neovim sessions.
 - Edit buffer with context from the chat.
 - Use codebase as context (files, functions, classes, etc.).
