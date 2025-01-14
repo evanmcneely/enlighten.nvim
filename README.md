@@ -4,7 +4,9 @@
 
 ### Turn Neovim into an AI Code Editor
 
-<video src="https://github.com/user-attachments/assets/bb48765f-2aae-45e9-8458-c4367e693319" controls autoplay style="max-width: 100%;"></video>
+| Edit | Chat |
+| - | - |
+| <video src="https://github.com/user-attachments/assets/24edff3c-26b2-4830-828b-9cc64e1e19a5" controls autoplay style="max-width: 100%;"></video> | <video src="https://github.com/user-attachments/assets/853bf773-2bf8-4bfe-94e5-8be1e90872c0" controls autoplay style="max-width: 100%;"></video>|
 
 </div>
 
