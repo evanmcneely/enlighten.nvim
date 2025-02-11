@@ -159,13 +159,21 @@ function M.build_request(prompt, opts)
       }
     or prompt
 
-  return {
+  local request = {
     model = opts.model,
-    max_tokens = opts.tokens,
-    temperature = opts.temperature,
     stream = opts.stream,
     messages = messages,
   }
+
+  -- OpenAI reasoning models do not accept max_tokens or temperature
+  -- Note: o1 is not fully supported yet
+  local reasoning_models = { "o1", "o3-mini" }
+  if not vim.tbl_contains(reasoning_models, opts.model) then
+    request.max_tokens = opts.tokens
+    request.temperature = opts.temperature
+  end
+
+  return request
 end
 
 return M
