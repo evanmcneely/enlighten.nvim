@@ -90,16 +90,16 @@ function M.exec(cmd, args, on_stdout_chunk, on_complete)
     end
   end
 
-  local handle
+  local handle, error
 
-  -- luacheck: ignore
+  ---@diagnostic disable-next-line: missing-fields
   handle, error = vim.loop.spawn(cmd, {
     args = args,
     stdio = { nil, stdout, stderr },
   }, function(code)
-    stdout:close()
-    stderr:close()
-    handle:close()
+    if stdout then stdout:close() end
+    if stderr then stderr:close() end
+    if handle then handle:close() end
 
     vim.schedule(function()
       if code ~= 0 then
@@ -111,11 +111,14 @@ function M.exec(cmd, args, on_stdout_chunk, on_complete)
   end)
 
   if not handle then
-    on_complete(cmd .. " could not be started: " .. error)
-  else
-    stdout:read_start(on_stdout_read)
-    stderr:read_start(on_stderr_read)
+    on_complete(cmd .. " could not be started: " .. (error or "unknown error"))
+    if stdout then stdout:close() end
+    if stderr then stderr:close() end
+    return
   end
+
+  if stdout then stdout:read_start(on_stdout_read) end
+  if stderr then stderr:read_start(on_stderr_read) end
 end
 
 ---@param body table
