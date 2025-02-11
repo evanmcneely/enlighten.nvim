@@ -25,7 +25,7 @@ See __TODO__'s for a list of things I will eventually get to.
 - Highlight differences in generated or edited code.
 - Conversational chat without leaving Neovim.
 - Conversation and prompt history.
-- OpenAI and Anthropic chat models are supported.
+- OpenAI and Anthropic models are supported.
 
 ### 💾 Setup
 
@@ -59,7 +59,7 @@ This is the default configuration.
   {
     ai = {
       provider = "openai", -- AI provider. Only "openai" or "anthropic" or supported.
-      model = "gpt-4o", -- model name for the specified provider. Only chat completion models are supported.
+      model = "gpt-4o", -- model name for the specified provider. Only chat completion models are supported (plus the o3-mini reasoning model)
       temperature = 0,
       tokens = 4096,
       timeout = 60,
