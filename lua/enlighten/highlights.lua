@@ -27,11 +27,12 @@ local function get_highlights()
 end
 
 function M.setup()
+  -- TODO test and fix issues with other major themes and default (untheme'd)
   for k, v in pairs(get_highlights()) do
     vim.api.nvim_set_hl(0, k, v)
   end
 
-  -- Use markdown highlighting in the chat buffer and prompt buffers
+  -- Use markdown highlighting in the chat and prompt buffers
   vim.treesitter.language.register("markdown", { "enlighten" })
 end
 

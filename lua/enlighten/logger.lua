@@ -5,7 +5,6 @@
 ---@field max_lines number
 ---@field enabled boolean not used yet, but if we get reports of slow, we will use this
 local EnlightenLog = {}
-
 EnlightenLog.__index = EnlightenLog
 
 ---@param str string

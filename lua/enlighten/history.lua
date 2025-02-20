@@ -1,22 +1,31 @@
+-- TODO Persist history across sessions.
+-- The current implementation will need to be heavily refactored and future-proofed.
+-- History should be initialized from a file somewhere when the plugin is setup. Updates
+-- should be saved to the file.
+
 ---@class HistoryItem
+--- Conversation data from the past session.
 ---@field messages AiMessages
+--- The date the session was saved to history.
 ---@field date string
 
+--- A class for managing a history of past sessions with the a plugin feature for a current active session.
 ---@class History
---- Items is a list of the current history. A history item is a list of buffer lines.
+--- A list of past sessions with a particular plugin feature, cumulatively reperesting the history
+--- of the user using that feature.
 ---@field items HistoryItem[]
 --- The current index in the items list that is checked out. Zero is used to identify the
---- current content, not saved in history. Indexes 1+ are used to index the history items.
+--- current content, not saved in history (yet). Indexes 1+ are used to index the history items.
 ---@field index number
---- Temp storage of the current unsaved content while scrolling past history.
+--- Temp storage of the current unsaved content while scrolling past history. This is just a
+--- list of buffer lines.
 ---@field current string[]
---- The curret buffer.
----@field buffer number
---- Flag for whether the current session has already been saved. This is used to
---- skip the history item at index 1 when it is a saved version of the current content.
---- This prevents scrolling a duplicate of the current content. A bit hacky.
+--- Flag for whether the current session has already been saved to the list of history items.
+--- This is used to skip the history item at index 1 when it is a saved version of the current content.
+--- This prevents scrolling a duplicate of the current content. A bit hacky but works well.
 ---@field saved boolean
 local History = {}
+History.__index = History
 
 -- Only keep a max of 10 past prompts or conversations
 local MAX_HISTORY = 10
@@ -24,19 +33,18 @@ local MAX_HISTORY = 10
 ---@param previous HistoryItem[]
 ---@return History
 function History:new(previous)
-  self.__index = self
+  local history = setmetatable({}, self)
+  history.items = previous
+  history.index = 0
 
-  self.items = previous
-  self.index = 0
-
-  return self
+  return history
 end
 
 function History:is_current()
   return self.index == 0
 end
 
---- Update the history item with the buffer content. Create a new history item
+--- Update history with the buffer content. Create a new history item
 --- if one has not been created yet.
 ---@param messages AiMessages | string
 ---@return HistoryItem[]
@@ -64,7 +72,7 @@ function History:update(messages)
   return self.items
 end
 
---- Scroll back through the history items.
+--- Scroll back through session history.
 ---@return HistoryItem?
 function History:scroll_back()
   local old_index = self.index
@@ -84,7 +92,7 @@ function History:scroll_back()
   end
 end
 
---- Scroll forward through the history items.
+--- Scroll forward through session history.
 ---@return HistoryItem?
 function History:scroll_forward()
   local old_index = self.index

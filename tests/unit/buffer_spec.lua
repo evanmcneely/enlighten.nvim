@@ -11,6 +11,8 @@ describe("buffer", function()
     buf = tu.prepare_buffer(content)
   end)
 
+  -- TODO test coverage for get_range and related functions
+
   describe("get_content", function()
     it("should return text content between start and finish indices", function()
       equals("c\nd", buffer.get_content(buf, 2, 4))

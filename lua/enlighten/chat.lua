@@ -5,11 +5,15 @@ local buffer = require("enlighten/buffer")
 local Writer = require("enlighten/writer/stream")
 local Logger = require("enlighten/logger")
 local History = require("enlighten/history")
+local utils = require("enlighten/utils")
 
 ---@class EnlightenChat
----@field id string
+--- Settings injected into this class from the plugin config
 ---@field settings EnlightenChatSettings
+--- AI config injected into this class from the plugin config
 ---@field aiConfig EnlightenAiProviderConfig
+--- Unique 4 diget number to this chat session
+---@field id string
 --- The id of the chat buffer
 ---@field chat_buf number
 --- The id of the window that hosts the chat buffer
@@ -18,14 +22,14 @@ local History = require("enlighten/history")
 ---@field title_buf number
 --- The id of the window that hosts the title buffer
 ---@field title_win number
---- The id of the buffer that the cursor was when the chat was opened
+--- The id of the buffer that the cursor was in when the chat was opened
 ---@field target_buf number
 --- A class that helps manage history of past conversations.
 ---@field history History
 --- A class responsible for writing text to a buffer. This feature uses the
 --- streaming writer to stream AI completions into the chat buffer.
 ---@field writer StreamWriter
---- A list of ids of all autocommands that have been created for this feature.
+--- A list of ids of all autocommands that have been created for this chat session.
 ---@field autocommands number[]
 --- A list of the current chat sessions messages. Used for scrolling chat history.
 ---@field messages AiMessages
@@ -40,19 +44,7 @@ local TITLE = "💬 Enlighten Chat"
 local USER = " User"
 local ASSISTANT = " Assistant"
 local USER_SIGN = " "
-local ASSISTANT_SIGN = " "
-
----@param tbl string[]
-local function trim_empty_lines(tbl)
-  while tbl[1] == "" do
-    table.remove(tbl, 1)
-  end
-  while tbl[#tbl] == "" do
-    table.remove(tbl)
-  end
-
-  return tbl
-end
+local ASSISTANT_SIGN = "󰚩 " -- must be different from user sign
 
 --- Create the chat buffer and popup window
 ---@param id string
@@ -111,7 +103,6 @@ end
 
 --- Set all keymaps for the chat buffer needed for user interactions. This
 --- is the primary UX for the chat feature.
----
 --- - q        : close the prompt buffer
 --- - <cr>     : submit prompt for generation
 --- - <C-o>    : scroll back in history
@@ -199,6 +190,7 @@ local function delete_autocmds(context)
     end
   end
 end
+
 --- Initial gateway into the chat feature. Initialize all data, windows, keymaps
 --- and autocommands that the feature depend on.
 ---@param aiConfig EnlightenAiProviderConfig
@@ -336,7 +328,7 @@ function EnlightenChat:_build_messages()
     local start = mark[2] + 1
     local finish = next_mark and next_mark[2] - 1 or api.nvim_buf_line_count(self.chat_buf)
     local content =
-      table.concat(trim_empty_lines(buffer.get_lines(self.chat_buf, start, finish)), "\n")
+      table.concat(utils.trim_empty_lines(buffer.get_lines(self.chat_buf, start, finish)), "\n")
     table.insert(messages, { role = role, content = content })
   end
 

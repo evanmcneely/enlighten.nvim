@@ -2,18 +2,21 @@ local api = vim.api
 
 local M = {}
 
----@return boolean
-function M.is_visual_mode()
-  local mode = api.nvim_get_mode()
-  return string.lower(mode.mode) == "v"
-end
-
+--- Get the selected range (start and end column and row) regardless of
+--- whether the user has text text selected. The users cursor position is
+--- represented as a range if no text is currently selected.
 ---@return Range
 function M.get_range()
   if M.is_visual_mode() then
     return M.get_selection_range()
   end
   return M.get_cursor_position()
+end
+
+---@return boolean
+function M.is_visual_mode()
+  local mode = api.nvim_get_mode()
+  return string.lower(mode.mode) == "v"
 end
 
 ---@return Range
@@ -84,24 +87,7 @@ end
 ---@param finish? number
 ---@return string
 function M.get_content(buffer, start, finish)
-  if not start then
-    start = 0
-  end
-  if not finish then
-    finish = -1
-  end
-  return table.concat(api.nvim_buf_get_lines(buffer, start, finish, false), "\n")
-end
-
---- Use in a autocmd to stick the current buffer to the window
----@param buf number
----@param win number
-function M.sticky_buffer(buf, win)
-  if vim.api.nvim_buf_is_valid(buf) and vim.api.nvim_win_is_valid(win) then
-    -- pcall necessary to avoid erroring with `mark not set` although no mark are set
-    -- this avoid other issues
-    pcall(vim.api.nvim_win_set_buf, win, buf)
-  end
+  return table.concat(M.get_lines(buffer, start, finish), "\n")
 end
 
 return M

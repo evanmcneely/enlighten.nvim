@@ -34,7 +34,6 @@ end
 ---@alias LineDiff {type: string, value: string}[]
 
 --- Compute the diff for two sets of lines.
----
 --- Ported to lua from:
 ---   https://github.com/florian/diff-tool
 ---   https://florian.github.io/diffing/
@@ -62,7 +61,7 @@ function M.diff(left, right)
     end
   end
 
-  -- Reverse results to get the correct order
+  -- Reverse results to get the correct order (additions before deletions)
   local reversed_results = {}
   for k = #results, 1, -1 do
     table.insert(reversed_results, results[k])
@@ -76,7 +75,7 @@ end
 ---@field remove string[]
 
 --- Extract information about hunks from a computed diff. Hunks are
---- groups of added or removed lines (or both).Hunk row numbers are
+--- groups of added or removed lines (or both). Hunk row numbers are
 --- for the first added line, computed from the provided start line.
 ---@param start_row number
 ---@param diff LineDiff

@@ -2,12 +2,28 @@ local Edit = require("enlighten/edit")
 local Chat = require("enlighten/chat")
 local config = require("enlighten/config")
 local highlights = require("enlighten/highlights")
+local Logger = require("enlighten/logger")
 
 ---@class Enlighten
+--- Full plugin configuration with default values overridden by user provided ones.
 ---@field config EnlightenConfig
+--- `true` after the setup method completes successfully. Check for this to ensure
+--- sure the config is set and environment is valid.
+---@field setup_complete boolean
+--- Helpful logger for debugging.
+---@field logger EnlightenLog
+--- Session history for the edit feature.
 ---@field edit_history HistoryItem[]
+--- Session history for the chat feature.
 ---@field chat_history HistoryItem[]
-local enlighten = {}
+local enlighten = {
+	config = config.config,
+	setup_complete = false,
+  logger = Logger,
+	-- TODO initialize these from file
+	chat_history = {},
+	edit_history = {},
+}
 
 ---@param user_config EnlightenPartialConfig?
 function enlighten.setup(user_config)
@@ -17,15 +33,12 @@ function enlighten.setup(user_config)
   end
 
   enlighten.config = config.build_config(user_config)
-  enlighten.chat_history = {}
-  enlighten.edit_history = {}
-
   highlights.setup()
+  enlighten.setup_complete = true
 end
 
 function enlighten.edit()
-  local all_good = config.validate_environment()
-  if not all_good then
+  if not enlighten.setup_complete then
     return
   end
 
@@ -38,18 +51,18 @@ function enlighten.edit()
     return
   end
 
-  local popups = vim.api.nvim_list_wins()
+  local windows = vim.api.nvim_list_wins()
 
-  for _, win in ipairs(popups) do
-    local win_config = vim.api.nvim_win_get_config(win)
-    local buf = vim.api.nvim_win_get_buf(win)
-    local buf_type = vim.api.nvim_get_option_value("filetype", { buf = buf })
+  for _, win in ipairs(windows) do
+    local window_config = vim.api.nvim_win_get_config(win)
+    local window_buf = vim.api.nvim_win_get_buf(win)
+    local window_buf_type = vim.api.nvim_get_option_value("filetype", { buf = window_buf })
 
     -- If we find an enlighten popup relative to the current window, focus it
     if
-      buf_type == "enlighten"
-      and win_config.relative == "win"
-      and win_config.win == current_win
+      window_buf_type == "enlighten"
+      and window_config.relative == "win"
+      and window_config.win == current_win
     then
       vim.api.nvim_set_current_win(win)
       return
@@ -60,8 +73,7 @@ function enlighten.edit()
 end
 
 function enlighten.chat()
-  local all_good = config.validate_environment()
-  if not all_good then
+  if not enlighten.setup_complete then
     return
   end
 

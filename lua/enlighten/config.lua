@@ -2,28 +2,30 @@ local Logger = require("enlighten/logger")
 
 local M = {}
 
----@class EnlightenAiProviderConfig
----@field provider string -- AI model provider
----@field model string -- model used for completions
----@field temperature number
----@field tokens number -- token limit for completions
----@field timeout number
+---@class EnlightenConfig
+---@field ai EnlightenAiConfig
+---@field settings EnlightenSettings
 
----@class EnlightenPartialAiProviderConfig
----@field provider? string
----@field model? string
----@field temperature? number
----@field tokens? number
----@field timeout? number
+---@class EnlightenPartialConfig
+---@field ai? EnlightenPartialAiConfig
+---@field settings? EnlightenPartialSettings
+---
+---@class EnlightenSettings
+---@field edit EnlightenEditSettings
+---@field chat EnlightenChatSettings
+
+---@class EnlightenPartialSettings
+---@field edit? EnlightenPartialEditSettings
+---@field chat? EnlightenPartialChatSettings
 
 ---@class EnlightenAiConfig
 ---@field chat EnlightenAiProviderConfig
 ---@field edit EnlightenAiProviderConfig
----@field timeout number
----@field provider string -- AI model provider
----@field model string -- model used for completions
----@field temperature number
----@field tokens number -- token limit for completions
+---@field timeout number Completion timeout in seconds
+---@field provider string AI model provider
+---@field model string Model used for completions
+---@field temperature number Model temperature (used only when provider API permits)
+---@field tokens number Token limit for completions (used only when provider API permits)
 
 ---@class EnlightenPartialAiConfig
 ---@field chat? EnlightenPartialAiProviderConfig
@@ -34,18 +36,28 @@ local M = {}
 ---@field temperature? number
 ---@field tokens? number
 
----@class EnlightenEditSettings
----@field width number -- edit window width (number of columns)
----@field height number -- edit window height (number of rows)
----@field showTitle boolean -- whether to render a title in the edit UI
----@field showHelp boolean -- whether to render help footer in the edit UI
----@field context number
----@field border string
----@field diff_mode string
+---@class EnlightenAiProviderConfig
+---@field provider string
+---@field model string
+---@field temperature number
+---@field tokens number
+---@field timeout number
 
----@class EnlightenChatSettings
----@field width number -- chat pane width (number of columns)
----@field split string -- side to vsplit that into (default right)
+---@class EnlightenPartialAiProviderConfig
+---@field provider? string
+---@field model? string
+---@field temperature? number
+---@field tokens? number
+---@field timeout? number
+
+---@class EnlightenEditSettings
+---@field width number Edit popup window width (number of columns)
+---@field height number Edit popup window height (number of rows)
+---@field showTitle boolean Whether to render a title in the edit UI
+---@field showHelp boolean Whether to render help footer in the edit UI
+---@field context number Number of lines above and below selection to use as context in completion
+---@field border string Character used as top and bottomm border in popup window
+---@field diff_mode string Whether to show added/removed lines or only changes (diff or change)
 
 ---@class EnlightenPartialEditSettings
 ---@field width? number
@@ -56,25 +68,13 @@ local M = {}
 ---@field border? string
 ---@field diff_mode? string
 
+---@class EnlightenChatSettings
+---@field width number Chat pane width (number of columns)
+---@field split string Side that the chat pane opens on (left or right)
+
 ---@class EnlightenPartialChatSettings
 ---@field width? number
 ---@field split? string
-
----@class EnlightenSettings
----@field edit EnlightenEditSettings
----@field chat EnlightenChatSettings
-
----@class EnlightenPartialSettings
----@field edit? EnlightenPartialEditSettings
----@field chat? EnlightenPartialChatSettings
-
----@class EnlightenConfig
----@field ai EnlightenAiConfig
----@field settings EnlightenSettings
-
----@class EnlightenPartialConfig
----@field ai? EnlightenPartialAiConfig
----@field settings? EnlightenPartialSettings
 
 ---@return EnlightenConfig
 function M.get_default_config()
@@ -142,17 +142,18 @@ end
 
 ---@param message string
 function M.warn(message)
+  -- TODO revisit these warning messages to ensure they bubble up to the user properly
   vim.api.nvim_notify(message, vim.log.levels.WARN, {})
 end
 
 ---@param partial_config EnlightenPartialConfig?
----@param latest_config EnlightenConfig?
 ---@return EnlightenConfig
-function M.build_config(partial_config, latest_config)
+-- TODO fail and return early if config is invalid
+function M.build_config(partial_config)
   partial_config = partial_config or {}
-  local config = latest_config or M.get_default_config()
+  local config = M.get_default_config()
 
-  Logger:log("config.merge_config - user", partial_config)
+  Logger:log("config.build_config - user provided", partial_config)
 
   config.ai = vim.tbl_deep_extend("force", config.ai, partial_config.ai or {})
 
@@ -192,7 +193,7 @@ function M.build_config(partial_config, latest_config)
       vim.tbl_deep_extend("force", config.settings.chat, partial_config.settings.chat or {})
   end
 
-  -- set border to " " if title or footer is true
+  -- Set border to " " if title or footer is true
   if
     config.settings.edit.border == ""
     and (config.settings.edit.showHelp == true or config.settings.edit.showTitle == true)

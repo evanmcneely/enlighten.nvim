@@ -2,14 +2,47 @@
 
 local Logger = require("enlighten/logger")
 
+--- The interface that any new AI provider must implement to be integrated as the
+--- AI backend for plugin features.
+---@class AiProvider
+--- The proper name of the AI provider (use proper capitalization).
+---@field name string
+--- The API endpoint of the chat model for the AI provider
+---@field endpoint string
+--- The name of the environment variable we expect an API key to saved to.
+---@field api_key_env_var string
+--- A function to get the API key from the environment.
+---@field get_api_key fun(): string
+--- A function to interpret a response from the provider API and determine if it is an error.
+---@field is_error fun(body: table): boolean
+--- A function to interpret a response from the API and determine if streaming is finished.
+---@field is_streaming_finished fun(body: table): boolean
+--- A function to get the generated text out of the response body (assuming it is a successful response).
+---@field get_text fun(body: table): string
+--- A function to get the error message out of the response body (assuming it is an error response).
+---@field get_error_message fun(body: table): string
+--- A function to build the curl header flags we need to send to the endpoint (usually auth or API version headers).
+--- The response is passed straight to curl as command line arguments.
+---@field build_headers fun(): string[]
+---A function to build a streaming request body to send to the API.
+---@field build_request fun(prompt: string|AiMessages, config: EnlightenAiProviderConfig): table
+
 ---@class CompletionOptions
+--- The AI model provider.
 ---@field provider string
+--- The name of the AI model hosted by the provider.
 ---@field model string
+--- Model temperature (only used if the provider API permits).
 ---@field temperature number
+--- Max tokens for generation (only used if the provider API permits).
 ---@field tokens number
+--- Completion timeout in seconds.
 ---@field timeout number
+--- The name of the plugin feature initiating this request (ex. chat).
 ---@field feature string
+--- Whether or not to stream text (for future use).
 ---@field stream? boolean
+--- Whether or not request the response format as JSON (for future use).
 ---@field json? boolean
 
 ---@class PartialCompletionOptions
@@ -24,10 +57,11 @@ local Logger = require("enlighten/logger")
 
 local M = {}
 
--- Try's to extract as many complete JSON strings out of the input
--- string and returns them along with whatever junk si left over.
+--- Try's to extract as many complete JSON strings out of the input
+--- string and returns them along with whatever junk is left over.
 ---@param s string
 ---@return string[], string
+--- TODO export function and test
 local function extract_json(s)
   local open = 0
   local complete_json_strings = {}
@@ -97,9 +131,15 @@ function M.exec(cmd, args, on_stdout_chunk, on_complete)
     args = args,
     stdio = { nil, stdout, stderr },
   }, function(code)
-    if stdout then stdout:close() end
-    if stderr then stderr:close() end
-    if handle then handle:close() end
+    if stdout then
+      stdout:close()
+    end
+    if stderr then
+      stderr:close()
+    end
+    if handle then
+      handle:close()
+    end
 
     vim.schedule(function()
       if code ~= 0 then
@@ -111,14 +151,22 @@ function M.exec(cmd, args, on_stdout_chunk, on_complete)
   end)
 
   if not handle then
-    on_complete(cmd .. " could not be started: " .. (error or "unknown error"))
-    if stdout then stdout:close() end
-    if stderr then stderr:close() end
+    on_complete("request could not be started: " .. (error or "unknown error"))
+    if stdout then
+      stdout:close()
+    end
+    if stderr then
+      stderr:close()
+    end
     return
   end
 
-  if stdout then stdout:read_start(on_stdout_read) end
-  if stderr then stderr:read_start(on_stderr_read) end
+  if stdout then
+    stdout:read_start(on_stdout_read)
+  end
+  if stderr then
+    stderr:read_start(on_stderr_read)
+  end
 end
 
 ---@param body table
@@ -207,18 +255,21 @@ end
 ---@param prompt string | AiMessages
 ---@param opts CompletionOptions
 function M.complete(prompt, writer, opts)
+  -- TODO implement streaming false for use in background work / automations
+  -- TODO implement JSON format for use in background work / automations
   local defaults = { stream = true, json = false }
   opts = vim.tbl_extend("force", defaults, opts)
 
   ---@type AiProvider
   local provider
   local success, _ = pcall(function()
+    -- TODO how can we allow user written providers for local models
     provider = require("enlighten.ai." .. opts.provider)
   end)
 
   if not success then
     vim.notify(
-      "AI provider " .. opts.provider .. " is unkown. Try something else.",
+      "AI provider " .. opts.provider .. " is unknown. Try something else.",
       vim.log.levels.ERROR
     )
     return

@@ -12,4 +12,7 @@ describe("utils", function()
       equals(false, utils.starts_with("g testing", "h"))
     end)
   end)
+
+  -- TODO write tests for slice
+  -- TODO write tests for trim_empty_lines
 end)
