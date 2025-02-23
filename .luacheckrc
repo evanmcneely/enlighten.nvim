@@ -1,4 +1,4 @@
-std = "luajit,busted"
+std = "luajit+busted"
 cache = true
 codes = true
 read_globals = { "vim" }
