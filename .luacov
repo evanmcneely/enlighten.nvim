@@ -1,0 +1,8 @@
+return {
+  include = {
+    "lua/enlighten$",
+    "lua/enlighten%/.+$",
+  },
+  statsfile = 'luacov.stats',
+  reportfile = 'luacov.report',
+}

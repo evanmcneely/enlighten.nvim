@@ -1,1 +1,6 @@
 plenary.nvim/
+
+# luacov
+luacov.report
+luacov.report.index
+luacov.stats
