@@ -219,9 +219,8 @@ end
 --- keymaps and autocommands that the feature depends on.
 ---@param aiConfig EnlightenAiProviderConfig
 ---@param settings EnlightenEditSettings
----@param history HistoryItem[]
 ---@return EnlightenPrompt
-function EnlightenEdit:new(aiConfig, settings, history)
+function EnlightenEdit:new(aiConfig, settings)
   local id = tostring(math.random(10000))
   local buf = api.nvim_get_current_buf()
   local win = api.nvim_get_current_win()
@@ -238,7 +237,7 @@ function EnlightenEdit:new(aiConfig, settings, history)
   context.prompt_ext_id = prompt_win.ext_id
   context.settings = settings
   context.aiConfig = aiConfig
-  context.history = History:new(history)
+  context.history = History:new("edit")
   context.prompt = ""
   context.has_generated = false
   context.writer = Writer:new(buf, win, range, {

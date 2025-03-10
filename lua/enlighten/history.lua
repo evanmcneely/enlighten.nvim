@@ -1,8 +1,3 @@
--- TODO Persist history across sessions.
--- The current implementation will need to be heavily refactored and future-proofed.
--- History should be initialized from a file somewhere when the plugin is setup. Updates
--- should be saved to the file.
-
 ---@class HistoryItem
 --- Conversation data from the past session.
 ---@field messages AiMessages
@@ -24,30 +19,88 @@
 --- This is used to skip the history item at index 1 when it is a saved version of the current content.
 --- This prevents scrolling a duplicate of the current content. A bit hacky but works well.
 ---@field saved boolean
+---The file path to persist history for this feature.
+---@field file_path string
 local History = {}
 History.__index = History
 
--- Only keep a max of 10 past prompts or conversations
-local MAX_HISTORY = 10
+-- Maximum history entries to store.
+local MAX_HISTORY = 25
 
----@param previous HistoryItem[]
+-- Helper to get the base directory for plugin data
+local function get_base_directory()
+  local base = vim.fn.stdpath("data") .. "/enlighten.nvim/"
+  -- Ensure the directory exists. "p" flag creates intermediate dirs.
+  vim.fn.mkdir(base, "p")
+  return base
+end
+
+-- Generates a file path based on the given feature name.
+local function get_history_file(feature)
+  return get_base_directory() .. feature .. ".json"
+end
+
+-- Writes the given history items as JSON to the specified file.
+---@param file_path string
+---@param items HistoryItem[]
+local function save_history_to_file(file_path, items)
+  local file = io.open(file_path, "w")
+  if file then
+    local data = vim.fn.json_encode(items)
+    file:write(data)
+    file:close()
+  else
+    vim.notify("Failed to open history file for writing: " .. file_path, vim.log.levels.ERROR)
+  end
+end
+
+-- Loads history items from the specified file. Returns an empty table if the file does not exist.
+---@param file_path string
+local function load_history_from_file(file_path)
+  local file = io.open(file_path, "r")
+  if not file then
+    return {}
+  end
+  local content = file:read("*a")
+  file:close()
+  if #content == 0 then
+    return {}
+  end
+  local ok, items = pcall(vim.fn.json_decode, content)
+  if not ok then
+    vim.notify("Error decoding history file: " .. file_path, vim.log.levels.ERROR)
+    return {}
+  end
+  return items
+end
+
+--- Constructor for the History class.
+--- Pass the feature name to have separate history persisted per feature under /enlighten.nvim/<feature>.json.
+---@param feature string The feature identifier for which to load/persist history.
 ---@return History
-function History:new(previous)
-  local history = setmetatable({}, self)
-  history.items = previous
-  history.index = 0
+function History:new(feature)
+  assert(type(feature) == "string" and #feature > 0, "feature must be a non-empty string")
 
+  local history = setmetatable({}, self)
+  history.file_path = get_history_file(feature)
+  -- Load persisted history for the given feature.
+  history.items = load_history_from_file(history.file_path)
+  history.index = 0
+  history.current = {}
+  history.saved = false
   return history
 end
 
+--- Checks if the current content is unsaved.
+---@return boolean True if current session is unsaved.
 function History:is_current()
   return self.index == 0
 end
 
---- Update history with the buffer content. Create a new history item
---- if one has not been created yet.
----@param messages AiMessages | string
----@return HistoryItem[]
+--- Updates history with new messages.
+--- If messages is a string, it will be wrapped as an AI message.
+---@param messages AiMessages|string
+---@return HistoryItem[] Updated list of HistoryItem objects.
 function History:update(messages)
   if type(messages) == "string" then
     messages = { { role = "user", content = messages } }
@@ -62,41 +115,41 @@ function History:update(messages)
   if self.index == 0 then
     table.insert(self.items, 1, item)
     if #self.items > MAX_HISTORY then
-      table.remove(self.items)
+      table.remove(self.items) -- Remove the oldest history item.
     end
     self.saved = true
   else
     self.items[self.index] = item
   end
 
+  -- Persist history to file.
+  save_history_to_file(self.file_path, self.items)
   return self.items
 end
 
---- Scroll back through session history.
----@return HistoryItem?
+--- Scrolls back through session history.
+---@return HistoryItem|nil Returns the history item or nil if already at the oldest item.
 function History:scroll_back()
   local old_index = self.index
-
   if self.index < #self.items then
     self.index = self.index + 1
   end
 
   if old_index == self.index then
-    return
+    return nil
   end
 
   if self.index == 0 then
     return nil
-  else
-    return self.items[self.index]
   end
+
+  return self.items[self.index]
 end
 
---- Scroll forward through session history.
----@return HistoryItem?
+--- Scrolls forward through session history.
+---@return HistoryItem|nil Returns the history item or nil if already at the current session.
 function History:scroll_forward()
   local old_index = self.index
-
   if self.index > 0 then
     self.index = self.index - 1
   end
@@ -106,7 +159,7 @@ function History:scroll_forward()
   end
 
   if self.index == 0 then
-    return
+    return nil
   else
     return self.items[self.index]
   end
