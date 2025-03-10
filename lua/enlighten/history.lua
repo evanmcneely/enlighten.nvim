@@ -1,4 +1,6 @@
-local Logger = require("logger")
+local Logger = require("enlighten/logger")
+
+--- TODO save history for feature under project name (default if not git directory)
 
 ---@class HistoryItem
 --- Conversation data from the past session.
