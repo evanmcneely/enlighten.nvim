@@ -131,6 +131,15 @@ function History:update(messages)
   return self.items
 end
 
+--- Sets the history items, overriding any existing history.
+--- Used in tests to set initial state of history.
+---@param new_items HistoryItem[] the new list of history items
+function History:set(new_items)
+	self.items = new_items
+	self.index = 0
+	save_history_to_file(self.file_path, self.items)
+end
+
 --- Scrolls back through session history.
 ---@return HistoryItem|nil Returns the history item or nil if already at the oldest item.
 function History:scroll_back()

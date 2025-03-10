@@ -4,7 +4,15 @@ set -e
 REPO_DIR=$(git rev-parse --show-toplevel)
 
 nvim_t() {
-	nvim -u "$REPO_DIR/tests/minimal_init.lua" -c "set runtimepath+=$REPO_DIR" "$@"
+  # Create the temporary home and set a trap to remove it on exit.
+  mkdir -p tmp_home
+  trap 'rm -rf tmp_home' EXIT
+
+  export XDG_DATA_HOME='./tmp_home'
+  export XDG_CONFIG_HOME='./tmp_home'
+
+  # Launch nvim with the provided arguments
+  nvim -u "$REPO_DIR/tests/minimal_init.lua" -c "set runtimepath+=$REPO_DIR" "$@"
 }
 
 if [ -n "$1" ]; then
