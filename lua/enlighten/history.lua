@@ -23,7 +23,7 @@ local Logger = require("enlighten/logger")
 --- This is used to skip the history item at index 1 when it is a saved version of the current content.
 --- This prevents scrolling a duplicate of the current content. A bit hacky but works well.
 ---@field saved boolean
----The file path to persist history for this feature.
+--- The file path to persist history for this feature.
 ---@field file_path string
 local History = {}
 History.__index = History
@@ -31,7 +31,8 @@ History.__index = History
 -- Maximum history entries to store.
 local MAX_HISTORY = 25
 
--- Helper to get the base directory for plugin data
+--- Helper to get the base directory for plugin data
+---@return string
 local function get_base_directory()
   local base = vim.fn.stdpath("data") .. "/enlighten.nvim/"
   -- Ensure the directory exists. "p" flag creates intermediate dirs.
@@ -39,9 +40,9 @@ local function get_base_directory()
   return base
 end
 
--- Helper to determine the current project name.
--- If the current directory is in a Git repo, returns the repository's name
--- Otherwise, returns "default"
+--- Helper to determine the current project name. If the current directory is in a
+--- Git repo, returns the repository's name. Otherwise, returns "default"
+---@return string
 local function get_project_name()
   local project_name = "default"
   -- Try getting the git top level; suppress error messages
@@ -54,8 +55,10 @@ local function get_project_name()
   return project_name
 end
 
--- Generates a file path based on the given feature name.
--- The file is saved under a sub-directory per project.
+--- Generates a file path based on the given feature name.
+--- The file is saved under a sub-directory per project.
+---@param feature string
+---@return string
 local function get_history_file(feature)
   local project = get_project_name()
   local project_dir = get_base_directory() .. project .. "/"
@@ -64,7 +67,7 @@ local function get_history_file(feature)
   return project_dir .. feature .. ".json"
 end
 
--- Writes the given history items as JSON to the specified file.
+--- Writes the given history items as JSON to the specified file.
 ---@param file_path string
 ---@param items HistoryItem[]
 local function save_history_to_file(file_path, items)
@@ -78,8 +81,9 @@ local function save_history_to_file(file_path, items)
   end
 end
 
--- Loads history items from the specified file. Returns an empty table if the file does not exist.
+--- Loads history items from the specified file. Returns an empty table if the file does not exist.
 ---@param file_path string
+---@return HistoryItems[]
 local function load_history_from_file(file_path)
   local file = io.open(file_path, "r")
   if not file then
