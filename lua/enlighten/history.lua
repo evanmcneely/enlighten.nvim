@@ -39,9 +39,29 @@ local function get_base_directory()
   return base
 end
 
+-- Helper to determine the current project name.
+-- If the current directory is in a Git repo, returns the repository's name
+-- Otherwise, returns "default"
+local function get_project_name()
+  local project_name = "default"
+  -- Try getting the git top level; suppress error messages
+  local git_top = vim.fn.system("git rev-parse --show-toplevel 2> /dev/null")
+  if vim.v.shell_error == 0 then
+    -- trim any trailing whitespace/newlines
+    git_top = git_top:gsub("%s+", "")
+    project_name = vim.fn.fnamemodify(git_top, ":t")
+  end
+  return project_name
+end
+
 -- Generates a file path based on the given feature name.
+-- The file is saved under a sub-directory per project.
 local function get_history_file(feature)
-  return get_base_directory() .. feature .. ".json"
+  local project = get_project_name()
+  local project_dir = get_base_directory() .. project .. "/"
+  -- Ensure the project directory exists.
+  vim.fn.mkdir(project_dir, "p")
+  return project_dir .. feature .. ".json"
 end
 
 -- Writes the given history items as JSON to the specified file.
@@ -135,9 +155,9 @@ end
 --- Used in tests to set initial state of history.
 ---@param new_items HistoryItem[] the new list of history items
 function History:set(new_items)
-	self.items = new_items
-	self.index = 0
-	save_history_to_file(self.file_path, self.items)
+  self.items = new_items
+  self.index = 0
+  save_history_to_file(self.file_path, self.items)
 end
 
 --- Scrolls back through session history.
