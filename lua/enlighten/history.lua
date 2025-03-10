@@ -1,3 +1,5 @@
+local Logger = require("logger")
+
 ---@class HistoryItem
 --- Conversation data from the past session.
 ---@field messages AiMessages
@@ -50,7 +52,7 @@ local function save_history_to_file(file_path, items)
     file:write(data)
     file:close()
   else
-    vim.notify("Failed to open history file for writing: " .. file_path, vim.log.levels.ERROR)
+    Logger:log("save_history_to_file - failed", { file_path = file_path })
   end
 end
 
@@ -68,7 +70,7 @@ local function load_history_from_file(file_path)
   end
   local ok, items = pcall(vim.fn.json_decode, content)
   if not ok then
-    vim.notify("Error decoding history file: " .. file_path, vim.log.levels.ERROR)
+    Logger:log("load_history_from_file - failed", { file_path = file_path })
     return {}
   end
   return items
