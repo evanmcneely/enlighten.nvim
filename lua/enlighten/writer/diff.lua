@@ -5,7 +5,7 @@ local Logger = require("enlighten/logger")
 local utils = require("enlighten/utils")
 
 ---@class Writer
---- A flag for whether the writer is actively reciveing streamed text to be processed.
+--- A flag for whether the writer is actively receiving streamed text to be processed.
 ---@field active boolean
 --- A flag for whether writing to buffer should be stopped.
 ---@field shortcircuit boolean
@@ -31,7 +31,7 @@ local utils = require("enlighten/utils")
 --- All text that has been generated.
 ---@field accumulated_text string
 --- The text of the current line (from the last \n) that has been generated. Only complete lines are
---- writen to the buffer, so this can be considered a staging area for the next line to be written.
+--- written to the buffer, so this can be considered a staging area for the next line to be written.
 ---@field accumulated_line string
 --- All lines of text that have been written to the buffer.
 ---@field accumulated_lines string[]
@@ -49,10 +49,9 @@ local utils = require("enlighten/utils")
 local DiffWriter = {}
 
 ---@class DiffWriterOpts
---- Can be "diff", "change" or "smart"
+--- Can be "diff" or "change"
 --- - "diff" will show added and removed lines with highlights
 --- - "change" will show only added lines with change highlights
---- - "smart" will act like "diff" unless the total number of changed lines exceeds 3/4 the buffer hight
 ---@field mode string
 --- A callback for when streaming content is complete
 ---@field on_done? fun():nil
@@ -254,14 +253,9 @@ function DiffWriter:_highlight_diff(left, right)
 
   local show_diff = self.opts.mode ~= "change"
   local lines_changed = 0
-  local win_height = vim.api.nvim_win_get_height(self.window)
   for row, hunk in pairs(hunks) do
     lines_changed = lines_changed + #hunk.add
     lines_changed = lines_changed + #hunk.remove
-
-    if lines_changed > (win_height * 3 / 4) and self.opts.mode == "smart" then
-      show_diff = false
-    end
 
     if show_diff == true then
       if #hunk.add then

@@ -4,19 +4,19 @@
 
 ### Turn Neovim into an AI Code Editor
 
-| Edit | Chat |
-| - | - |
-| <video src="https://github.com/user-attachments/assets/24edff3c-26b2-4830-828b-9cc64e1e19a5" controls autoplay style="max-width: 100%;"></video> | <video src="https://github.com/user-attachments/assets/853bf773-2bf8-4bfe-94e5-8be1e90872c0" controls autoplay style="max-width: 100%;"></video>|
+| Edit                                                                                                                                             | Chat                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| <video src="https://github.com/user-attachments/assets/24edff3c-26b2-4830-828b-9cc64e1e19a5" controls autoplay style="max-width: 100%;"></video> | <video src="https://github.com/user-attachments/assets/853bf773-2bf8-4bfe-94e5-8be1e90872c0" controls autoplay style="max-width: 100%;"></video> |
 
 </div>
 
 ### 🔦 Philosophy
 
-I like Neovim. I like writing the code. I also like _some_ AI editing features _sometimes_. 
+I like Neovim. I like writing the code. I also like _some_ AI editing features _sometimes_.
 
-This plugin does not strive to implement every feature in AI code editors (such as Cursor). It should have just enough power to get you unblocked or plow through some tedium - without leaving the terminal - so you can get on with your day. It should feel like a native Neovim experience.  
+This plugin does not strive to implement every feature in AI code editors (such as Cursor). It should have just enough power to get you unblocked or plow through some tedium - without leaving the terminal - so you can get on with your day. It should feel like a native Neovim experience.
 
-See __TODO__'s for a list of things I will eventually get to. 
+See **TODO**'s for a list of things I will eventually get to.
 
 ### 🥖 Features
 
@@ -72,10 +72,9 @@ This is the default configuration.
         showHelp = true, -- show the help footer in the prompt window
         context = 500 -- lines above and below the selected text passed to the model as context
         border = "═" -- top/bottom border character of prompt window
-        -- Experimental: Can be "diff", "change" or "smart"
+        -- Experimental: Can be "diff" or "change"
         -- - "diff" will show added and removed lines with DiffAdd and DiffRemove highlights
         -- - "change" when a hunk has both added and removed lines, this will show only added lines with DiffText highlights for a  (sometimes all added and removed lines is overwhelming)
-        -- - "smart" will act like "diff" unless the total number of changed lines exceeds 3/4 the buffer height (a heuristic for lots of changes), in which it acts like "change"
         diff_mode = "diff"
       },
       chat = {
