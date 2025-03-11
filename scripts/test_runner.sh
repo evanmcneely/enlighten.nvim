@@ -4,10 +4,9 @@ set -e
 REPO_DIR=$(git rev-parse --show-toplevel)
 
 nvim_t() {
-  # Create the temporary home and set a trap to remove it on exit.
+  # Create a temp base directory for testing and remove it on exit.
   mkdir -p tmp_home
   trap 'rm -rf tmp_home' EXIT
-
   export XDG_DATA_HOME='./tmp_home'
   export XDG_CONFIG_HOME='./tmp_home'
 
