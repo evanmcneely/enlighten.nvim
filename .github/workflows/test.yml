@@ -32,8 +32,9 @@ jobs:
 
       - name: Dependencies
         run: |
-          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
-          ln -s "$(pwd)" ~/.local/share/nvim/site/pack/vendor/start
+          mkdir -p ./tmp_home/nvim/pack/vendor/start
+          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ./tmp_home/nvim/pack/vendor/start/plenary.nvim
+          ln -s $(pwd) ./tmp_home/nvim/pack/vendor/start
 
       - name: Run tests
         run: |
