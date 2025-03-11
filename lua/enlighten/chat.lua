@@ -195,9 +195,8 @@ end
 --- and autocommands that the feature depend on.
 ---@param aiConfig EnlightenAiProviderConfig
 ---@param settings EnlightenChatSettings
----@param history HistoryItem[]
 ---@return EnlightenChat
-function EnlightenChat:new(aiConfig, settings, history)
+function EnlightenChat:new(aiConfig, settings)
   local id = tostring(math.random(10000))
   local buf = api.nvim_get_current_buf()
   local range = buffer.get_range()
@@ -221,7 +220,7 @@ function EnlightenChat:new(aiConfig, settings, history)
   context.title_win = chat_win.title_win
   context.title_buf = chat_win.title_buf
   context.target_buf = buf
-  context.history = History:new(history)
+  context.history = History:new("chat")
   context.has_generated = false
   context.writer = Writer:new(chat_win.win_id, chat_win.bufnr, function()
     context.has_generated = true

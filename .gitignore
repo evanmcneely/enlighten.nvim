@@ -4,3 +4,5 @@ plenary.nvim/
 luacov.report
 luacov.report.index
 luacov.stats
+
+tmp_home/

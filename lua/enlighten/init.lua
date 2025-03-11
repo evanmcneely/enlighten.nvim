@@ -12,17 +12,10 @@ local Logger = require("enlighten/logger")
 ---@field setup_complete boolean
 --- Helpful logger for debugging.
 ---@field logger EnlightenLog
---- Session history for the edit feature.
----@field edit_history HistoryItem[]
---- Session history for the chat feature.
----@field chat_history HistoryItem[]
 local enlighten = {
-	config = config.config,
-	setup_complete = false,
+  config = config.config,
+  setup_complete = false,
   logger = Logger,
-	-- TODO initialize these from file
-	chat_history = {},
-	edit_history = {},
 }
 
 ---@param user_config EnlightenPartialConfig?
@@ -69,7 +62,7 @@ function enlighten.edit()
     end
   end
 
-  Edit:new(enlighten.config.ai.edit, enlighten.config.settings.edit, enlighten.edit_history)
+  Edit:new(enlighten.config.ai.edit, enlighten.config.settings.edit)
 end
 
 function enlighten.chat()
@@ -85,7 +78,7 @@ function enlighten.chat()
     return
   end
 
-  Chat:new(enlighten.config.ai.chat, enlighten.config.settings.chat, enlighten.chat_history)
+  Chat:new(enlighten.config.ai.chat, enlighten.config.settings.chat)
 end
 
 return enlighten
