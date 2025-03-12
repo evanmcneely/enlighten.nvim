@@ -210,47 +210,6 @@ function DiffWriter:_highlight_diff(left, right)
   local diff_new = differ.diff(left, right)
   local hunks = differ.extract_hunks(self.orig_range[1], diff_new)
 
-  local function add(row, hunk)
-    -- Has the potential to error when writing/highlighting content at the end of the buffer.
-    pcall(function()
-      api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
-        end_row = row + #hunk.add,
-        hl_group = "EnlightenDiffAdd",
-        hl_eol = true,
-        priority = 1000,
-      })
-    end)
-  end
-
-  local function remove(row, hunk)
-    local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
-
-    for _, line in pairs(hunk.remove) do
-      table.insert(
-        virt_lines,
-        { { line .. string.rep(" ", vim.o.columns), "EnlightenDiffDelete" } }
-      )
-    end
-
-    api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, -1, {
-      virt_lines = virt_lines,
-      -- TODO: virt_lines_above doesn't work on row 0 neovim/neovim#16166
-      virt_lines_above = true,
-    })
-  end
-
-  local function change(row, hunk)
-    -- Has the potential to error when writing/highlighting content at the end of the buffer.
-    pcall(function()
-      api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
-        end_row = row + #hunk.add,
-        hl_group = "EnlightenDiffChange",
-        hl_eol = true,
-        priority = 1000,
-      })
-    end)
-  end
-
   local show_diff = self.opts.mode ~= "change"
   local lines_changed = 0
   for row, hunk in pairs(hunks) do
@@ -259,21 +218,59 @@ function DiffWriter:_highlight_diff(left, right)
 
     if show_diff == true then
       if #hunk.add then
-        add(row, hunk)
+        self:_add_highlight(row, hunk)
       end
       if #hunk.remove then
-        remove(row, hunk)
+        self:_remove_highlight(row, hunk)
       end
     elseif #hunk.add > 0 and #hunk.remove == 0 then
-      add(row, hunk)
+      self:_add_highlight(row, hunk)
     elseif #hunk.remove > 0 and #hunk.add == 0 then
-      remove(row, hunk)
+      self:_remove_highlight(row, hunk)
     else
-      change(row, hunk)
+      self:_change_highlight(row, hunk)
     end
   end
 
   self.diff = diff_new
+end
+
+function DiffWriter:_add_highlight(row, hunk)
+  -- Has the potential to error when writing/highlighting content at the end of the buffer.
+  pcall(function()
+    api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
+      end_row = row + #hunk.add,
+      hl_group = "EnlightenDiffAdd",
+      hl_eol = true,
+      priority = 1000,
+    })
+  end)
+end
+
+function DiffWriter:_remove_highlight(row, hunk)
+  local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
+
+  for _, line in pairs(hunk.remove) do
+    table.insert(virt_lines, { { line .. string.rep(" ", vim.o.columns), "EnlightenDiffDelete" } })
+  end
+
+  api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, -1, {
+    virt_lines = virt_lines,
+    -- TODO: virt_lines_above doesn't work on row 0 neovim/neovim#16166
+    virt_lines_above = true,
+  })
+end
+
+function DiffWriter:_change_highlight(row, hunk)
+  -- Has the potential to error when writing/highlighting content at the end of the buffer.
+  pcall(function()
+    api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
+      end_row = row + #hunk.add,
+      hl_group = "EnlightenDiffChange",
+      hl_eol = true,
+      priority = 1000,
+    })
+  end)
 end
 
 function DiffWriter:_remove_remaining_selected_lines()
