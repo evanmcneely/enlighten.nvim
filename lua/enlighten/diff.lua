@@ -189,6 +189,8 @@ function M.get_hunk_under_cursor()
     return
   end
 
+  print("all the extmarks", vim.inspect(extmarks))
+
   local found = false
   local found_marks = {
     added = {},
@@ -324,6 +326,7 @@ function M.reset_hunk(current_buf, hunks)
   for _, mark_id in ipairs(hunks.added) do
     local mark =
       vim.api.nvim_buf_get_extmark_by_id(current_buf, highlight_ns, mark_id, { details = true })
+    print("this is add the mark", vim.inspect(mark))
     if mark then
       added_marks[mark_id] = {
         start_row = mark[1],
@@ -354,8 +357,11 @@ function M.reset_hunk(current_buf, hunks)
   end
 
   -- Now perform the replacements
-  for _, added_info in pairs(added_marks) do
-    for _, removed_info in pairs(removed_marks) do
+  -- First, handle matching pairs of added/removed marks
+  local matched_pairs = {}
+
+  for added_id, added_info in pairs(added_marks) do
+    for removed_id, removed_info in pairs(removed_marks) do
       -- Find matching pairs of added/removed marks
       if added_info.start_row == removed_info.row then
         -- Replace the added lines with the removed lines
@@ -367,17 +373,47 @@ function M.reset_hunk(current_buf, hunks)
           removed_info.lines
         )
 
-        -- Delete the extmarks
-        for _, mark_id in ipairs(hunks.added) do
-          vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, mark_id)
-        end
+        matched_pairs[added_id] = true
+        matched_pairs[removed_id] = true
 
-        for _, mark_id in ipairs(hunks.removed) do
-          vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, mark_id)
-        end
-
-        return -- Only handle one replacement
+        -- Delete these specific extmarks
+        vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, added_id)
+        vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, removed_id)
       end
+    end
+  end
+
+  -- Handle unmatched added lines (need to be deleted)
+  for added_id, added_info in pairs(added_marks) do
+    if not matched_pairs[added_id] then
+      -- Delete the added lines
+      vim.api.nvim_buf_set_lines(
+        current_buf,
+        added_info.start_row,
+        added_info.end_row + 1,
+        true,
+        {}
+      )
+
+      -- Delete the extmark
+      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, added_id)
+    end
+  end
+
+  -- Handle unmatched removed lines (need to be inserted)
+  for removed_id, removed_info in pairs(removed_marks) do
+    if not matched_pairs[removed_id] then
+      -- Insert the removed lines
+      vim.api.nvim_buf_set_lines(
+        current_buf,
+        removed_info.row,
+        removed_info.row,
+        true,
+        removed_info.lines
+      )
+
+      -- Delete the extmark
+      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, removed_id)
     end
   end
 end
