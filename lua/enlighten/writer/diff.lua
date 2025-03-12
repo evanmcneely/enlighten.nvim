@@ -218,24 +218,24 @@ function DiffWriter:_highlight_diff(left, right)
 
     if show_diff == true then
       if #hunk.add then
-        self:_add_highlight(row, hunk)
+        self:_highlight_added_lines(row, hunk)
       end
       if #hunk.remove then
-        self:_remove_highlight(row, hunk)
+        self:_highlight_removed_lines(row, hunk)
       end
     elseif #hunk.add > 0 and #hunk.remove == 0 then
-      self:_add_highlight(row, hunk)
+      self:_highlight_added_lines(row, hunk)
     elseif #hunk.remove > 0 and #hunk.add == 0 then
-      self:_remove_highlight(row, hunk)
+      self:_highlight_removed_lines(row, hunk)
     else
-      self:_change_highlight(row, hunk)
+      self:_highlight_changed_lines(row, hunk)
     end
   end
 
   self.diff = diff_new
 end
 
-function DiffWriter:_add_highlight(row, hunk)
+function DiffWriter:_highlight_added_lines(row, hunk)
   -- Has the potential to error when writing/highlighting content at the end of the buffer.
   pcall(function()
     api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
@@ -247,7 +247,7 @@ function DiffWriter:_add_highlight(row, hunk)
   end)
 end
 
-function DiffWriter:_remove_highlight(row, hunk)
+function DiffWriter:_highlight_removed_lines(row, hunk)
   local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
 
   for _, line in pairs(hunk.remove) do
@@ -261,7 +261,7 @@ function DiffWriter:_remove_highlight(row, hunk)
   })
 end
 
-function DiffWriter:_change_highlight(row, hunk)
+function DiffWriter:_highlight_changed_lines(row, hunk)
   -- Has the potential to error when writing/highlighting content at the end of the buffer.
   pcall(function()
     api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
