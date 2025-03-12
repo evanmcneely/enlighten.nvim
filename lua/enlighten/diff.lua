@@ -138,7 +138,10 @@ function M.highlight_removed_lines(buffer, ns, row, hunk)
   local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
 
   for _, line in pairs(hunk.remove) do
-    table.insert(virt_lines, { { line .. string.rep(" ", vim.o.columns), "EnlightenDiffDelete" } })
+    table.insert(
+      virt_lines,
+      { { line .. string.rep(" ", vim.o.columns or 0), "EnlightenDiffDelete" } }
+    )
   end
 
   api.nvim_buf_set_extmark(buffer, ns, row, -1, {

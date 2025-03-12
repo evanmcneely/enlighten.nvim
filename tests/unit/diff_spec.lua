@@ -1,4 +1,6 @@
 local diff = require("enlighten.diff")
+local mock = require("luassert.mock")
+local tu = require("tests.testutils")
 
 local equals = assert.are.same
 
@@ -190,6 +192,73 @@ describe("diff", function()
       local got = diff.extract_hunks(row, changes)
 
       equals(want, got)
+    end)
+  end)
+
+  describe("highlight_added_lines", function()
+    it("should highlight added lines", function()
+      -- mock the vim.api
+      local api = mock(vim.api, true)
+      local buffer = 5
+      local ns = 10
+      local row = 0
+      local hunk = { add = { "line1", "line2" }, remove = {} }
+
+      diff.highlight_added_lines(buffer, ns, row, hunk)
+
+      assert.stub(api.nvim_buf_set_extmark).was_called_with(buffer, ns, row, 0, {
+        end_row = row + #hunk.add,
+        hl_group = "EnlightenDiffAdd",
+        hl_eol = true,
+        priority = 1000,
+      })
+
+      mock.revert(api)
+    end)
+  end)
+
+  describe("highlight_removed_lines", function()
+    it("should highlight removed lines", function()
+      local buffer = tu.prepare_buffer("")
+      -- mock the vim.api
+      local api = mock(vim.api, true)
+      local ns = 10
+      local row = 0
+      local hunk = { add = {}, remove = { "line1", "line2" } }
+
+      diff.highlight_removed_lines(buffer, ns, row, hunk)
+
+      assert.stub(api.nvim_buf_set_extmark).was_called_with(buffer, ns, row, -1, {
+        virt_lines = {
+          { { "line1", "EnlightenDiffDelete" } },
+          { { "line2", "EnlightenDiffDelete" } },
+        },
+        virt_lines_above = true,
+      })
+
+      mock.revert(api)
+    end)
+  end)
+
+  describe("highlight_changed_lines", function()
+    it("should highlight changed lines", function()
+      -- mock the vim.api
+      local api = mock(vim.api, true)
+      local buffer = 5
+      local ns = 10
+      local row = 0
+      local hunk = { add = { "line1", "line2" }, remove = { "old1", "old2" } }
+
+      diff.highlight_changed_lines(buffer, ns, row, hunk)
+
+      assert.stub(api.nvim_buf_set_extmark).was_called_with(buffer, ns, row, 0, {
+        end_row = row + #hunk.add,
+        hl_group = "EnlightenDiffChange",
+        hl_eol = true,
+        priority = 1000,
+      })
+
+      mock.revert(api)
     end)
   end)
 end)
