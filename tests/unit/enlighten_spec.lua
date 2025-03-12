@@ -1,3 +1,29 @@
+local equals = assert.are.same
+local tu = require("tests.testutils")
+
+local function assert_extmark_removed(buffer, ns, extmark_id)
+  local marks = vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})
+  for _, mark in ipairs(marks) do
+    if mark[1] == extmark_id then
+      error("Extmark " .. extmark_id .. " still exists in buffer")
+    end
+  end
+end
+
+local function assert_extmark_exists(buffer, ns, extmark_id)
+  local marks = vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})
+  local found = false
+  for _, mark in ipairs(marks) do
+    if mark[1] == extmark_id then
+      found = true
+      break
+    end
+  end
+  if not found then
+    error("Extmark " .. extmark_id .. " does not exist in buffer")
+  end
+end
+
 describe("enlighten commands and keymaps", function()
   local target_buf
 
@@ -38,6 +64,170 @@ describe("enlighten commands and keymaps", function()
 
       vim.cmd("lua require('enlighten').edit()")
       assert.are.same(prompt_buf, vim.api.nvim_get_current_buf())
+    end)
+  end)
+
+  describe("keep", function()
+    local test_lines = {
+      "line1",
+      "line2",
+      "line3",
+      "line4",
+      "line5",
+      "line6",
+      "line7",
+      "line8",
+      "line9",
+      "line10",
+    }
+
+    local buffer
+    local ns
+    local removed_only_mark
+    local added_only_mark
+    local added_mark
+    local removed_mark
+    local changed_mark
+
+    before_each(function()
+      buffer = tu.prepare_buffer(table.concat(test_lines, "\n"))
+      ns = vim.api.nvim_create_namespace("EnlightenDiffHighlights")
+
+      -- Create a hunk with removals (line 2)
+      removed_only_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 2, -1, {
+        virt_lines = {
+          { { "deleted line", "EnlightenDiffDelete" } },
+        },
+        virt_lines_above = true,
+      })
+
+      -- Create a hunk with additions (line 4)
+      added_only_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 4, 0, {
+        end_row = 5,
+        hl_group = "EnlightenDiffAdd",
+        hl_eol = true,
+        priority = 1000,
+      })
+
+      -- Create a hunk with both additions and removals (line 6)
+      added_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 6, 0, {
+        end_row = 8,
+        hl_group = "EnlightenDiffAdd",
+        hl_eol = true,
+        priority = 1000,
+      })
+      removed_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 6, -1, {
+        virt_lines = {
+          { { "old line", "EnlightenDiffDelete" } },
+        },
+        virt_lines_above = true,
+      })
+
+      -- Create a hunk with changed lines (line 8)
+      changed_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 9, 0, {
+        end_row = 10,
+        hl_group = "EnlightenDiffChange",
+        hl_eol = true,
+        priority = 1000,
+      })
+    end)
+
+    it("should do nothing if the cursor is not on a diff highlight", function()
+      -- Position the cursor on a line with no highlights
+      vim.api.nvim_win_set_cursor(0, { 2, 0 })
+
+      vim.cmd("lua require('enlighten').keep()")
+
+      --Expect all of the other extmarks to still be in the buffer
+      assert_extmark_exists(buffer, ns, removed_only_mark)
+      assert_extmark_exists(buffer, ns, added_only_mark)
+      assert_extmark_exists(buffer, ns, added_mark)
+      assert_extmark_exists(buffer, ns, removed_mark)
+      assert_extmark_exists(buffer, ns, changed_mark)
+
+      -- Verify buffer content is unchanged
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      equals(test_lines, lines)
+    end)
+
+    it("should clear deleted diff highlights from lines cursor is on", function()
+      -- Position the cursor below the line the removed mark is on
+      vim.api.nvim_win_set_cursor(0, { 3, 0 })
+
+      vim.cmd("lua require('enlighten').keep()")
+
+      -- Expect that the extmark is removed
+      assert_extmark_removed(buffer, ns, removed_only_mark)
+
+      --Expect all of the other extmarks to still be in the buffer
+      assert_extmark_exists(buffer, ns, added_only_mark)
+      assert_extmark_exists(buffer, ns, added_mark)
+      assert_extmark_exists(buffer, ns, removed_mark)
+      assert_extmark_exists(buffer, ns, changed_mark)
+
+      -- Verify buffer content is unchanged
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      equals(test_lines, lines)
+    end)
+
+    it("should clear added diff highlights from lines cursor is on", function()
+      -- Position the cursor below the line the removed mark is on
+      vim.api.nvim_win_set_cursor(0, { 5, 0 })
+
+      vim.cmd("lua require('enlighten').keep()")
+
+      -- Expect that the extmark is removed
+      assert_extmark_removed(buffer, ns, added_only_mark)
+
+      --Expect all of the other extmarks to still be in the buffer
+      assert_extmark_exists(buffer, ns, removed_only_mark)
+      assert_extmark_exists(buffer, ns, added_mark)
+      assert_extmark_exists(buffer, ns, removed_mark)
+      assert_extmark_exists(buffer, ns, changed_mark)
+
+      -- Verify buffer content is unchanged
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      equals(test_lines, lines)
+    end)
+
+    it("should clear added and deleted diff highlights from lines cursor is on", function()
+      -- Position the cursor below the line the removed mark is on
+      vim.api.nvim_win_set_cursor(0, { 8, 0 })
+
+      vim.cmd("lua require('enlighten').keep()")
+
+      -- Expect that the extmark is removed
+      assert_extmark_removed(buffer, ns, added_mark)
+      assert_extmark_removed(buffer, ns, removed_mark)
+
+      --Expect all of the other extmarks to still be in the buffer
+      assert_extmark_exists(buffer, ns, removed_only_mark)
+      assert_extmark_exists(buffer, ns, added_only_mark)
+      assert_extmark_exists(buffer, ns, changed_mark)
+
+      -- Verify buffer content is unchanged
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      equals(test_lines, lines)
+    end)
+
+    it("should clear changed diff highlights from lines cursor is on", function()
+      -- Position the cursor below the line the removed mark is on
+      vim.api.nvim_win_set_cursor(0, { 10, 0 })
+
+      vim.cmd("lua require('enlighten').keep()")
+
+      -- Expect that the extmark is removed
+      assert_extmark_removed(buffer, ns, changed_mark)
+
+      --Expect all of the other extmarks to still be in the buffer
+      assert_extmark_exists(buffer, ns, removed_only_mark)
+      assert_extmark_exists(buffer, ns, added_only_mark)
+      assert_extmark_exists(buffer, ns, added_mark)
+      assert_extmark_exists(buffer, ns, removed_mark)
+
+      -- Verify buffer content is unchanged
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      equals(test_lines, lines)
     end)
   end)
 end)

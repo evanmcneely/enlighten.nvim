@@ -167,6 +167,7 @@ function M.highlight_changed_lines(buffer, ns, row, hunk)
     })
   end)
 end
+
 function M.get_hunk_under_cursor()
   local namespaces = vim.api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
