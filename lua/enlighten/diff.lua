@@ -206,7 +206,7 @@ function M.get_hunk_under_cursor()
     if hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
       if cursor_row >= mark_row_start and cursor_row <= (mark[4].end_row or mark_row_start) then
         add_mark_positions[mark_row_start] = true
-        table.insert(add_marks_at_cursor, {id = mark[1], row = mark_row_start})
+        table.insert(add_marks_at_cursor, { id = mark[1], row = mark_row_start })
       end
     end
   end
@@ -235,11 +235,7 @@ function M.get_hunk_under_cursor()
     end
 
     -- Process marks that are relevant to our highlighting
-    if
-      mark_is_delete
-      or hl_group == "EnlightenDiffAdd"
-      or hl_group == "EnlightenDiffChange"
-    then
+    if mark_is_delete or hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
       -- Check if cursor is on this mark OR if this is a delete mark at the same position as an add mark under cursor
       if
         (cursor_row >= mark_row_start and cursor_row <= mark_row_end)
@@ -299,6 +295,102 @@ function M.get_hunk_under_cursor()
   else
     print("Extmarks at cursor position (row " .. (cursor_row + 1) .. "):")
     print(vim.inspect(found_marks))
+  end
+
+  return found_marks
+end
+
+function M.keep_under_cursor()
+  local hunks = M.get_hunk_under_cursor()
+  if not hunks then
+    return
+  end
+
+  local namespaces = vim.api.nvim_get_namespaces()
+  local highlight_ns = namespaces["EnlightenDiffHighlights"]
+  local current_buf = vim.api.nvim_get_current_buf()
+
+  for _, mark_id in ipairs(hunks.added) do
+    vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, mark_id)
+  end
+
+  for _, mark_id in ipairs(hunks.removed) do
+    vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, mark_id)
+  end
+end
+
+function M.reset_under_cursor()
+  local hunks = M.get_hunk_under_cursor()
+  if not hunks then
+    return
+  end
+
+  local namespaces = vim.api.nvim_get_namespaces()
+  local highlight_ns = namespaces["EnlightenDiffHighlights"]
+  local current_buf = vim.api.nvim_get_current_buf()
+
+  -- First collect all the information about marks
+  local added_marks = {}
+  local removed_marks = {}
+
+  for _, mark_id in ipairs(hunks.added) do
+    local mark =
+      vim.api.nvim_buf_get_extmark_by_id(current_buf, highlight_ns, mark_id, { details = true })
+    if mark then
+      added_marks[mark_id] = {
+        start_row = mark[1],
+        end_row = mark[3].end_row or mark[1],
+      }
+    end
+  end
+
+  for _, mark_id in ipairs(hunks.removed) do
+    local mark =
+      vim.api.nvim_buf_get_extmark_by_id(current_buf, highlight_ns, mark_id, { details = true })
+    if mark and mark[3].virt_lines then
+      local lines = {}
+      for _, virt_line in ipairs(mark[3].virt_lines) do
+        for _, virt_text in ipairs(virt_line) do
+          if virt_text[2] == "EnlightenDiffDelete" then
+            -- Remove trailing spaces that were added to fill the line
+            local content = virt_text[1]:gsub("%s+$", "")
+            table.insert(lines, content)
+          end
+        end
+      end
+      removed_marks[mark_id] = {
+        row = mark[1],
+        lines = lines,
+      }
+    end
+  end
+
+  -- Now perform the replacements
+  for _, added_info in pairs(added_marks) do
+    for _, removed_info in pairs(removed_marks) do
+      -- Find matching pairs of added/removed marks
+      if added_info.start_row == removed_info.row then
+        -- Replace the added lines with the removed lines
+        vim.api.nvim_buf_set_lines(
+          current_buf,
+          added_info.start_row,
+          added_info.end_row + 1,
+          true,
+          removed_info.lines
+        )
+
+        -- Delete the extmarks
+        for _, mark_id in ipairs(hunks.added) do
+          vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, mark_id)
+        end
+
+        for _, mark_id in ipairs(hunks.removed) do
+          vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, mark_id)
+        end
+
+        return -- Only handle one replacement
+      end
+    end
   end
 end
 
