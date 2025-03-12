@@ -218,59 +218,21 @@ function DiffWriter:_highlight_diff(left, right)
 
     if show_diff == true then
       if #hunk.add then
-        self:_highlight_added_lines(row, hunk)
+        differ.highlight_added_lines(self.buffer, self.diff_ns_id, row, hunk)
       end
       if #hunk.remove then
-        self:_highlight_removed_lines(row, hunk)
+        differ.highlight_removed_lines(self.buffer, self.diff_ns_id, row, hunk)
       end
     elseif #hunk.add > 0 and #hunk.remove == 0 then
-      self:_highlight_added_lines(row, hunk)
+      differ.highlight_added_lines(self.buffer, self.diff_ns_id, row, hunk)
     elseif #hunk.remove > 0 and #hunk.add == 0 then
-      self:_highlight_removed_lines(row, hunk)
+      differ.highlight_removed_lines(self.buffer, self.diff_ns_id, row, hunk)
     else
-      self:_highlight_changed_lines(row, hunk)
+      differ.highlight_changed_lines(self.buffer, self.diff_ns_id, row, hunk)
     end
   end
 
   self.diff = diff_new
-end
-
-function DiffWriter:_highlight_added_lines(row, hunk)
-  -- Has the potential to error when writing/highlighting content at the end of the buffer.
-  pcall(function()
-    api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
-      end_row = row + #hunk.add,
-      hl_group = "EnlightenDiffAdd",
-      hl_eol = true,
-      priority = 1000,
-    })
-  end)
-end
-
-function DiffWriter:_highlight_removed_lines(row, hunk)
-  local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
-
-  for _, line in pairs(hunk.remove) do
-    table.insert(virt_lines, { { line .. string.rep(" ", vim.o.columns), "EnlightenDiffDelete" } })
-  end
-
-  api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, -1, {
-    virt_lines = virt_lines,
-    -- TODO: virt_lines_above doesn't work on row 0 neovim/neovim#16166
-    virt_lines_above = true,
-  })
-end
-
-function DiffWriter:_highlight_changed_lines(row, hunk)
-  -- Has the potential to error when writing/highlighting content at the end of the buffer.
-  pcall(function()
-    api.nvim_buf_set_extmark(self.buffer, self.diff_ns_id, row, 0, {
-      end_row = row + #hunk.add,
-      hl_group = "EnlightenDiffChange",
-      hl_eol = true,
-      priority = 1000,
-    })
-  end)
 end
 
 function DiffWriter:_remove_remaining_selected_lines()

@@ -1,3 +1,4 @@
+local api = vim.api
 local utils = require("enlighten/utils")
 
 local M = {}
@@ -81,7 +82,7 @@ end
 ---@param diff LineDiff
 ---@return table<number, Hunk>
 function M.extract_hunks(start_row, diff)
-  local hunks = {}
+  local hunks = {} ---@type table<number, Hunk>
   local current = nil
   local row = start_row
 
@@ -109,6 +110,162 @@ function M.extract_hunks(start_row, diff)
   end
 
   return hunks
+end
+
+---@param buffer number
+---@param ns number
+---@param row number
+---@param hunk Hunk
+---@return nil
+function M.highlight_added_lines(buffer, ns, row, hunk)
+  -- Has the potential to error when writing/highlighting content at the end of the buffer.
+  pcall(function()
+    api.nvim_buf_set_extmark(buffer, ns, row, 0, {
+      end_row = row + #hunk.add,
+      hl_group = "EnlightenDiffAdd",
+      hl_eol = true,
+      priority = 1000,
+    })
+  end)
+end
+
+---@param buffer number
+---@param ns number
+---@param row number
+---@param hunk Hunk
+---@return nil
+function M.highlight_removed_lines(buffer, ns, row, hunk)
+  local virt_lines = {} --- @type {[1]: string, [2]: string}[][]
+
+  for _, line in pairs(hunk.remove) do
+    table.insert(virt_lines, { { line .. string.rep(" ", vim.o.columns), "EnlightenDiffDelete" } })
+  end
+
+  api.nvim_buf_set_extmark(buffer, ns, row, -1, {
+    virt_lines = virt_lines,
+    -- TODO: virt_lines_above doesn't work on row 0 neovim/neovim#16166
+    virt_lines_above = true,
+  })
+end
+
+---@param buffer number
+---@param ns number
+---@param row number
+---@param hunk Hunk
+---@return nil
+function M.highlight_changed_lines(buffer, ns, row, hunk)
+  -- Has the potential to error when writing/highlighting content at the end of the buffer.
+  pcall(function()
+    api.nvim_buf_set_extmark(buffer, ns, row, 0, {
+      end_row = row + #hunk.add,
+      hl_group = "EnlightenDiffChange",
+      hl_eol = true,
+      priority = 1000,
+    })
+  end)
+end
+
+function M.get_hunk_under_cursor()
+  local namespaces = vim.api.nvim_get_namespaces()
+  local highlight_ns = namespaces["EnlightenDiffHighlights"]
+
+  if not highlight_ns then
+    print("EnlightenDiffHighlights namespace not found")
+    return
+  end
+
+  local current_buf = vim.api.nvim_get_current_buf()
+  if not vim.api.nvim_buf_is_valid(current_buf) then
+    print("Current buffer is not valid")
+    return
+  end
+
+  local cursor_pos = vim.api.nvim_win_get_cursor(0)
+  local cursor_row = cursor_pos[1] - 1 -- Convert to 0-indexed
+
+  local extmarks =
+    vim.api.nvim_buf_get_extmarks(current_buf, highlight_ns, 0, -1, { details = true })
+  if #extmarks == 0 then
+    print("No extmarks found in current buffer")
+    return
+  end
+
+  local found = false
+  local found_marks = {
+    added = {},
+    removed = {},
+  }
+  local processed_ids = {}
+  local add_mark_positions = {}
+
+  -- First pass: identify all EnlightenDiffAdd marks and their positions
+  for _, mark in ipairs(extmarks) do
+    local hl_group = mark[4].hl_group
+    local mark_row_start = mark[2]
+
+    if hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
+      if cursor_row >= mark_row_start and cursor_row <= (mark[4].end_row or mark_row_start) then
+        add_mark_positions[mark_row_start] = true
+      end
+    end
+  end
+
+  -- Second pass: process all marks
+  for _, mark in ipairs(extmarks) do
+    local mark_id = mark[1]
+    local hl_group = mark[4].hl_group
+    local mark_row_start = mark[2]
+    local mark_row_end = mark[4].end_row or mark_row_start
+    local has_virt_lines_with_delete = false
+
+    -- Check if mark has virtual lines with EnlightenDiffDelete
+    if mark[4].virt_lines then
+      for _, virt_line in ipairs(mark[4].virt_lines) do
+        for _, virt_text in ipairs(virt_line) do
+          if virt_text[2] == "EnlightenDiffDelete" then
+            has_virt_lines_with_delete = true
+            break
+          end
+        end
+        if has_virt_lines_with_delete then
+          break
+        end
+      end
+    end
+
+    -- Process marks that are relevant to our highlighting
+    if
+      has_virt_lines_with_delete
+      or hl_group == "EnlightenDiffAdd"
+      or hl_group == "EnlightenDiffChange"
+    then
+      -- Check if cursor is on this mark OR if this is a delete mark at the same position as an add mark under cursor
+      if
+        (cursor_row >= mark_row_start and cursor_row <= mark_row_end)
+        or (has_virt_lines_with_delete and add_mark_positions[mark_row_start])
+      then
+        found = true
+
+        -- Avoid duplicates by checking the mark ID
+        if not processed_ids[mark_id] then
+          processed_ids[mark_id] = true
+
+          if has_virt_lines_with_delete then
+            table.insert(found_marks.removed, mark_id)
+          elseif hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
+            table.insert(found_marks.added, mark_id)
+          end
+        end
+      end
+    end
+  end
+
+  if not found then
+    print("No extmarks found at cursor position")
+  else
+    print("Extmarks at cursor position (row " .. (cursor_row + 1) .. "):")
+    print(vim.inspect(found_marks))
+  end
 end
 
 return M
