@@ -82,12 +82,26 @@ function enlighten.chat()
   Chat:new(enlighten.config.ai.chat, enlighten.config.settings.chat)
 end
 
-function enlighten.debug_highlights()
+function enlighten.keep()
   if not enlighten.setup_complete then
     return
   end
 
-  diff.get_hunk_under_cursor()
+  local hunks = diff.get_hunk_under_cursor()
+  local current_buf = vim.api.nvim_get_current_buf()
+
+  diff.keep_hunk(current_buf, hunks)
+end
+
+function enlighten.reset()
+  if not enlighten.setup_complete then
+    return
+  end
+
+  local hunks = diff.get_hunk_under_cursor()
+  local current_buf = vim.api.nvim_get_current_buf()
+
+  diff.reset_hunk(current_buf, hunks)
 end
 
 return enlighten

@@ -300,15 +300,9 @@ function M.get_hunk_under_cursor()
   return found_marks
 end
 
-function M.keep_under_cursor()
-  local hunks = M.get_hunk_under_cursor()
-  if not hunks then
-    return
-  end
-
+function M.keep_hunk(current_buf, hunks)
   local namespaces = vim.api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
-  local current_buf = vim.api.nvim_get_current_buf()
 
   for _, mark_id in ipairs(hunks.added) do
     vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, mark_id)
@@ -319,15 +313,9 @@ function M.keep_under_cursor()
   end
 end
 
-function M.reset_under_cursor()
-  local hunks = M.get_hunk_under_cursor()
-  if not hunks then
-    return
-  end
-
+function M.reset_hunk(current_buf, hunks)
   local namespaces = vim.api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
-  local current_buf = vim.api.nvim_get_current_buf()
 
   -- First collect all the information about marks
   local added_marks = {}
