@@ -164,7 +164,6 @@ function M.highlight_changed_lines(buffer, ns, row, hunk)
     })
   end)
 end
-
 function M.get_hunk_under_cursor()
   local namespaces = vim.api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
@@ -197,6 +196,7 @@ function M.get_hunk_under_cursor()
   }
   local processed_ids = {}
   local add_mark_positions = {}
+  local add_marks_at_cursor = {}
 
   -- First pass: identify all EnlightenDiffAdd marks and their positions
   for _, mark in ipairs(extmarks) do
@@ -206,6 +206,7 @@ function M.get_hunk_under_cursor()
     if hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
       if cursor_row >= mark_row_start and cursor_row <= (mark[4].end_row or mark_row_start) then
         add_mark_positions[mark_row_start] = true
+        table.insert(add_marks_at_cursor, {id = mark[1], row = mark_row_start})
       end
     end
   end
@@ -216,18 +217,18 @@ function M.get_hunk_under_cursor()
     local hl_group = mark[4].hl_group
     local mark_row_start = mark[2]
     local mark_row_end = mark[4].end_row or mark_row_start
-    local has_virt_lines_with_delete = false
+    local mark_is_delete = false
 
     -- Check if mark has virtual lines with EnlightenDiffDelete
     if mark[4].virt_lines then
       for _, virt_line in ipairs(mark[4].virt_lines) do
         for _, virt_text in ipairs(virt_line) do
           if virt_text[2] == "EnlightenDiffDelete" then
-            has_virt_lines_with_delete = true
+            mark_is_delete = true
             break
           end
         end
-        if has_virt_lines_with_delete then
+        if mark_is_delete then
           break
         end
       end
@@ -235,14 +236,14 @@ function M.get_hunk_under_cursor()
 
     -- Process marks that are relevant to our highlighting
     if
-      has_virt_lines_with_delete
+      mark_is_delete
       or hl_group == "EnlightenDiffAdd"
       or hl_group == "EnlightenDiffChange"
     then
       -- Check if cursor is on this mark OR if this is a delete mark at the same position as an add mark under cursor
       if
         (cursor_row >= mark_row_start and cursor_row <= mark_row_end)
-        or (has_virt_lines_with_delete and add_mark_positions[mark_row_start])
+        or (mark_is_delete and add_mark_positions[mark_row_start])
       then
         found = true
 
@@ -250,10 +251,43 @@ function M.get_hunk_under_cursor()
         if not processed_ids[mark_id] then
           processed_ids[mark_id] = true
 
-          if has_virt_lines_with_delete then
+          if mark_is_delete then
             table.insert(found_marks.removed, mark_id)
           elseif hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
             table.insert(found_marks.added, mark_id)
+          end
+        end
+      end
+    end
+  end
+
+  -- Third pass: look for delete marks at the same position as add marks under cursor
+  if #add_marks_at_cursor > 0 then
+    for _, mark in ipairs(extmarks) do
+      local mark_id = mark[1]
+      local mark_row_start = mark[2]
+      local mark_is_delete = false
+
+      if mark[4].virt_lines then
+        for _, virt_line in ipairs(mark[4].virt_lines) do
+          for _, virt_text in ipairs(virt_line) do
+            if virt_text[2] == "EnlightenDiffDelete" then
+              mark_is_delete = true
+              break
+            end
+          end
+          if mark_is_delete then
+            break
+          end
+        end
+      end
+
+      if mark_is_delete then
+        for _, add_mark in ipairs(add_marks_at_cursor) do
+          if mark_row_start == add_mark.row and not processed_ids[mark_id] then
+            processed_ids[mark_id] = true
+            table.insert(found_marks.removed, mark_id)
+            found = true
           end
         end
       end
