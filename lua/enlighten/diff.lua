@@ -173,13 +173,11 @@ function M.get_hunk_under_cursor()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
 
   if not highlight_ns then
-    print("EnlightenDiffHighlights namespace not found")
     return
   end
 
   local current_buf = vim.api.nvim_get_current_buf()
   if not vim.api.nvim_buf_is_valid(current_buf) then
-    print("Current buffer is not valid")
     return
   end
 
@@ -189,13 +187,9 @@ function M.get_hunk_under_cursor()
   local extmarks =
     vim.api.nvim_buf_get_extmarks(current_buf, highlight_ns, 0, -1, { details = true })
   if #extmarks == 0 then
-    print("No extmarks found in current buffer")
     return
   end
 
-  print("all the extmarks", vim.inspect(extmarks))
-
-  local found = false
   local found_marks = {
     added = {},
     removed = {},
@@ -247,8 +241,6 @@ function M.get_hunk_under_cursor()
         (cursor_row >= mark_row_start and cursor_row <= mark_row_end)
         or (mark_is_delete and add_mark_positions[mark_row_start])
       then
-        found = true
-
         -- Avoid duplicates by checking the mark ID
         if not processed_ids[mark_id] then
           processed_ids[mark_id] = true
@@ -289,18 +281,10 @@ function M.get_hunk_under_cursor()
           if mark_row_start == add_mark.row and not processed_ids[mark_id] then
             processed_ids[mark_id] = true
             table.insert(found_marks.removed, mark_id)
-            found = true
           end
         end
       end
     end
-  end
-
-  if not found then
-    print("No extmarks found at cursor position")
-  else
-    print("Extmarks at cursor position (row " .. (cursor_row + 1) .. "):")
-    print(vim.inspect(found_marks))
   end
 
   return found_marks
