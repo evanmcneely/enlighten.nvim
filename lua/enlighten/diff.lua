@@ -9,6 +9,32 @@ M.constants = utils.protect({
   unchanged = "unchanged",
 })
 
+---Extract text content from virtual lines with a specific highlight group
+---@param virt_lines any[][] The virtual lines from an extmark
+---@param highlight_group string|nil The highlight group to filter by (optional)
+---@return string[] The extracted text lines
+local function extract_lines_from_virt_lines(virt_lines, highlight_group)
+  local lines = {}
+
+  if not virt_lines then
+    return lines
+  end
+
+  for _, virt_line in ipairs(virt_lines) do
+    for _, virt_text in ipairs(virt_line) do
+      local text, hl_group = virt_text[1], virt_text[2]
+      if not highlight_group or hl_group == highlight_group then
+        -- Remove trailing spaces that were added to fill the line
+        local content = text:gsub("%s+$", "")
+        table.insert(lines, content)
+        break -- Only take the first matching text chunk from each virtual line
+      end
+    end
+  end
+
+  return lines
+end
+
 ---@param left string[]
 ---@param right string[]
 ---@return number[][]
@@ -201,21 +227,17 @@ function M.get_hunk_in_range(range)
 
   -- First pass: identify all EnlightenDiffAdd marks and their positions
   for _, mark in ipairs(extmarks) do
-    local hl_group = mark[4].hl_group
     local mark_row_start = mark[2]
     local mark_row_end = mark[4].end_row or mark_row_start
+    local mark_is_add = mark[4].hl_group == "EnlightenDiffAdd"
+    -- We ignore "changed" lines
+    -- local mark_is_change = hl_group == "EnlightenDiffChange"
+    local mark_is_change = false
 
-    if
-      hl_group == "EnlightenDiffAdd"
-      -- ignoring EnlightenDiffChange highlights because we loose the deleted lines
-      -- needed to perform reset operations
-      -- or hl_group == "EnlightenDiffChange"
-    then
-      -- Check if mark overlaps with the range
-      if (mark_row_start <= row_end) and (mark_row_end >= row_start) then
-        add_mark_positions[mark_row_start] = true
-        table.insert(add_marks_in_range, { id = mark[1], row = mark_row_start })
-      end
+    local mark_overlaps_range = (mark_row_start <= row_end) and (mark_row_end >= row_start)
+    if (mark_is_add or mark_is_change) and mark_overlaps_range then
+      add_mark_positions[mark_row_start] = true
+      table.insert(add_marks_in_range, { id = mark[1], row = mark_row_start })
     end
   end
 
@@ -226,41 +248,32 @@ function M.get_hunk_in_range(range)
     local mark_row_start = mark[2]
     local mark_row_end = mark[4].end_row or mark_row_start
     local mark_is_delete = false
+    local mark_is_add = hl_group == "EnlightenDiffAdd"
+
+    -- We ignore "changed" lines
+    -- local mark_is_change = hl_group == "EnlightenDiffChange"
+    local mark_is_change = false
 
     -- Check if mark has virtual lines with EnlightenDiffDelete
     if mark[4].virt_lines then
-      for _, virt_line in ipairs(mark[4].virt_lines) do
-        for _, virt_text in ipairs(virt_line) do
-          if virt_text[2] == "EnlightenDiffDelete" then
-            mark_is_delete = true
-            break
-          end
-        end
-        if mark_is_delete then
-          break
-        end
-      end
+      mark_is_delete = #extract_lines_from_virt_lines(mark[4].virt_lines, "EnlightenDiffDelete") > 0
     end
 
     -- Process marks that are relevant to our highlighting
+    local mark_overlaps_range = (mark_row_start <= row_end) and (mark_row_end >= row_start)
+    local is_delete_at_add_position = mark_is_delete and add_mark_positions[mark_row_start]
     if
-      mark_is_delete or hl_group == "EnlightenDiffAdd"
-      -- or hl_group == "EnlightenDiffChange"
+      (mark_is_delete or mark_is_add or mark_is_change)
+      and (mark_overlaps_range or is_delete_at_add_position)
     then
-      -- Check if mark overlaps with range OR if this is a delete mark at the same position as an add mark in range
-      if
-        ((mark_row_start <= row_end) and (mark_row_end >= row_start))
-        or (mark_is_delete and add_mark_positions[mark_row_start])
-      then
-        -- Avoid duplicates by checking the mark ID
-        if not processed_ids[mark_id] then
-          processed_ids[mark_id] = true
+      -- Avoid duplicates by checking the mark ID
+      if not processed_ids[mark_id] then
+        processed_ids[mark_id] = true
 
-          if mark_is_delete then
-            table.insert(found_marks.removed, mark_id)
-          elseif hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
-            table.insert(found_marks.added, mark_id)
-          end
+        if mark_is_delete then
+          table.insert(found_marks.removed, mark_id)
+        else
+          table.insert(found_marks.added, mark_id)
         end
       end
     end
@@ -273,18 +286,10 @@ function M.get_hunk_in_range(range)
       local mark_row_start = mark[2]
       local mark_is_delete = false
 
+      -- Check if mark has virtual lines with EnlightenDiffDelete
       if mark[4].virt_lines then
-        for _, virt_line in ipairs(mark[4].virt_lines) do
-          for _, virt_text in ipairs(virt_line) do
-            if virt_text[2] == "EnlightenDiffDelete" then
-              mark_is_delete = true
-              break
-            end
-          end
-          if mark_is_delete then
-            break
-          end
-        end
+        mark_is_delete = #extract_lines_from_virt_lines(mark[4].virt_lines, "EnlightenDiffDelete")
+          > 0
       end
 
       if mark_is_delete then
@@ -337,16 +342,7 @@ function M.reset_hunk(current_buf, hunks)
     local mark =
       vim.api.nvim_buf_get_extmark_by_id(current_buf, highlight_ns, mark_id, { details = true })
     if mark and mark[3].virt_lines then
-      local lines = {}
-      for _, virt_line in ipairs(mark[3].virt_lines) do
-        for _, virt_text in ipairs(virt_line) do
-          if virt_text[2] == "EnlightenDiffDelete" then
-            -- Remove trailing spaces that were added to fill the line
-            local content = virt_text[1]:gsub("%s+$", "")
-            table.insert(lines, content)
-          end
-        end
-      end
+      local lines = extract_lines_from_virt_lines(mark[3].virt_lines, "EnlightenDiffDelete")
       removed_marks[mark_id] = {
         row = mark[1],
         lines = lines,
