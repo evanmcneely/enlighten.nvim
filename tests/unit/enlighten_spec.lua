@@ -210,14 +210,14 @@ describe("enlighten commands and keymaps", function()
       equals(test_lines, lines)
     end)
 
-    it("should clear changed diff highlights from lines cursor is on", function()
+    it("should not clear changed diff highlights from lines cursor is on", function()
       -- Position the cursor below the line the removed mark is on
       vim.api.nvim_win_set_cursor(0, { 10, 0 })
 
       vim.cmd("lua require('enlighten').keep()")
 
-      -- Expect that the extmark is removed
-      assert_extmark_removed(buffer, ns, changed_mark)
+      -- Expect that the extmark still exists
+      assert_extmark_exists(buffer, ns, changed_mark)
 
       --Expect all of the other extmarks to still be in the buffer
       assert_extmark_exists(buffer, ns, removed_only_mark)
@@ -241,7 +241,9 @@ describe("enlighten commands and keymaps", function()
       assert_extmark_removed(buffer, ns, added_only_mark)
       assert_extmark_removed(buffer, ns, added_mark)
       assert_extmark_removed(buffer, ns, removed_mark)
-      assert_extmark_removed(buffer, ns, changed_mark)
+
+      -- Except changed lines
+      assert_extmark_exists(buffer, ns, changed_mark)
 
       -- Verify buffer content is unchanged
       local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
@@ -418,25 +420,25 @@ describe("enlighten commands and keymaps", function()
       equals(test_lines, lines)
     end)
 
-    -- it("should clear changed diff highlights from lines cursor is on", function()
-    --   -- Position the cursor below the line the removed mark is on
-    --   vim.api.nvim_win_set_cursor(0, { 10, 0 })
-    --
-    --   vim.cmd("lua require('enlighten').discard()")
-    --
-    --   -- Expect that the extmark is removed
-    --   assert_extmark_removed(buffer, ns, changed_mark)
-    --
-    --   --Expect all of the other extmarks to still be in the buffer
-    --   assert_extmark_exists(buffer, ns, removed_only_mark)
-    --   assert_extmark_exists(buffer, ns, added_only_mark)
-    --   assert_extmark_exists(buffer, ns, added_mark)
-    --   assert_extmark_exists(buffer, ns, removed_mark)
-    --
-    --   -- Verify buffer content is unchanged
-    --   local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
-    --   equals(test_lines, lines)
-    -- end)
+    it("should not clear changed diff highlights from lines cursor is on", function()
+      -- Position the cursor below the line the removed mark is on
+      vim.api.nvim_win_set_cursor(0, { 10, 0 })
+
+      vim.cmd("lua require('enlighten').discard()")
+
+      -- Expect that the extmark still exists
+      assert_extmark_exists(buffer, ns, changed_mark)
+
+      --Expect all of the other extmarks to still be in the buffer
+      assert_extmark_exists(buffer, ns, removed_only_mark)
+      assert_extmark_exists(buffer, ns, added_only_mark)
+      assert_extmark_exists(buffer, ns, added_mark)
+      assert_extmark_exists(buffer, ns, removed_mark)
+
+      -- Verify buffer content is unchanged
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      equals(test_lines, lines)
+    end)
 
     it("should clear all diff highlights when the whole buffer is selected", function()
       -- Select the entire buffer
@@ -453,6 +455,11 @@ describe("enlighten commands and keymaps", function()
 
       -- Verify buffer content is unchanged
       local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      table.remove(test_lines, 7)
+      table.remove(test_lines, 7)
+      table.insert(test_lines, 7, "old line")
+      table.remove(test_lines, 5)
+      table.insert(test_lines, 3, "deleted line")
       equals(test_lines, lines)
     end)
 
@@ -474,10 +481,10 @@ describe("enlighten commands and keymaps", function()
 
       -- Verify buffer content is unchanged
       local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
-      table.remove(test_lines, 5)
       table.remove(test_lines, 7)
       table.remove(test_lines, 7)
       table.insert(test_lines, 7, "old line")
+      table.remove(test_lines, 5)
       equals(test_lines, lines)
     end)
   end)

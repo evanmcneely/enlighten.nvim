@@ -205,7 +205,12 @@ function M.get_hunk_in_range(range)
     local mark_row_start = mark[2]
     local mark_row_end = mark[4].end_row or mark_row_start
 
-    if hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
+    if
+      hl_group == "EnlightenDiffAdd"
+      -- ignoring EnlightenDiffChange highlights because we loose the deleted lines
+      -- needed to perform reset operations
+      -- or hl_group == "EnlightenDiffChange"
+    then
       -- Check if mark overlaps with the range
       if (mark_row_start <= row_end) and (mark_row_end >= row_start) then
         add_mark_positions[mark_row_start] = true
@@ -238,7 +243,10 @@ function M.get_hunk_in_range(range)
     end
 
     -- Process marks that are relevant to our highlighting
-    if mark_is_delete or hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
+    if
+      mark_is_delete or hl_group == "EnlightenDiffAdd"
+      -- or hl_group == "EnlightenDiffChange"
+    then
       -- Check if mark overlaps with range OR if this is a delete mark at the same position as an add mark in range
       if
         ((mark_row_start <= row_end) and (mark_row_end >= row_start))
@@ -346,58 +354,66 @@ function M.reset_hunk(current_buf, hunks)
     end
   end
 
-  -- Now perform the replacements
-  -- First, handle matching pairs of added/removed marks
-  local matched_pairs = {}
+  -- Sort marks by row in reverse order to prevent position shifts
+  local operations = {}
 
+  -- Create operations for matching pairs
   for added_id, added_info in pairs(added_marks) do
     for removed_id, removed_info in pairs(removed_marks) do
-      -- Find matching pairs of added/removed marks
       if added_info.start_row == removed_info.row then
-        -- Replace the added lines with the removed lines
-        vim.api.nvim_buf_set_lines(
-          current_buf,
-          added_info.start_row,
-          added_info.end_row,
-          true,
-          removed_info.lines
-        )
-
-        matched_pairs[added_id] = true
-        matched_pairs[removed_id] = true
-
-        -- Delete these specific extmarks
-        vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, added_id)
-        vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, removed_id)
+        table.insert(operations, {
+          type = "replace",
+          row = added_info.start_row,
+          end_row = added_info.end_row,
+          lines = removed_info.lines,
+          added_id = added_id,
+          removed_id = removed_id,
+        })
+        -- Mark as matched
+        added_marks[added_id] = nil
+        removed_marks[removed_id] = nil
+        break
       end
     end
   end
 
-  -- Handle unmatched added lines (need to be deleted)
+  -- Create operations for unmatched added marks (delete)
   for added_id, added_info in pairs(added_marks) do
-    if not matched_pairs[added_id] then
-      -- Delete the added lines
-      vim.api.nvim_buf_set_lines(current_buf, added_info.start_row, added_info.end_row, true, {})
-
-      -- Delete the extmark
-      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, added_id)
-    end
+    table.insert(operations, {
+      type = "delete",
+      row = added_info.start_row,
+      end_row = added_info.end_row,
+      added_id = added_id,
+    })
   end
 
-  -- Handle unmatched removed lines (need to be inserted)
+  -- Create operations for unmatched removed marks (insert)
   for removed_id, removed_info in pairs(removed_marks) do
-    if not matched_pairs[removed_id] then
-      -- Insert the removed lines
-      vim.api.nvim_buf_set_lines(
-        current_buf,
-        removed_info.row,
-        removed_info.row,
-        true,
-        removed_info.lines
-      )
+    table.insert(operations, {
+      type = "insert",
+      row = removed_info.row,
+      lines = removed_info.lines,
+      removed_id = removed_id,
+    })
+  end
 
-      -- Delete the extmark
-      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, removed_id)
+  -- Sort operations in reverse order by row to avoid position shifts
+  table.sort(operations, function(a, b)
+    return a.row > b.row
+  end)
+
+  -- Execute operations in the sorted order
+  for _, op in ipairs(operations) do
+    if op.type == "replace" then
+      vim.api.nvim_buf_set_lines(current_buf, op.row, op.end_row, true, op.lines)
+      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, op.added_id)
+      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, op.removed_id)
+    elseif op.type == "delete" then
+      vim.api.nvim_buf_set_lines(current_buf, op.row, op.end_row, true, {})
+      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, op.added_id)
+    elseif op.type == "insert" then
+      vim.api.nvim_buf_set_lines(current_buf, op.row, op.row, true, op.lines)
+      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, op.removed_id)
     end
   end
 end
