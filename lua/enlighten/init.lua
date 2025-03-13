@@ -95,7 +95,7 @@ function enlighten.keep()
   diff.keep_hunk(current_buf, hunks)
 end
 
-function enlighten.reset()
+function enlighten.discard()
   if not enlighten.setup_complete then
     return
   end
