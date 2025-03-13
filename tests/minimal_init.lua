@@ -1,6 +1,6 @@
-if os.getenv('TEST_COV') then
+if os.getenv("TEST_COV") then
   -- start collecting coverage data
-  local runner = require('luacov')
+  local runner = require("luacov")
   -- flush coverage data when neovim exists
   vim.api.nvim_create_autocmd("VimLeave", {
     callback = function()
