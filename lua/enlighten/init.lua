@@ -107,4 +107,42 @@ function enlighten.discard()
   diff.reset_hunk(current_buf, hunks)
 end
 
+function enlighten.keep_all()
+  if not enlighten.setup_complete then
+    return
+  end
+
+  --- A range that encompasses the whole buffer
+  ---@type Range
+  local range = {
+    col_start = 0,
+    row_start = 0,
+    col_end = 0,
+    row_end = math.huge,
+  }
+  local hunks = diff.get_hunk_in_range(range)
+  local current_buf = vim.api.nvim_get_current_buf()
+
+  diff.keep_hunk(current_buf, hunks)
+end
+
+function enlighten.discard_all()
+  if not enlighten.setup_complete then
+    return
+  end
+
+  --- A range that encompasses the whole buffer
+  ---@type Range
+  local range = {
+    col_start = 0,
+    row_start = 0,
+    col_end = 0,
+    row_end = math.huge,
+  }
+  local hunks = diff.get_hunk_in_range(range)
+  local current_buf = vim.api.nvim_get_current_buf()
+
+  diff.reset_hunk(current_buf, hunks)
+end
+
 return enlighten

@@ -488,4 +488,179 @@ describe("enlighten commands and keymaps", function()
       equals(test_lines, lines)
     end)
   end)
+
+  describe("keep_all", function()
+    local test_lines = {
+      "line1",
+      "line2",
+      "line3",
+      "line4",
+      "line5",
+      "line6",
+      "line7",
+      "line8",
+      "line9",
+      "line10",
+    }
+
+    local buffer
+    local ns
+    local removed_only_mark
+    local added_only_mark
+    local added_mark
+    local removed_mark
+    local changed_mark
+
+    before_each(function()
+      buffer = tu.prepare_buffer(table.concat(test_lines, "\n"))
+      ns = vim.api.nvim_create_namespace("EnlightenDiffHighlights")
+
+      -- Create a hunk with removals (line 2)
+      removed_only_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 2, -1, {
+        virt_lines = {
+          { { "deleted line", "EnlightenDiffDelete" } },
+        },
+        virt_lines_above = true,
+      })
+
+      -- Create a hunk with additions (line 4)
+      added_only_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 4, 0, {
+        end_row = 5,
+        hl_group = "EnlightenDiffAdd",
+        hl_eol = true,
+        priority = 1000,
+      })
+
+      -- Create a hunk with both additions and removals (line 6)
+      added_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 6, 0, {
+        end_row = 8,
+        hl_group = "EnlightenDiffAdd",
+        hl_eol = true,
+        priority = 1000,
+      })
+      removed_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 6, -1, {
+        virt_lines = {
+          { { "old line", "EnlightenDiffDelete" } },
+        },
+        virt_lines_above = true,
+      })
+
+      -- Create a hunk with changed lines (line 8)
+      changed_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 9, 0, {
+        end_row = 10,
+        hl_group = "EnlightenDiffChange",
+        hl_eol = true,
+        priority = 1000,
+      })
+    end)
+
+    it("should clear all diff highlights", function()
+      -- Select the entire buffer
+      vim.cmd("normal! ggVG")
+
+      vim.cmd("lua require('enlighten').keep_all()")
+
+      -- Expect that all extmarks are removed
+      assert_extmark_removed(buffer, ns, removed_only_mark)
+      assert_extmark_removed(buffer, ns, added_only_mark)
+      assert_extmark_removed(buffer, ns, added_mark)
+      assert_extmark_removed(buffer, ns, removed_mark)
+
+      -- Except changed lines
+      assert_extmark_exists(buffer, ns, changed_mark)
+
+      -- Verify buffer content is unchanged
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      equals(test_lines, lines)
+    end)
+  end)
+
+  describe("discard_all", function()
+    local test_lines
+    local buffer
+    local ns
+    local removed_only_mark
+    local added_only_mark
+    local added_mark
+    local removed_mark
+    local changed_mark
+
+    before_each(function()
+      test_lines = {
+        "line1",
+        "line2",
+        "line3",
+        "line4",
+        "line5",
+        "line6",
+        "line7",
+        "line8",
+        "line9",
+        "line10",
+      }
+      buffer = tu.prepare_buffer(table.concat(test_lines, "\n"))
+      ns = vim.api.nvim_create_namespace("EnlightenDiffHighlights")
+
+      -- Create a hunk with removals (line 2)
+      removed_only_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 2, -1, {
+        virt_lines = {
+          { { "deleted line", "EnlightenDiffDelete" } },
+        },
+        virt_lines_above = true,
+      })
+
+      -- Create a hunk with additions (line 5)
+      added_only_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 4, 0, {
+        end_row = 5,
+        hl_group = "EnlightenDiffAdd",
+        hl_eol = true,
+        priority = 1000,
+      })
+
+      -- Create a hunk with both additions and removals (line 7-8)
+      added_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 6, 0, {
+        end_row = 8,
+        hl_group = "EnlightenDiffAdd",
+        hl_eol = true,
+        priority = 1000,
+      })
+      removed_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 6, -1, {
+        virt_lines = {
+          { { "old line", "EnlightenDiffDelete" } },
+        },
+        virt_lines_above = true,
+      })
+
+      -- Create a hunk with changed lines (line 9)
+      changed_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 9, 0, {
+        end_row = 10,
+        hl_group = "EnlightenDiffChange",
+        hl_eol = true,
+        priority = 1000,
+      })
+    end)
+
+    it("should clear all diff highlights", function()
+      -- Select the entire buffer
+      vim.cmd("normal! ggVG")
+
+      vim.cmd("lua require('enlighten').discard_all()")
+
+      -- Expect that all extmarks are removed
+      assert_extmark_removed(buffer, ns, removed_only_mark)
+      assert_extmark_removed(buffer, ns, added_only_mark)
+      assert_extmark_removed(buffer, ns, added_mark)
+      assert_extmark_removed(buffer, ns, removed_mark)
+      -- assert_extmark_removed(buffer, ns, changed_mark)
+
+      -- Verify buffer content is unchanged
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      table.remove(test_lines, 7)
+      table.remove(test_lines, 7)
+      table.insert(test_lines, 7, "old line")
+      table.remove(test_lines, 5)
+      table.insert(test_lines, 3, "deleted line")
+      equals(test_lines, lines)
+    end)
+  end)
 end)
