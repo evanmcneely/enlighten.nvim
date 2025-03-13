@@ -10,9 +10,9 @@ M.constants = utils.protect({
 })
 
 ---Extract text content from virtual lines with a specific highlight group
----@param virt_lines any[][] The virtual lines from an extmark
----@param highlight_group string|nil The highlight group to filter by (optional)
----@return string[] The extracted text lines
+---@param virt_lines any[][]
+---@param highlight_group string|nil
+---@return string[]
 local function extract_lines_from_virt_lines(virt_lines, highlight_group)
   local lines = {}
 
@@ -34,6 +34,36 @@ local function extract_lines_from_virt_lines(virt_lines, highlight_group)
 
   return lines
 end
+
+---@class Hunk
+---@field add string[]
+---@field remove string[]
+
+---@class MarkData
+---@field mark vim.api.keyset.get_extmark_item
+---@field id number
+---@field row number
+---@field row_end number
+---@field lines string[]
+
+---@class ClassifiedMarks
+---@field added MarkData[] marks with EnlightenDiffAdd virtual lines
+---@field removed MarkData[] marks with EnlightenDiffDelete virtual lines
+---@field changed MarkData[] marks with EnlightenDiffChange
+---@field by_row table<number, MarkData[]> index marks by row for quick lookup
+
+---@class MarksInRange
+---@field added MarkData[]
+---@field removed MarkData[]
+---@field changed MarkData[]
+
+---@class Operation
+---@field type string "replace"|"delete"|"insert"
+---@field row number Starting row of the operation
+---@field end_row? number Ending row for replace/delete operations
+---@field lines? string[] Lines to replace
+---@field added_id? number ID of the extmark representing added lines
+---@field removed_id? number ID of the extmark representing removed lines
 
 ---@param left string[]
 ---@param right string[]
@@ -97,10 +127,6 @@ function M.diff(left, right)
   return reversed_results
 end
 
----@class Hunk
----@field add string[]
----@field remove string[]
-
 --- Extract information about hunks from a computed diff. Hunks are
 --- groups of added or removed lines (or both). Hunk row numbers are
 --- for the first added line, computed from the provided start line.
@@ -138,6 +164,7 @@ function M.extract_hunks(start_row, diff)
   return hunks
 end
 
+---Applies a ADD highlight to the provided buffer for the specific hunk and row
 ---@param buffer number
 ---@param ns number
 ---@param row number
@@ -155,6 +182,7 @@ function M.highlight_added_lines(buffer, ns, row, hunk)
   end)
 end
 
+---Applies a REMOVED highlight to the provided buffer for the specific hunk and row
 ---@param buffer number
 ---@param ns number
 ---@param row number
@@ -177,6 +205,7 @@ function M.highlight_removed_lines(buffer, ns, row, hunk)
   })
 end
 
+---Applies a CHANGED highlight to the provided buffer for the specific hunk and row
 ---@param buffer number
 ---@param ns number
 ---@param row number
@@ -194,7 +223,11 @@ function M.highlight_changed_lines(buffer, ns, row, hunk)
   end)
 end
 
+--- Find and return the hunks that partially overlap with the provided range using
+--- the diff highlight data on extmarks. If this cannot be completed for some reason,
+--- we return nil
 ---@param range Range
+---@return MarksInRange|nil
 function M.get_hunk_in_range(range)
   local namespaces = vim.api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
@@ -215,6 +248,7 @@ function M.get_hunk_in_range(range)
   end
 
   -- Classify marks by type and position
+  ---@type ClassifiedMarks
   local classified_marks = {
     added = {}, -- marks with EnlightenDiffAdd
     removed = {}, -- marks with EnlightenDiffDelete virtual lines
@@ -229,12 +263,13 @@ function M.get_hunk_in_range(range)
     local mark_details = mark[4]
     local mark_row_end = mark_details.end_row or mark_row
 
+    ---@type MarkData
     local data = {
       mark = mark,
       id = mark_id,
       row = mark_row,
       row_end = mark_row_end,
-      details = mark_details,
+      lines = {},
     }
 
     -- Store mark by row for quick position lookup
@@ -266,12 +301,14 @@ function M.get_hunk_in_range(range)
   end
 
   -- Find marks that are in the specified range or are related to marks in the range
+  ---@type MarksInRange
   local marks_in_range = {
     added = {},
     removed = {},
     changed = {},
   }
-  local processed_ids = {}
+
+  local processed_ids = {} ---@type table<number, boolean>
 
   -- Process added marks in range
   for _, mark_data in ipairs(classified_marks.added) do
@@ -319,22 +356,28 @@ function M.get_hunk_in_range(range)
   return marks_in_range
 end
 
-function M.keep_hunk(current_buf, hunks)
+--- Clear the diff highlights while keeping any changes from the provided hunks.
+--- * Changed lines are not handled here yet *
+---@param buffer number
+---@param hunks MarksInRange
+function M.keep_hunk(buffer, hunks)
   local namespaces = vim.api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
 
   for _, mark in ipairs(hunks.added) do
-    vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, mark.id)
+    vim.api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
   end
 
   for _, mark in ipairs(hunks.removed) do
-    vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, mark.id)
+    vim.api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
   end
-
-  -- changed marks are not handled here yet
 end
 
-function M.reset_hunk(current_buf, hunks)
+--- Clear the diff highlights while resetting any changes from the provided hunks.
+--- * Changed lines are not handled here yet *
+---@param buffer number
+---@param hunks MarksInRange
+function M.reset_hunk(buffer, hunks)
   local namespaces = vim.api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
 
@@ -362,8 +405,7 @@ function M.reset_hunk(current_buf, hunks)
 
   -- changed marks are not handled here yet
 
-  -- Sort marks by row in reverse order to prevent position shifts
-  local operations = {}
+  local operations = {} ---@type Operation[]
 
   -- Create operations for matching pairs
   for added_id, added_info in pairs(added_marks) do
@@ -413,15 +455,15 @@ function M.reset_hunk(current_buf, hunks)
   -- Execute operations in the sorted order
   for _, op in ipairs(operations) do
     if op.type == "replace" then
-      vim.api.nvim_buf_set_lines(current_buf, op.row, op.end_row, true, op.lines)
-      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, op.added_id)
-      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, op.removed_id)
+      vim.api.nvim_buf_set_lines(buffer, op.row, op.end_row, true, op.lines)
+      vim.api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
+      vim.api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
     elseif op.type == "delete" then
-      vim.api.nvim_buf_set_lines(current_buf, op.row, op.end_row, true, {})
-      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, op.added_id)
+      vim.api.nvim_buf_set_lines(buffer, op.row, op.end_row, true, {})
+      vim.api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
     elseif op.type == "insert" then
-      vim.api.nvim_buf_set_lines(current_buf, op.row, op.row, true, op.lines)
-      vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, op.removed_id)
+      vim.api.nvim_buf_set_lines(buffer, op.row, op.row, true, op.lines)
+      vim.api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
     end
   end
 end

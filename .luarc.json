@@ -2,7 +2,7 @@
   "runtime.version": "LuaJIT",
   "runtime.path": ["lua/?.lua", "lua/?/init.lua"],
   "workspace.checkThirdParty": false,
-  "diagnostics.enable": false,
+  "diagnostics.enable": true,
   "format.enable": false,
   "workspace.library": [
     "lua",
@@ -10,5 +10,11 @@
     "${3rd}/luv/library",
     "${3rd}/busted/library",
     "${3rd}/luassert/library"
-  ]
+  ],
+  "type.castNumberToInteger": true,
+  "type.checkTableShape": true,
+  "type.inferParamType": true,
+  "type.inferTableSize": 10,
+  "type.weakNilCheck": true,
+  "type.weakUnionCheck": true
 }
