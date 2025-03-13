@@ -52,11 +52,6 @@ end
 ---@field changed MarkData[] marks with EnlightenDiffChange
 ---@field by_row table<number, MarkData[]> index marks by row for quick lookup
 
----@class MarksInRange
----@field added MarkData[]
----@field removed MarkData[]
----@field changed MarkData[]
-
 ---@class Operation
 ---@field type string "replace"|"delete"|"insert"
 ---@field row number Starting row of the operation
@@ -227,40 +222,36 @@ end
 --- the diff highlight data on extmarks. If this cannot be completed for some reason,
 --- we return nil
 ---@param range Range
----@return MarksInRange|nil
+---@return ClassifiedMarks|nil
 function M.get_hunk_in_range(range)
-  local namespaces = vim.api.nvim_get_namespaces()
-  local highlight_ns = namespaces["EnlightenDiffHighlights"]
+  local namespaces = api.nvim_get_namespaces()
+  local ns = namespaces["EnlightenDiffHighlights"]
 
-  if not highlight_ns then
-    return
+  if not ns then
+    return nil
   end
 
-  local current_buf = vim.api.nvim_get_current_buf()
-  if not vim.api.nvim_buf_is_valid(current_buf) then
-    return
+  local buffer = api.nvim_get_current_buf()
+  if not api.nvim_buf_is_valid(buffer) then
+    return nil
   end
 
-  local extmarks =
-    vim.api.nvim_buf_get_extmarks(current_buf, highlight_ns, 0, -1, { details = true })
+  local extmarks = vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, { details = true })
   if #extmarks == 0 then
-    return
+    return nil
   end
 
-  -- Classify marks by type and position
   ---@type ClassifiedMarks
   local classified_marks = {
-    added = {}, -- marks with EnlightenDiffAdd
-    removed = {}, -- marks with EnlightenDiffDelete virtual lines
-    changed = {}, -- marks with EnlightenDiffChange
-    by_row = {}, -- index marks by row for quick lookup
+    added = {},
+    removed = {},
+    changed = {},
+    by_row = {},
   }
 
   -- First pass: classify all marks
   for _, mark in ipairs(extmarks) do
-    local mark_id = mark[1]
-    local mark_row = mark[2]
-    local mark_details = mark[4]
+    local mark_id, mark_row, _, mark_details = mark[1], mark[2], mark[3], mark[4]
     local mark_row_end = mark_details.end_row or mark_row
 
     ---@type MarkData
@@ -273,27 +264,20 @@ function M.get_hunk_in_range(range)
     }
 
     -- Store mark by row for quick position lookup
-    if not classified_marks.by_row[mark_row] then
-      classified_marks.by_row[mark_row] = {}
-    end
+    classified_marks.by_row[mark_row] = classified_marks.by_row[mark_row] or {}
     table.insert(classified_marks.by_row[mark_row], data)
 
     -- Check if mark is a deletion (has EnlightenDiffDelete virtual lines)
-    local is_deletion = false
-    local deleted_lines
     if mark_details.virt_lines then
       local lines = extract_lines_from_virt_lines(mark_details.virt_lines, "EnlightenDiffDelete")
-      is_deletion = #lines > 0
-      if is_deletion then
-        deleted_lines = lines
+      if #lines > 0 then
+        data.lines = lines
+        table.insert(classified_marks.removed, data)
       end
     end
 
-    -- Catagorize marks by type of change (added, removed, changed)
-    if is_deletion then
-      data.lines = deleted_lines
-      table.insert(classified_marks.removed, data)
-    elseif mark_details.hl_group == "EnlightenDiffAdd" then
+    -- Categorize marks by type of change
+    if mark_details.hl_group == "EnlightenDiffAdd" then
       table.insert(classified_marks.added, data)
     elseif mark_details.hl_group == "EnlightenDiffChange" then
       table.insert(classified_marks.changed, data)
@@ -301,28 +285,39 @@ function M.get_hunk_in_range(range)
   end
 
   -- Find marks that are in the specified range or are related to marks in the range
-  ---@type MarksInRange
+  ---@type ClassifiedMarks
   local marks_in_range = {
     added = {},
     removed = {},
     changed = {},
+    by_row = {},
   }
-
   local processed_ids = {} ---@type table<number, boolean>
+
+  -- Helper function to check if a mark overlaps with the range
+  ---@param mark_data MarkData
+  ---@return boolean
+  local function mark_overlaps_range(mark_data)
+    return (mark_data.row <= range.row_end) and (mark_data.row_end >= range.row_start)
+  end
+
+  -- Helper function to check if a mark has already been processed
+  ---@param mark_data MarkData
+  ---@return boolean
+  local function mark_already_processed(mark_data)
+    return processed_ids[mark_data.id] or false
+  end
 
   -- Process added marks in range
   for _, mark_data in ipairs(classified_marks.added) do
-    local mark_overlaps_range = (mark_data.row <= range.row_end)
-      and (mark_data.row_end >= range.row_start)
-
-    if mark_overlaps_range and not processed_ids[mark_data.id] then
+    if mark_overlaps_range(mark_data) and not mark_already_processed(mark_data) then
       processed_ids[mark_data.id] = true
       table.insert(marks_in_range.added, mark_data)
 
       -- Find any removal marks at the same position
       if classified_marks.by_row[mark_data.row] then
         for _, related_mark in ipairs(classified_marks.by_row[mark_data.row]) do
-          if not processed_ids[related_mark.id] and related_mark.lines then
+          if not mark_already_processed(related_mark) and #related_mark.lines > 0 then
             processed_ids[related_mark.id] = true
             table.insert(marks_in_range.removed, related_mark)
           end
@@ -333,10 +328,7 @@ function M.get_hunk_in_range(range)
 
   -- Process changed marks in range
   for _, mark_data in ipairs(classified_marks.changed) do
-    local mark_overlaps_range = (mark_data.row <= range.row_end)
-      and (mark_data.row_end >= range.row_start)
-
-    if mark_overlaps_range and not processed_ids[mark_data.id] then
+    if mark_overlaps_range(mark_data) and not mark_already_processed(mark_data) then
       processed_ids[mark_data.id] = true
       table.insert(marks_in_range.changed, mark_data)
     end
@@ -344,10 +336,11 @@ function M.get_hunk_in_range(range)
 
   -- Process removal marks in range
   for _, mark_data in ipairs(classified_marks.removed) do
-    local mark_overlaps_range = (mark_data.row <= range.row_end)
-      and (mark_data.row >= range.row_start)
-
-    if mark_overlaps_range and not processed_ids[mark_data.id] then
+    if
+      mark_data.row >= range.row_start
+      and mark_data.row <= range.row_end
+      and not mark_already_processed(mark_data)
+    then
       processed_ids[mark_data.id] = true
       table.insert(marks_in_range.removed, mark_data)
     end
@@ -359,26 +352,26 @@ end
 --- Clear the diff highlights while keeping any changes from the provided hunks.
 --- * Changed lines are not handled here yet *
 ---@param buffer number
----@param hunks MarksInRange
+---@param hunks ClassifiedMarks
 function M.keep_hunk(buffer, hunks)
-  local namespaces = vim.api.nvim_get_namespaces()
+  local namespaces = api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
 
   for _, mark in ipairs(hunks.added) do
-    vim.api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
+    api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
   end
 
   for _, mark in ipairs(hunks.removed) do
-    vim.api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
+    api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
   end
 end
 
 --- Clear the diff highlights while resetting any changes from the provided hunks.
 --- * Changed lines are not handled here yet *
 ---@param buffer number
----@param hunks MarksInRange
+---@param hunks ClassifiedMarks
 function M.reset_hunk(buffer, hunks)
-  local namespaces = vim.api.nvim_get_namespaces()
+  local namespaces = api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
 
   -- First collect all the information about marks
@@ -455,15 +448,15 @@ function M.reset_hunk(buffer, hunks)
   -- Execute operations in the sorted order
   for _, op in ipairs(operations) do
     if op.type == "replace" then
-      vim.api.nvim_buf_set_lines(buffer, op.row, op.end_row, true, op.lines)
-      vim.api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
-      vim.api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
+      api.nvim_buf_set_lines(buffer, op.row, op.end_row, true, op.lines)
+      api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
+      api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
     elseif op.type == "delete" then
-      vim.api.nvim_buf_set_lines(buffer, op.row, op.end_row, true, {})
-      vim.api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
+      api.nvim_buf_set_lines(buffer, op.row, op.end_row, true, {})
+      api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
     elseif op.type == "insert" then
-      vim.api.nvim_buf_set_lines(buffer, op.row, op.row, true, op.lines)
-      vim.api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
+      api.nvim_buf_set_lines(buffer, op.row, op.row, true, op.lines)
+      api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
     end
   end
 end
