@@ -168,7 +168,8 @@ function M.highlight_changed_lines(buffer, ns, row, hunk)
   end)
 end
 
-function M.get_hunk_under_cursor()
+---@param range Range
+function M.get_hunk_in_range(range)
   local namespaces = vim.api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
 
@@ -181,8 +182,8 @@ function M.get_hunk_under_cursor()
     return
   end
 
-  local cursor_pos = vim.api.nvim_win_get_cursor(0)
-  local cursor_row = cursor_pos[1] - 1 -- Convert to 0-indexed
+  local row_start = range.row_start
+  local row_end = range.row_end
 
   local extmarks =
     vim.api.nvim_buf_get_extmarks(current_buf, highlight_ns, 0, -1, { details = true })
@@ -196,17 +197,19 @@ function M.get_hunk_under_cursor()
   }
   local processed_ids = {}
   local add_mark_positions = {}
-  local add_marks_at_cursor = {}
+  local add_marks_in_range = {}
 
   -- First pass: identify all EnlightenDiffAdd marks and their positions
   for _, mark in ipairs(extmarks) do
     local hl_group = mark[4].hl_group
     local mark_row_start = mark[2]
+    local mark_row_end = mark[4].end_row or mark_row_start
 
     if hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
-      if cursor_row >= mark_row_start and cursor_row <= (mark[4].end_row or mark_row_start) then
+      -- Check if mark overlaps with the range
+      if (mark_row_start <= row_end) and (mark_row_end >= row_start) then
         add_mark_positions[mark_row_start] = true
-        table.insert(add_marks_at_cursor, { id = mark[1], row = mark_row_start })
+        table.insert(add_marks_in_range, { id = mark[1], row = mark_row_start })
       end
     end
   end
@@ -236,9 +239,9 @@ function M.get_hunk_under_cursor()
 
     -- Process marks that are relevant to our highlighting
     if mark_is_delete or hl_group == "EnlightenDiffAdd" or hl_group == "EnlightenDiffChange" then
-      -- Check if cursor is on this mark OR if this is a delete mark at the same position as an add mark under cursor
+      -- Check if mark overlaps with range OR if this is a delete mark at the same position as an add mark in range
       if
-        (cursor_row >= mark_row_start and cursor_row <= mark_row_end)
+        ((mark_row_start <= row_end) and (mark_row_end >= row_start))
         or (mark_is_delete and add_mark_positions[mark_row_start])
       then
         -- Avoid duplicates by checking the mark ID
@@ -255,8 +258,8 @@ function M.get_hunk_under_cursor()
     end
   end
 
-  -- Third pass: look for delete marks at the same position as add marks under cursor
-  if #add_marks_at_cursor > 0 then
+  -- Third pass: look for delete marks at the same position as add marks in range
+  if #add_marks_in_range > 0 then
     for _, mark in ipairs(extmarks) do
       local mark_id = mark[1]
       local mark_row_start = mark[2]
@@ -277,7 +280,7 @@ function M.get_hunk_under_cursor()
       end
 
       if mark_is_delete then
-        for _, add_mark in ipairs(add_marks_at_cursor) do
+        for _, add_mark in ipairs(add_marks_in_range) do
           if mark_row_start == add_mark.row and not processed_ids[mark_id] then
             processed_ids[mark_id] = true
             table.insert(found_marks.removed, mark_id)

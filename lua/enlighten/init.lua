@@ -4,6 +4,7 @@ local config = require("enlighten/config")
 local highlights = require("enlighten/highlights")
 local Logger = require("enlighten/logger")
 local diff = require("enlighten/diff")
+local buffer = require("enlighten/buffer")
 
 ---@class Enlighten
 --- Full plugin configuration with default values overridden by user provided ones.
@@ -87,7 +88,8 @@ function enlighten.keep()
     return
   end
 
-  local hunks = diff.get_hunk_under_cursor()
+  local range = buffer.get_range()
+  local hunks = diff.get_hunk_in_range(range)
   local current_buf = vim.api.nvim_get_current_buf()
 
   diff.keep_hunk(current_buf, hunks)
@@ -98,7 +100,8 @@ function enlighten.reset()
     return
   end
 
-  local hunks = diff.get_hunk_under_cursor()
+  local range = buffer.get_range()
+  local hunks = diff.get_hunk_in_range(range)
   local current_buf = vim.api.nvim_get_current_buf()
 
   diff.reset_hunk(current_buf, hunks)
