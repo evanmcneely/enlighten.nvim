@@ -229,5 +229,44 @@ describe("enlighten commands and keymaps", function()
       local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
       equals(test_lines, lines)
     end)
+
+    it("should clear all diff highlights when the whole buffer is selected", function()
+      -- Select the entire buffer
+      vim.cmd("normal! ggVG")
+
+      vim.cmd("lua require('enlighten').keep()")
+
+      -- Expect that all extmarks are removed
+      assert_extmark_removed(buffer, ns, removed_only_mark)
+      assert_extmark_removed(buffer, ns, added_only_mark)
+      assert_extmark_removed(buffer, ns, added_mark)
+      assert_extmark_removed(buffer, ns, removed_mark)
+      assert_extmark_removed(buffer, ns, changed_mark)
+
+      -- Verify buffer content is unchanged
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      equals(test_lines, lines)
+    end)
+
+    it("should clear diff highlights only in the selected range", function()
+      -- Select a range that includes only the middle diff highlights
+      vim.api.nvim_win_set_cursor(0, { 5, 0 }) -- Start at line 5
+      vim.cmd("normal! V2j") -- Select 3 lines (5, 6, 7)
+
+      vim.cmd("lua require('enlighten').keep()")
+
+      -- Expect that only the middle extmarks are removed
+      assert_extmark_removed(buffer, ns, added_only_mark)
+      assert_extmark_removed(buffer, ns, added_mark)
+      assert_extmark_removed(buffer, ns, removed_mark)
+
+      -- Expect the extmarks outside the selection to still be in the buffer
+      assert_extmark_exists(buffer, ns, removed_only_mark)
+      assert_extmark_exists(buffer, ns, changed_mark)
+
+      -- Verify buffer content is unchanged
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      equals(test_lines, lines)
+    end)
   end)
 end)
