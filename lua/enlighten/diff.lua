@@ -317,7 +317,6 @@ function M.reset_hunk(current_buf, hunks)
   for _, mark_id in ipairs(hunks.added) do
     local mark =
       vim.api.nvim_buf_get_extmark_by_id(current_buf, highlight_ns, mark_id, { details = true })
-    print("this is add the mark", vim.inspect(mark))
     if mark then
       added_marks[mark_id] = {
         start_row = mark[1],
@@ -359,7 +358,7 @@ function M.reset_hunk(current_buf, hunks)
         vim.api.nvim_buf_set_lines(
           current_buf,
           added_info.start_row,
-          added_info.end_row + 1,
+          added_info.end_row,
           true,
           removed_info.lines
         )
@@ -378,13 +377,7 @@ function M.reset_hunk(current_buf, hunks)
   for added_id, added_info in pairs(added_marks) do
     if not matched_pairs[added_id] then
       -- Delete the added lines
-      vim.api.nvim_buf_set_lines(
-        current_buf,
-        added_info.start_row,
-        added_info.end_row + 1,
-        true,
-        {}
-      )
+      vim.api.nvim_buf_set_lines(current_buf, added_info.start_row, added_info.end_row, true, {})
 
       -- Delete the extmark
       vim.api.nvim_buf_del_extmark(current_buf, highlight_ns, added_id)
