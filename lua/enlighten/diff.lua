@@ -217,93 +217,108 @@ function M.get_hunk_in_range(range)
     return
   end
 
-  local found_marks = {
+  -- Classify marks by type and position
+  local classified_marks = {
+    added = {}, -- marks with EnlightenDiffAdd
+    removed = {}, -- marks with EnlightenDiffDelete virtual lines
+    changed = {}, -- marks with EnlightenDiffChange
+    by_row = {}, -- index marks by row for quick lookup
+  }
+
+  -- First pass: classify all marks
+  for _, mark in ipairs(extmarks) do
+    local mark_id = mark[1]
+    local mark_row = mark[2]
+    local mark_details = mark[4]
+    local mark_row_end = mark_details.end_row or mark_row
+
+    -- Store mark by row for quick position lookup
+    if not classified_marks.by_row[mark_row] then
+      classified_marks.by_row[mark_row] = {}
+    end
+    table.insert(classified_marks.by_row[mark_row], mark)
+
+    -- Check if mark is a deletion (has EnlightenDiffDelete virtual lines)
+    local is_deletion = false
+    local deleted_lines
+    if mark_details.virt_lines then
+      local lines = extract_lines_from_virt_lines(mark_details.virt_lines, "EnlightenDiffDelete")
+      is_deletion = #lines > 0
+      if is_deletion then
+        deleted_lines = lines
+      end
+    end
+
+    if is_deletion then
+      table.insert(classified_marks.removed, {
+        id = mark_id,
+        row = mark_row,
+        mark = mark,
+        lines = deleted_lines,
+      })
+    elseif mark_details.hl_group == "EnlightenDiffAdd" then
+      table.insert(classified_marks.added, {
+        id = mark_id,
+        row = mark_row,
+        end_row = mark_row_end,
+        mark = mark,
+      })
+    elseif mark_details.hl_group == "EnlightenDiffChange" then
+      table.insert(classified_marks.changed, {
+        id = mark_id,
+        row = mark_row,
+        end_row = mark_row_end,
+        mark = mark,
+      })
+    end
+  end
+
+  -- Find marks that are in the specified range or are related to marks in the range
+  local marks_in_range = {
     added = {},
     removed = {},
   }
   local processed_ids = {}
-  local add_mark_positions = {}
-  local add_marks_in_range = {}
 
-  -- First pass: identify all EnlightenDiffAdd marks and their positions
-  for _, mark in ipairs(extmarks) do
-    local mark_row_start = mark[2]
-    local mark_row_end = mark[4].end_row or mark_row_start
-    local mark_is_add = mark[4].hl_group == "EnlightenDiffAdd"
-    -- We ignore "changed" lines
-    -- local mark_is_change = hl_group == "EnlightenDiffChange"
-    local mark_is_change = false
+  -- Process added marks in range
+  for _, mark_info in ipairs(classified_marks.added) do
+    local mark_overlaps_range = (mark_info.row <= row_end) and (mark_info.end_row >= row_start)
 
-    local mark_overlaps_range = (mark_row_start <= row_end) and (mark_row_end >= row_start)
-    if (mark_is_add or mark_is_change) and mark_overlaps_range then
-      add_mark_positions[mark_row_start] = true
-      table.insert(add_marks_in_range, { id = mark[1], row = mark_row_start })
-    end
-  end
+    if mark_overlaps_range and not processed_ids[mark_info.id] then
+      processed_ids[mark_info.id] = true
+      table.insert(marks_in_range.added, mark_info.id)
 
-  -- Second pass: process all marks
-  for _, mark in ipairs(extmarks) do
-    local mark_id = mark[1]
-    local hl_group = mark[4].hl_group
-    local mark_row_start = mark[2]
-    local mark_row_end = mark[4].end_row or mark_row_start
-    local mark_is_delete = false
-    local mark_is_add = hl_group == "EnlightenDiffAdd"
+      -- Find any removal marks at the same position
+      if classified_marks.by_row[mark_info.row] then
+        for _, related_mark in ipairs(classified_marks.by_row[mark_info.row]) do
+          local related_id = related_mark[1]
+          local related_details = related_mark[4]
 
-    -- We ignore "changed" lines
-    -- local mark_is_change = hl_group == "EnlightenDiffChange"
-    local mark_is_change = false
-
-    -- Check if mark has virtual lines with EnlightenDiffDelete
-    if mark[4].virt_lines then
-      mark_is_delete = #extract_lines_from_virt_lines(mark[4].virt_lines, "EnlightenDiffDelete") > 0
-    end
-
-    -- Process marks that are relevant to our highlighting
-    local mark_overlaps_range = (mark_row_start <= row_end) and (mark_row_end >= row_start)
-    local is_delete_at_add_position = mark_is_delete and add_mark_positions[mark_row_start]
-    if
-      (mark_is_delete or mark_is_add or mark_is_change)
-      and (mark_overlaps_range or is_delete_at_add_position)
-    then
-      -- Avoid duplicates by checking the mark ID
-      if not processed_ids[mark_id] then
-        processed_ids[mark_id] = true
-
-        if mark_is_delete then
-          table.insert(found_marks.removed, mark_id)
-        else
-          table.insert(found_marks.added, mark_id)
-        end
-      end
-    end
-  end
-
-  -- Third pass: look for delete marks at the same position as add marks in range
-  if #add_marks_in_range > 0 then
-    for _, mark in ipairs(extmarks) do
-      local mark_id = mark[1]
-      local mark_row_start = mark[2]
-      local mark_is_delete = false
-
-      -- Check if mark has virtual lines with EnlightenDiffDelete
-      if mark[4].virt_lines then
-        mark_is_delete = #extract_lines_from_virt_lines(mark[4].virt_lines, "EnlightenDiffDelete")
-          > 0
-      end
-
-      if mark_is_delete then
-        for _, add_mark in ipairs(add_marks_in_range) do
-          if mark_row_start == add_mark.row and not processed_ids[mark_id] then
-            processed_ids[mark_id] = true
-            table.insert(found_marks.removed, mark_id)
+          if
+            not processed_ids[related_id]
+            and related_details.virt_lines
+            and #extract_lines_from_virt_lines(related_details.virt_lines, "EnlightenDiffDelete")
+              > 0
+          then
+            processed_ids[related_id] = true
+            table.insert(marks_in_range.removed, related_id)
           end
         end
       end
     end
   end
 
-  return found_marks
+  -- Process removal marks in range
+  for _, mark_info in ipairs(classified_marks.removed) do
+    local mark_overlaps_range = (mark_info.row <= row_end) and (mark_info.row >= row_start)
+
+    if mark_overlaps_range and not processed_ids[mark_info.id] then
+      processed_ids[mark_info.id] = true
+      table.insert(marks_in_range.removed, mark_info.id)
+    end
+  end
+
+  return marks_in_range
 end
 
 function M.keep_hunk(current_buf, hunks)
