@@ -193,11 +193,14 @@ function M.highlight_removed_lines(buffer, ns, row, hunk)
     )
   end
 
-  api.nvim_buf_set_extmark(buffer, ns, row, -1, {
+  local mark_id = api.nvim_buf_set_extmark(buffer, ns, row, -1, {
     virt_lines = virt_lines,
     -- TODO: virt_lines_above doesn't work on row 0 neovim/neovim#16166
     virt_lines_above = true,
   })
+
+  local removed_lines_var = "enlighten_removed_lines_" .. mark_id
+  api.nvim_buf_set_var(buffer, removed_lines_var, hunk.remove)
 end
 
 ---Applies a CHANGED highlight to the provided buffer for the specific hunk and row
@@ -209,12 +212,15 @@ end
 function M.highlight_changed_lines(buffer, ns, row, hunk)
   -- Has the potential to error when writing/highlighting content at the end of the buffer.
   pcall(function()
-    api.nvim_buf_set_extmark(buffer, ns, row, 0, {
+    local mark_id = api.nvim_buf_set_extmark(buffer, ns, row, 0, {
       end_row = row + #hunk.add,
       hl_group = "EnlightenDiffChange",
       hl_eol = true,
       priority = 1000,
     })
+
+    local removed_lines_var = "enlighten_removed_lines_" .. mark_id
+    api.nvim_buf_set_var(buffer, removed_lines_var, hunk.remove)
   end)
 end
 
@@ -263,6 +269,14 @@ function M.get_hunk_in_range(buffer, range)
     classified_marks.by_row[mark_row] = classified_marks.by_row[mark_row] or {}
     table.insert(classified_marks.by_row[mark_row], data)
 
+    -- Check if mark has removed lines stored in buffer variable
+    local removed_lines_var = "enlighten_removed_lines_" .. mark_id
+    local has_removed_lines, removed_lines = pcall(api.nvim_buf_get_var, buffer, removed_lines_var)
+
+    if has_removed_lines and removed_lines then
+      data.lines = removed_lines
+    end
+
     -- Check if mark is a deletion (has EnlightenDiffDelete virtual lines)
     if mark_details.virt_lines then
       local lines = extract_lines_from_virt_lines(mark_details.virt_lines, "EnlightenDiffDelete")
@@ -277,6 +291,8 @@ function M.get_hunk_in_range(buffer, range)
       table.insert(classified_marks.added, data)
     elseif mark_details.hl_group == "EnlightenDiffChange" then
       table.insert(classified_marks.changed, data)
+    else
+      table.insert(classified_marks.removed, data)
     end
   end
 

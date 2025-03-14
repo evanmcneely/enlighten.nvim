@@ -204,6 +204,7 @@ describe("diff", function()
       local row = 0
       local hunk = { add = { "line1", "line2" }, remove = {} }
 
+      api.nvim_buf_set_extmark.returns(1)
       diff.highlight_added_lines(buffer, ns, row, hunk)
 
       assert.stub(api.nvim_buf_set_extmark).was_called_with(buffer, ns, row, 0, {
@@ -226,6 +227,7 @@ describe("diff", function()
       local row = 0
       local hunk = { add = {}, remove = { "line1", "line2" } }
 
+      api.nvim_buf_set_extmark.returns(1)
       diff.highlight_removed_lines(buffer, ns, row, hunk)
 
       assert.stub(api.nvim_buf_set_extmark).was_called_with(buffer, ns, row, -1, {
@@ -235,6 +237,24 @@ describe("diff", function()
         },
         virt_lines_above = true,
       })
+
+      mock.revert(api)
+    end)
+
+    it("should set buffer variable for removed lines", function()
+      -- mock the vim.api
+      local api = mock(vim.api, true)
+      local buffer = 5
+      local ns = 10
+      local row = 0
+      local hunk = { add = { "line1", "line2" }, remove = { "old1", "old2" } }
+
+      api.nvim_buf_set_extmark.returns(42)
+      diff.highlight_removed_lines(buffer, ns, row, hunk)
+
+      assert
+        .stub(api.nvim_buf_set_var)
+        .was_called_with(buffer, "enlighten_removed_lines_42", hunk.remove)
 
       mock.revert(api)
     end)
@@ -249,6 +269,7 @@ describe("diff", function()
       local row = 0
       local hunk = { add = { "line1", "line2" }, remove = { "old1", "old2" } }
 
+      api.nvim_buf_set_extmark.returns(1)
       diff.highlight_changed_lines(buffer, ns, row, hunk)
 
       assert.stub(api.nvim_buf_set_extmark).was_called_with(buffer, ns, row, 0, {
@@ -257,6 +278,24 @@ describe("diff", function()
         hl_eol = true,
         priority = 1000,
       })
+
+      mock.revert(api)
+    end)
+
+    it("should set buffer variable for removed lines", function()
+      -- mock the vim.api
+      local api = mock(vim.api, true)
+      local buffer = 5
+      local ns = 10
+      local row = 0
+      local hunk = { add = { "line1", "line2" }, remove = { "old1", "old2" } }
+
+      api.nvim_buf_set_extmark.returns(42)
+      diff.highlight_changed_lines(buffer, ns, row, hunk)
+
+      assert
+        .stub(api.nvim_buf_set_var)
+        .was_called_with(buffer, "enlighten_removed_lines_42", hunk.remove)
 
       mock.revert(api)
     end)
