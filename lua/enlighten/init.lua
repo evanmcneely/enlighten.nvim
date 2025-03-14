@@ -3,7 +3,7 @@ local Chat = require("enlighten.chat")
 local config = require("enlighten.config")
 local highlights = require("enlighten.highlights")
 local Logger = require("enlighten.logger")
-local diff = require("enlighten.diff")
+local diff_hl = require("enlighten.diff.highlights")
 local buffer = require("enlighten.buffer")
 
 ---@class Enlighten
@@ -90,9 +90,9 @@ function enlighten.keep()
 
   local range = buffer.get_range()
   local current_buf = vim.api.nvim_get_current_buf()
-  local hunks = diff.get_hunk_in_range(current_buf, range)
+  local hunks = diff_hl.get_hunk_in_range(current_buf, range)
 
-  diff.keep_hunk(current_buf, hunks)
+  diff_hl.keep_hunk(current_buf, hunks)
 end
 
 function enlighten.discard()
@@ -102,9 +102,9 @@ function enlighten.discard()
 
   local range = buffer.get_range()
   local current_buf = vim.api.nvim_get_current_buf()
-  local hunks = diff.get_hunk_in_range(current_buf, range)
+  local hunks = diff_hl.get_hunk_in_range(current_buf, range)
 
-  diff.reset_hunk(current_buf, hunks)
+  diff_hl.reset_hunk(current_buf, hunks)
 end
 
 function enlighten.keep_all()
@@ -121,9 +121,9 @@ function enlighten.keep_all()
     row_end = math.huge,
   }
   local current_buf = vim.api.nvim_get_current_buf()
-  local hunks = diff.get_hunk_in_range(current_buf, range)
+  local hunks = diff_hl.get_hunk_in_range(current_buf, range)
 
-  diff.keep_hunk(current_buf, hunks)
+  diff_hl.keep_hunk(current_buf, hunks)
 end
 
 function enlighten.discard_all()
@@ -140,9 +140,9 @@ function enlighten.discard_all()
     row_end = math.huge,
   }
   local current_buf = vim.api.nvim_get_current_buf()
-  local hunks = diff.get_hunk_in_range(current_buf, range)
+  local hunks = diff_hl.get_hunk_in_range(current_buf, range)
 
-  diff.reset_hunk(current_buf, hunks)
+  diff_hl.reset_hunk(current_buf, hunks)
 end
 
 return enlighten

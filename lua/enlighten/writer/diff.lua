@@ -1,6 +1,7 @@
 local api = vim.api
 local buffer = require("enlighten.buffer")
-local differ = require("enlighten.diff")
+local differ = require("enlighten.diff.differ")
+local diff_hl = require("enlighten.diff.highlights")
 local Logger = require("enlighten.logger")
 local utils = require("enlighten.utils")
 
@@ -218,17 +219,17 @@ function DiffWriter:_highlight_diff(left, right)
 
     if show_diff == true then
       if #hunk.add then
-        differ.highlight_added_lines(self.buffer, self.diff_ns_id, row, hunk)
+        diff_hl.highlight_added_lines(self.buffer, self.diff_ns_id, row, hunk)
       end
       if #hunk.remove then
-        differ.highlight_removed_lines(self.buffer, self.diff_ns_id, row, hunk)
+        diff_hl.highlight_removed_lines(self.buffer, self.diff_ns_id, row, hunk)
       end
     elseif #hunk.add > 0 and #hunk.remove == 0 then
-      differ.highlight_added_lines(self.buffer, self.diff_ns_id, row, hunk)
+      diff_hl.highlight_added_lines(self.buffer, self.diff_ns_id, row, hunk)
     elseif #hunk.remove > 0 and #hunk.add == 0 then
-      differ.highlight_removed_lines(self.buffer, self.diff_ns_id, row, hunk)
+      diff_hl.highlight_removed_lines(self.buffer, self.diff_ns_id, row, hunk)
     else
-      differ.highlight_changed_lines(self.buffer, self.diff_ns_id, row, hunk)
+      diff_hl.highlight_changed_lines(self.buffer, self.diff_ns_id, row, hunk)
     end
   end
 
@@ -272,8 +273,8 @@ function DiffWriter:reset()
       col_end = 0,
       row_end = math.huge,
     }
-    local hunks = differ.get_hunk_in_range(self.buffer, range)
-    differ.reset_hunk(self.buffer, hunks)
+    local hunks = diff_hl.get_hunk_in_range(self.buffer, range)
+    diff_hl.reset_hunk(self.buffer, hunks)
   end
 
   self:_clear_state()
@@ -289,8 +290,8 @@ function DiffWriter:keep()
     col_end = 0,
     row_end = math.huge,
   }
-  local hunks = differ.get_hunk_in_range(self.buffer, range)
-  differ.keep_hunk(self.buffer, hunks)
+  local hunks = diff_hl.get_hunk_in_range(self.buffer, range)
+  diff_hl.keep_hunk(self.buffer, hunks)
   self:_clear_state()
 end
 
