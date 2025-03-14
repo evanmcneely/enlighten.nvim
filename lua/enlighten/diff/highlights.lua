@@ -28,6 +28,22 @@ local function extract_lines_from_virt_lines(virt_lines, highlight_group)
   return lines
 end
 
+local function set_removed_lines_var(buffer, mark_id, value)
+  local removed_lines_var = "enlighten_removed_lines_" .. mark_id
+  api.nvim_buf_set_var(buffer, removed_lines_var, value)
+end
+
+local function clear_removed_lines_var(buffer, mark_id)
+  local removed_lines_var = "enlighten_removed_lines_" .. mark_id
+  pcall(api.nvim_buf_del_var, buffer, removed_lines_var)
+end
+
+local function get_removed_lines_var(buffer, mark_id)
+  local removed_lines_var = "enlighten_removed_lines_" .. mark_id
+  local has_removed_lines, removed_lines = pcall(api.nvim_buf_get_var, buffer, removed_lines_var)
+  return has_removed_lines or false, removed_lines or {}
+end
+
 ---@class MarkData
 ---@field mark vim.api.keyset.get_extmark_item
 ---@field id number
@@ -89,8 +105,7 @@ function M.highlight_removed_lines(buffer, ns, row, hunk)
     virt_lines_above = true,
   })
 
-  local removed_lines_var = "enlighten_removed_lines_" .. mark_id
-  api.nvim_buf_set_var(buffer, removed_lines_var, hunk.remove)
+  set_removed_lines_var(buffer, mark_id, hunk.remove)
 end
 
 ---Applies a CHANGED highlight to the provided buffer for the specific hunk and row
@@ -109,8 +124,7 @@ function M.highlight_changed_lines(buffer, ns, row, hunk)
       priority = 1000,
     })
 
-    local removed_lines_var = "enlighten_removed_lines_" .. mark_id
-    api.nvim_buf_set_var(buffer, removed_lines_var, hunk.remove)
+    set_removed_lines_var(buffer, mark_id, hunk.remove)
   end)
 end
 
@@ -159,10 +173,7 @@ function M.get_hunk_in_range(buffer, range)
     classified_marks.by_row[mark_row] = classified_marks.by_row[mark_row] or {}
     table.insert(classified_marks.by_row[mark_row], data)
 
-    -- Check if mark has removed lines stored in buffer variable
-    local removed_lines_var = "enlighten_removed_lines_" .. mark_id
-    local has_removed_lines, removed_lines = pcall(api.nvim_buf_get_var, buffer, removed_lines_var)
-
+    local has_removed_lines, removed_lines = get_removed_lines_var(buffer, mark_id)
     if has_removed_lines and removed_lines then
       data.lines = removed_lines
     end
@@ -265,12 +276,12 @@ function M.keep_hunk(buffer, hunks)
 
   for _, mark in ipairs(hunks.removed) do
     api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
-    pcall(api.nvim_buf_del_var, buffer, "enlighten_removed_lines_" .. mark.id)
+    clear_removed_lines_var(buffer, mark.id)
   end
 
   for _, mark in ipairs(hunks.changed) do
     api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
-    pcall(api.nvim_buf_del_var, buffer, "enlighten_removed_lines_" .. mark.id)
+    clear_removed_lines_var(buffer, mark.id)
   end
 end
 
@@ -383,16 +394,16 @@ function M.reset_hunk(buffer, hunks)
       api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
       if op.removed_id then
         api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
-        pcall(api.nvim_buf_del_var, buffer, "enlighten_removed_lines_" .. op.removed_id)
+        clear_removed_lines_var(buffer, op.removed_id)
       end
-      pcall(api.nvim_buf_del_var, buffer, "enlighten_removed_lines_" .. op.added_id)
+      clear_removed_lines_var(buffer, op.added_id)
     elseif op.type == "delete" then
       api.nvim_buf_set_lines(buffer, op.row, op.end_row, true, {})
       api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
     elseif op.type == "insert" then
       api.nvim_buf_set_lines(buffer, op.row, op.row, true, op.lines)
       api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
-      pcall(api.nvim_buf_del_var, buffer, "enlighten_removed_lines_" .. op.removed_id)
+      clear_removed_lines_var(buffer, op.removed_id)
     end
   end
 end
