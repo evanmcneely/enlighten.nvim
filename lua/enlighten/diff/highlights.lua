@@ -133,19 +133,10 @@ end
 --- we return nil
 ---@param buffer number
 ---@param range SelectionRange
----@return ClassifiedMarks|nil
+---@return ClassifiedMarks
 function M.get_hunk_in_range(buffer, range)
   local namespaces = api.nvim_get_namespaces()
   local ns = namespaces["EnlightenDiffHighlights"]
-
-  if not ns then
-    return nil
-  end
-
-  local extmarks = vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, { details = true })
-  if #extmarks == 0 then
-    return nil
-  end
 
   ---@type ClassifiedMarks
   local classified_marks = {
@@ -154,6 +145,15 @@ function M.get_hunk_in_range(buffer, range)
     changed = {},
     by_row = {},
   }
+
+  if not ns then
+    return classified_marks
+  end
+
+  local extmarks = vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, { details = true })
+  if #extmarks == 0 then
+    return classified_marks
+  end
 
   -- We first classify all marks by the type of change they represent - added, removed or changed code.
   -- This is done by inspecting the highlight group used to show the difference to the user. This is
