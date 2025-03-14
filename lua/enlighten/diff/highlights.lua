@@ -124,7 +124,7 @@ function M.highlight_changed_lines(buffer, ns, row, hunk)
       priority = 1000,
     })
 
-    set_removed_lines_var(buffer, mark_id, hunk.remove)
+    set_removed_lines_var(buffer, mark_id)
   end)
 end
 
