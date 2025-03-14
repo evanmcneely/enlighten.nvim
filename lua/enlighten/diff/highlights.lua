@@ -124,7 +124,7 @@ function M.highlight_changed_lines(buffer, ns, row, hunk)
       priority = 1000,
     })
 
-    set_removed_lines_var(buffer, mark_id)
+    set_removed_lines_var(buffer, mark_id, hunk.remove)
   end)
 end
 
@@ -155,7 +155,9 @@ function M.get_hunk_in_range(buffer, range)
     by_row = {},
   }
 
-  -- First pass: classify all marks
+  -- We first classify all marks by the type of change they represent - added, removed or changed code.
+  -- This is done by inspecting the highlight group used to show the difference to the user. This is
+  -- kind of a hack, but is working pretty well.
   for _, mark in ipairs(extmarks) do
     local mark_id, mark_row, _, mark_details = mark[1], mark[2], mark[3], mark[4]
     local mark_row_end = mark_details.end_row or mark_row
@@ -169,7 +171,6 @@ function M.get_hunk_in_range(buffer, range)
       lines = {},
     }
 
-    -- Store mark by row for quick position lookup
     classified_marks.by_row[mark_row] = classified_marks.by_row[mark_row] or {}
     table.insert(classified_marks.by_row[mark_row], data)
 
@@ -178,28 +179,28 @@ function M.get_hunk_in_range(buffer, range)
       data.lines = removed_lines
     end
 
-    -- Check if mark is a deletion (has EnlightenDiffDelete virtual lines)
-    if mark_details.virt_lines then
+    if mark_details.hl_group == "EnlightenDiffAdd" then -- ADDED line highlight
+      table.insert(classified_marks.added, data)
+    elseif mark_details.hl_group == "EnlightenDiffChange" then -- CHANGED line highlight
+      table.insert(classified_marks.changed, data)
+    else
+      -- REMOVED line highlight
       local lines = extract_lines_from_virt_lines(mark_details.virt_lines, "EnlightenDiffDelete")
       if #lines > 0 then
         data.lines = lines
         table.insert(classified_marks.removed, data)
       end
     end
-
-    -- Categorize marks by type of change
-    if mark_details.hl_group == "EnlightenDiffAdd" then
-      table.insert(classified_marks.added, data)
-    elseif mark_details.hl_group == "EnlightenDiffChange" then
-      table.insert(classified_marks.changed, data)
-    else
-      table.insert(classified_marks.removed, data)
-    end
   end
 
-  -- Find marks that are in the specified range or are related to marks in the range
+  -- Then we filter the previously classified marks by those that are overlapping or
+  -- partially overlapping the provided range of lines. A mark is considered overlapping
+  -- if the top of the mark is above the bottom of the range or if the bottom of the mark is
+  -- above the top of the range. Marks representing removed lines are tricky, because they are
+  -- technically not in the buffer (virtual lines) and can be assessiated with a mark represting
+  -- added lines.
   ---@type ClassifiedMarks
-  local marks_in_range = {
+  local filtered_marks = {
     added = {},
     removed = {},
     changed = {},
@@ -225,14 +226,14 @@ function M.get_hunk_in_range(buffer, range)
   for _, mark_data in ipairs(classified_marks.added) do
     if mark_overlaps_range(mark_data) and not mark_already_processed(mark_data) then
       processed_ids[mark_data.id] = true
-      table.insert(marks_in_range.added, mark_data)
+      table.insert(filtered_marks.added, mark_data)
 
       -- Find any removal marks at the same position
       if classified_marks.by_row[mark_data.row] then
         for _, related_mark in ipairs(classified_marks.by_row[mark_data.row]) do
           if not mark_already_processed(related_mark) and #related_mark.lines > 0 then
             processed_ids[related_mark.id] = true
-            table.insert(marks_in_range.removed, related_mark)
+            table.insert(filtered_marks.removed, related_mark)
           end
         end
       end
@@ -243,27 +244,22 @@ function M.get_hunk_in_range(buffer, range)
   for _, mark_data in ipairs(classified_marks.changed) do
     if mark_overlaps_range(mark_data) and not mark_already_processed(mark_data) then
       processed_ids[mark_data.id] = true
-      table.insert(marks_in_range.changed, mark_data)
+      table.insert(filtered_marks.changed, mark_data)
     end
   end
 
   -- Process removal marks in range
   for _, mark_data in ipairs(classified_marks.removed) do
-    if
-      mark_data.row >= range.row_start
-      and mark_data.row <= range.row_end
-      and not mark_already_processed(mark_data)
-    then
+    if mark_overlaps_range(mark_data) and not mark_already_processed(mark_data) then
       processed_ids[mark_data.id] = true
-      table.insert(marks_in_range.removed, mark_data)
+      table.insert(filtered_marks.removed, mark_data)
     end
   end
 
-  return marks_in_range
+  return filtered_marks
 end
 
 --- Clear the diff highlights while keeping any changes from the provided hunks.
---- * Changed lines are not handled here yet *
 ---@param buffer number
 ---@param hunks ClassifiedMarks
 function M.keep_hunk(buffer, hunks)
@@ -286,14 +282,16 @@ function M.keep_hunk(buffer, hunks)
 end
 
 --- Clear the diff highlights while resetting any changes from the provided hunks.
---- * Changed lines are not handled here yet *
 ---@param buffer number
 ---@param hunks ClassifiedMarks
 function M.reset_hunk(buffer, hunks)
   local namespaces = api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
 
-  -- First collect all the information about marks
+  -- Reset hunk requires modifying the buffer. We start by iterating through the provided
+  -- added, removed and changed hunks and group a subset of the needed to reset that hunk
+  -- under the mark ID.
+  -- TODO This can probably be simplfied
   local added_marks = {}
   local removed_marks = {}
   local changed_marks = {}
@@ -326,11 +324,14 @@ function M.reset_hunk(buffer, hunks)
     end
   end
 
-  -- changed marks are not handled here yet
-
+  -- We can then classify each task of modifying the buffer as an insert,
+  -- delete or replace operation. An insert operation requires adding lines to the buffer
+  -- (that were previously removed). A delete operation requires removing lines from the buffer
+  -- (that were previously added). A replace operation requires swapping lins from the buffer
+  -- with some new lines.
   local operations = {} ---@type Operation[]
 
-  -- Create operations for matching pairs
+  -- Create operations for matching pairs of added and removed marks (replace)
   for added_id, added_info in pairs(added_marks) do
     for removed_id, removed_info in pairs(removed_marks) do
       if added_info.start_row == removed_info.row then
