@@ -28,16 +28,24 @@ local function extract_lines_from_virt_lines(virt_lines, highlight_group)
   return lines
 end
 
+---@param buffer number
+---@param mark_id number
+---@param value unknown
 local function set_removed_lines_var(buffer, mark_id, value)
   local removed_lines_var = "enlighten_removed_lines_" .. mark_id
   api.nvim_buf_set_var(buffer, removed_lines_var, value)
 end
 
+---@param buffer number
+---@param mark_id number
 local function clear_removed_lines_var(buffer, mark_id)
   local removed_lines_var = "enlighten_removed_lines_" .. mark_id
   pcall(api.nvim_buf_del_var, buffer, removed_lines_var)
 end
 
+---@param buffer number
+---@param mark_id number
+---@return boolean, string[]
 local function get_removed_lines_var(buffer, mark_id)
   local removed_lines_var = "enlighten_removed_lines_" .. mark_id
   local has_removed_lines, removed_lines = pcall(api.nvim_buf_get_var, buffer, removed_lines_var)
