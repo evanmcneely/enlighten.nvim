@@ -61,7 +61,7 @@ describe("DiffWriter", function()
   local content = "aaa\nbbb\nccc\nddd\neee"
   local buf
   local win
-  ---@type Range
+  ---@type SelectionRange
   local range
   local opts
 

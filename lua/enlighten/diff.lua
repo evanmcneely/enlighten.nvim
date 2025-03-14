@@ -222,7 +222,7 @@ end
 --- the diff highlight data on extmarks. If this cannot be completed for some reason,
 --- we return nil
 ---@param buffer number
----@param range Range
+---@param range SelectionRange
 ---@return ClassifiedMarks|nil
 function M.get_hunk_in_range(buffer, range)
   local namespaces = api.nvim_get_namespaces()

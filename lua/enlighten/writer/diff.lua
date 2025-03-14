@@ -58,7 +58,7 @@ local DiffWriter = {}
 
 ---@param buf number
 ---@param win number
----@param range Range
+---@param range SelectionRange
 ---@param opts DiffWriterOpts
 ---@return DiffWriter
 function DiffWriter:new(buf, win, range, opts)
@@ -267,7 +267,7 @@ function DiffWriter:reset()
     Logger:log("diff:reset - clearing highlights and lines")
 
     --- A range that encompasses the whole buffer
-    ---@type Range
+    ---@type SelectionRange
     local range = {
       col_start = 0,
       row_start = 0,
@@ -285,7 +285,7 @@ function DiffWriter:keep()
   Logger:log("diff:keep")
 
   --- A range that encompasses the whole buffer
-  ---@type Range
+  ---@type SelectionRange
   local range = {
     col_start = 0,
     row_start = 0,

@@ -113,7 +113,7 @@ function enlighten.keep_all()
   end
 
   --- A range that encompasses the whole buffer
-  ---@type Range
+  ---@type SelectionRange
   local range = {
     col_start = 0,
     row_start = 0,
@@ -132,7 +132,7 @@ function enlighten.discard_all()
   end
 
   --- A range that encompasses the whole buffer
-  ---@type Range
+  ---@type SelectionRange
   local range = {
     col_start = 0,
     row_start = 0,

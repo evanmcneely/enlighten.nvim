@@ -5,7 +5,7 @@ local M = {}
 --- Get the selected range (start and end column and row) regardless of
 --- whether the user has text text selected. The users cursor position is
 --- represented as a range if no text is currently selected.
----@return Range
+---@return SelectionRange
 function M.get_range()
   if M.is_visual_mode() then
     return M.get_selection_range()
@@ -19,7 +19,7 @@ function M.is_visual_mode()
   return string.lower(mode.mode) == "v"
 end
 
----@return Range
+---@return SelectionRange
 function M.get_selection_range()
   -- Get column and row from for the start of the selection range.
   local start_pos = vim.fn.getpos("v")
@@ -49,7 +49,7 @@ function M.get_selection_range()
   }
 end
 
----@return Range
+---@return SelectionRange
 function M.get_cursor_position()
   -- Get column and row from for the cursor position.
   local start_pos = api.nvim_win_get_cursor(0)
