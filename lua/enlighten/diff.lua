@@ -375,10 +375,12 @@ function M.keep_hunk(buffer, hunks)
 
   for _, mark in ipairs(hunks.removed) do
     api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
+    pcall(api.nvim_buf_del_var, buffer, "enlighten_removed_lines_" .. mark.id)
   end
 
   for _, mark in ipairs(hunks.changed) do
     api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
+    pcall(api.nvim_buf_del_var, buffer, "enlighten_removed_lines_" .. mark.id)
   end
 end
 
@@ -491,13 +493,16 @@ function M.reset_hunk(buffer, hunks)
       api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
       if op.removed_id then
         api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
+        pcall(api.nvim_buf_del_var, buffer, "enlighten_removed_lines_" .. op.removed_id)
       end
+      pcall(api.nvim_buf_del_var, buffer, "enlighten_removed_lines_" .. op.added_id)
     elseif op.type == "delete" then
       api.nvim_buf_set_lines(buffer, op.row, op.end_row, true, {})
       api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
     elseif op.type == "insert" then
       api.nvim_buf_set_lines(buffer, op.row, op.row, true, op.lines)
       api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
+      pcall(api.nvim_buf_del_var, buffer, "enlighten_removed_lines_" .. op.removed_id)
     end
   end
 end

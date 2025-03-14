@@ -135,6 +135,14 @@ describe("enlighten commands and keymaps", function()
       end
     end
 
+    local function assert_buffer_var_cleared(mark_id)
+      local success, _ =
+        pcall(vim.api.nvim_buf_get_var, buffer, "enlighten_removed_lines_" .. mark_id)
+      if success then
+        error("Buffer variable for mark " .. mark_id .. " still exists")
+      end
+    end
+
     describe("keep", function()
       it("should do nothing if the cursor is not on a diff highlight", function()
         -- Position the cursor on a line with no highlights
@@ -162,6 +170,7 @@ describe("enlighten commands and keymaps", function()
 
         -- Expect that the extmark is removed
         assert_extmark_removed(removed_only_mark)
+        assert_buffer_var_cleared(removed_only_mark)
 
         --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(added_only_mark)
@@ -203,6 +212,7 @@ describe("enlighten commands and keymaps", function()
         -- Expect that the extmark is removed
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
+        assert_buffer_var_cleared(removed_mark)
 
         --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
@@ -222,6 +232,7 @@ describe("enlighten commands and keymaps", function()
 
         -- Expect that the extmark is removed
         assert_extmark_removed(changed_mark)
+        assert_buffer_var_cleared(changed_mark)
 
         --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
@@ -242,10 +253,13 @@ describe("enlighten commands and keymaps", function()
 
         -- Expect that all extmarks are removed
         assert_extmark_removed(removed_only_mark)
+        assert_buffer_var_cleared(removed_only_mark)
         assert_extmark_removed(added_only_mark)
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
+        assert_buffer_var_cleared(removed_mark)
         assert_extmark_removed(changed_mark)
+        assert_buffer_var_cleared(changed_mark)
 
         -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
@@ -263,6 +277,7 @@ describe("enlighten commands and keymaps", function()
         assert_extmark_removed(added_only_mark)
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
+        assert_buffer_var_cleared(removed_mark)
 
         -- Expect the extmarks outside the selection to still be in the buffer
         assert_extmark_exists(removed_only_mark)
@@ -301,6 +316,7 @@ describe("enlighten commands and keymaps", function()
 
         -- Expect that the extmark is removed
         assert_extmark_removed(removed_only_mark)
+        assert_buffer_var_cleared(removed_only_mark)
 
         --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(added_only_mark)
@@ -344,6 +360,7 @@ describe("enlighten commands and keymaps", function()
         -- Expect that the extmark is removed
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
+        assert_buffer_var_cleared(removed_mark)
 
         --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
@@ -366,6 +383,7 @@ describe("enlighten commands and keymaps", function()
 
         -- Expect that the extmark still exists
         assert_extmark_removed(changed_mark)
+        assert_buffer_var_cleared(changed_mark)
 
         --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
@@ -388,10 +406,13 @@ describe("enlighten commands and keymaps", function()
 
         -- Expect that all extmarks are removed
         assert_extmark_removed(removed_only_mark)
+        assert_buffer_var_cleared(removed_only_mark)
         assert_extmark_removed(added_only_mark)
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
+        assert_buffer_var_cleared(removed_mark)
         assert_extmark_removed(changed_mark)
+        assert_buffer_var_cleared(changed_mark)
 
         -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
@@ -416,6 +437,7 @@ describe("enlighten commands and keymaps", function()
         assert_extmark_removed(added_only_mark)
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
+        assert_buffer_var_cleared(removed_mark)
 
         -- Expect the extmarks outside the selection to still be in the buffer
         assert_extmark_exists(removed_only_mark)
@@ -440,10 +462,13 @@ describe("enlighten commands and keymaps", function()
 
         -- Expect that all extmarks are removed
         assert_extmark_removed(removed_only_mark)
+        assert_buffer_var_cleared(removed_only_mark)
         assert_extmark_removed(added_only_mark)
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
+        assert_buffer_var_cleared(removed_mark)
         assert_extmark_removed(changed_mark)
+        assert_buffer_var_cleared(changed_mark)
 
         -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
@@ -460,10 +485,13 @@ describe("enlighten commands and keymaps", function()
 
         -- Expect that all extmarks are removed
         assert_extmark_removed(removed_only_mark)
+        assert_buffer_var_cleared(removed_only_mark)
         assert_extmark_removed(added_only_mark)
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
+        assert_buffer_var_cleared(removed_mark)
         assert_extmark_removed(changed_mark)
+        assert_buffer_var_cleared(changed_mark)
 
         -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
