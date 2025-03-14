@@ -264,22 +264,16 @@ end
 
 function DiffWriter:reset()
   if self.accumulated_text ~= "" then
-    Logger:log("diff:reset - clearing highlights and lines")
-    if self.opts.mode == "change" then
-      self:_clear_diff_highlights()
-      self:_clear_lines()
-    else
-      --- A range that encompasses the whole buffer
-      ---@type SelectionRange
-      local range = {
-        col_start = 0,
-        row_start = 0,
-        col_end = 0,
-        row_end = math.huge,
-      }
-      local hunks = differ.get_hunk_in_range(self.buffer, range)
-      differ.reset_hunk(self.buffer, hunks)
-    end
+    --- A range that encompasses the whole buffer
+    ---@type SelectionRange
+    local range = {
+      col_start = 0,
+      row_start = 0,
+      col_end = 0,
+      row_end = math.huge,
+    }
+    local hunks = differ.get_hunk_in_range(self.buffer, range)
+    differ.reset_hunk(self.buffer, hunks)
   end
 
   self:_clear_state()

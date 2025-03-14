@@ -376,6 +376,10 @@ function M.keep_hunk(buffer, hunks)
   for _, mark in ipairs(hunks.removed) do
     api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
   end
+
+  for _, mark in ipairs(hunks.changed) do
+    api.nvim_buf_del_extmark(buffer, highlight_ns, mark.id)
+  end
 end
 
 --- Clear the diff highlights while resetting any changes from the provided hunks.
@@ -389,6 +393,7 @@ function M.reset_hunk(buffer, hunks)
   -- First collect all the information about marks
   local added_marks = {}
   local removed_marks = {}
+  local changed_marks = {}
 
   for _, mark in ipairs(hunks.added) do
     if mark then
@@ -403,6 +408,16 @@ function M.reset_hunk(buffer, hunks)
     if mark and mark.lines then
       removed_marks[mark.id] = {
         row = mark.row,
+        lines = mark.lines,
+      }
+    end
+  end
+
+  for _, mark in ipairs(hunks.changed) do
+    if mark and mark.lines then
+      changed_marks[mark.id] = {
+        row = mark.row,
+        end_row = mark.row_end,
         lines = mark.lines,
       }
     end
@@ -452,6 +467,18 @@ function M.reset_hunk(buffer, hunks)
     })
   end
 
+  -- Create operations for unmatched removed marks (insert)
+  for changed_id, changed_info in pairs(changed_marks) do
+    table.insert(operations, {
+      type = "replace",
+      row = changed_info.row,
+      end_row = changed_info.end_row,
+      lines = changed_info.lines,
+      added_id = changed_id,
+      removed_id = nil,
+    })
+  end
+
   -- Sort operations in reverse order by row to avoid position shifts
   table.sort(operations, function(a, b)
     return a.row > b.row
@@ -462,7 +489,9 @@ function M.reset_hunk(buffer, hunks)
     if op.type == "replace" then
       api.nvim_buf_set_lines(buffer, op.row, op.end_row, true, op.lines)
       api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
-      api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
+      if op.removed_id then
+        api.nvim_buf_del_extmark(buffer, highlight_ns, op.removed_id)
+      end
     elseif op.type == "delete" then
       api.nvim_buf_set_lines(buffer, op.row, op.end_row, true, {})
       api.nvim_buf_del_extmark(buffer, highlight_ns, op.added_id)
