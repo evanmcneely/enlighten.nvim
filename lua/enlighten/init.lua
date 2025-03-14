@@ -88,6 +88,10 @@ function enlighten.keep()
     return
   end
 
+  if enlighten.config.settings.edit.diff_mode == "change" then
+    return
+  end
+
   local range = buffer.get_range()
   local current_buf = vim.api.nvim_get_current_buf()
   local hunks = diff.get_hunk_in_range(current_buf, range)
@@ -100,6 +104,10 @@ function enlighten.discard()
     return
   end
 
+  if enlighten.config.settings.edit.diff_mode == "change" then
+    return
+  end
+
   local range = buffer.get_range()
   local current_buf = vim.api.nvim_get_current_buf()
   local hunks = diff.get_hunk_in_range(current_buf, range)
@@ -109,6 +117,10 @@ end
 
 function enlighten.keep_all()
   if not enlighten.setup_complete then
+    return
+  end
+
+  if enlighten.config.settings.edit.diff_mode == "change" then
     return
   end
 
@@ -128,6 +140,10 @@ end
 
 function enlighten.discard_all()
   if not enlighten.setup_complete then
+    return
+  end
+
+  if enlighten.config.settings.edit.diff_mode == "change" then
     return
   end
 
