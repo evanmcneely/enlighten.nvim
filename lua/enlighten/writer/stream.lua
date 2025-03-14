@@ -1,6 +1,6 @@
 local api = vim.api
-local Logger = require("enlighten/logger")
-local utils = require("enlighten/utils")
+local Logger = require("enlighten.logger")
+local utils = require("enlighten.utils")
 
 ---@class StreamWriter: Writer
 --- Position { row, column} in the buffer that text will be streamed into

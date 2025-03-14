@@ -1,8 +1,8 @@
 local api = vim.api
-local buffer = require("enlighten/buffer")
-local differ = require("enlighten/diff")
-local Logger = require("enlighten/logger")
-local utils = require("enlighten/utils")
+local buffer = require("enlighten.buffer")
+local differ = require("enlighten.diff")
+local Logger = require("enlighten.logger")
+local utils = require("enlighten.utils")
 
 ---@class Writer
 --- A flag for whether the writer is actively receiving streamed text to be processed.

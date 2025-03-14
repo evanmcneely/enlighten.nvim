@@ -1,6 +1,6 @@
 -- Modified from https://github.com/aduros/ai.vim/blob/main/lua/_ai/openai.lua
 
-local Logger = require("enlighten/logger")
+local Logger = require("enlighten.logger")
 
 --- The interface that any new AI provider must implement to be integrated as the
 --- AI backend for plugin features.

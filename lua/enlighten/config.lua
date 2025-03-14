@@ -1,4 +1,4 @@
-local Logger = require("enlighten/logger")
+local Logger = require("enlighten.logger")
 
 local M = {}
 

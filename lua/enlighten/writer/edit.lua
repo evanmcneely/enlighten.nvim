@@ -1,5 +1,5 @@
 local api = vim.api
-local Logger = require("enlighten/logger")
+local Logger = require("enlighten.logger")
 
 ---@class EditWriter: Writer
 ---@field range SelectionRange

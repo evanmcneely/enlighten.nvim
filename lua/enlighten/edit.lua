@@ -1,10 +1,10 @@
 local api = vim.api
-local ai = require("enlighten/ai")
-local buffer = require("enlighten/buffer")
-local augroup = require("enlighten/autocmd")
-local Writer = require("enlighten/writer/diff")
-local Logger = require("enlighten/logger")
-local History = require("enlighten/history")
+local ai = require("enlighten.ai")
+local buffer = require("enlighten.buffer")
+local augroup = require("enlighten.autocmd")
+local Writer = require("enlighten.writer/diff")
+local Logger = require("enlighten.logger")
+local History = require("enlighten.history")
 
 ---@class EnlightenPrompt
 --- Settings injected into this class from the plugin config.

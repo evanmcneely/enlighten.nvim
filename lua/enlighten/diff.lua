@@ -1,5 +1,5 @@
 local api = vim.api
-local utils = require("enlighten/utils")
+local utils = require("enlighten.utils")
 
 local M = {}
 

@@ -1,10 +1,10 @@
-local Edit = require("enlighten/edit")
-local Chat = require("enlighten/chat")
-local config = require("enlighten/config")
-local highlights = require("enlighten/highlights")
-local Logger = require("enlighten/logger")
-local diff = require("enlighten/diff")
-local buffer = require("enlighten/buffer")
+local Edit = require("enlighten.edit")
+local Chat = require("enlighten.chat")
+local config = require("enlighten.config")
+local highlights = require("enlighten.highlights")
+local Logger = require("enlighten.logger")
+local diff = require("enlighten.diff")
+local buffer = require("enlighten.buffer")
 
 ---@class Enlighten
 --- Full plugin configuration with default values overridden by user provided ones.
