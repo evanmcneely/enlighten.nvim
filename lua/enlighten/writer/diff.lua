@@ -281,7 +281,16 @@ end
 
 function DiffWriter:keep()
   Logger:log("diff:keep")
-  self:_clear_diff_highlights()
+  --- A range that encompasses the whole buffer
+  ---@type SelectionRange
+  local range = {
+    col_start = 0,
+    row_start = 0,
+    col_end = 0,
+    row_end = math.huge,
+  }
+  local hunks = differ.get_hunk_in_range(self.buffer, range)
+  differ.keep_hunk(self.buffer, hunks)
   self:_clear_state()
 end
 
