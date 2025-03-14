@@ -265,8 +265,17 @@ end
 function DiffWriter:reset()
   if self.accumulated_text ~= "" then
     Logger:log("diff:reset - clearing highlights and lines")
-    self:_clear_diff_highlights()
-    self:_clear_lines()
+
+    --- A range that encompasses the whole buffer
+    ---@type Range
+    local range = {
+      col_start = 0,
+      row_start = 0,
+      col_end = 0,
+      row_end = math.huge,
+    }
+    local hunks = differ.get_hunk_in_range(self.buffer, range)
+    differ.reset_hunk(self.buffer, hunks)
   end
 
   self:_clear_state()
@@ -274,7 +283,18 @@ end
 
 function DiffWriter:keep()
   Logger:log("diff:keep")
-  self:_clear_diff_highlights()
+
+  --- A range that encompasses the whole buffer
+  ---@type Range
+  local range = {
+    col_start = 0,
+    row_start = 0,
+    col_end = 0,
+    row_end = math.huge,
+  }
+  local hunks = differ.get_hunk_in_range(self.buffer, range)
+  differ.keep_hunk(self.buffer, hunks)
+
   self:_clear_state()
 end
 

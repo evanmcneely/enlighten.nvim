@@ -221,18 +221,14 @@ end
 --- Find and return the hunks that partially overlap with the provided range using
 --- the diff highlight data on extmarks. If this cannot be completed for some reason,
 --- we return nil
+---@param buffer number
 ---@param range Range
 ---@return ClassifiedMarks|nil
-function M.get_hunk_in_range(range)
+function M.get_hunk_in_range(buffer, range)
   local namespaces = api.nvim_get_namespaces()
   local ns = namespaces["EnlightenDiffHighlights"]
 
   if not ns then
-    return nil
-  end
-
-  local buffer = api.nvim_get_current_buf()
-  if not api.nvim_buf_is_valid(buffer) then
     return nil
   end
 
