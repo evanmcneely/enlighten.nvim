@@ -25,7 +25,6 @@
 ---@field model string
 ---@field max_tokens number
 ---@field stream? boolean
----@field prompt string
 ---@field temperature number
 ---@field system? string
 ---@field messages AnthropicMessage[]
