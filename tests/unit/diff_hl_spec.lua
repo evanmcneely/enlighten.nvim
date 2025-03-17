@@ -5,7 +5,6 @@ local tu = require("tests.testutils")
 describe("diff_hl", function()
   describe("highlight_added_lines", function()
     it("should highlight added lines", function()
-      -- mock the vim.api
       local api = mock(vim.api, true)
       local buffer = 5
       local ns = 10
@@ -29,7 +28,6 @@ describe("diff_hl", function()
   describe("highlight_removed_lines", function()
     it("should highlight removed lines", function()
       local buffer = tu.prepare_buffer("")
-      -- mock the vim.api
       local api = mock(vim.api, true)
       local ns = 10
       local row = 0
@@ -50,7 +48,6 @@ describe("diff_hl", function()
     end)
 
     it("should set buffer variable for removed lines", function()
-      -- mock the vim.api
       local api = mock(vim.api, true)
       local buffer = 5
       local ns = 10
@@ -70,7 +67,6 @@ describe("diff_hl", function()
 
   describe("highlight_changed_lines", function()
     it("should highlight changed lines", function()
-      -- mock the vim.api
       local api = mock(vim.api, true)
       local buffer = 5
       local ns = 10
@@ -91,7 +87,6 @@ describe("diff_hl", function()
     end)
 
     it("should set buffer variable for removed lines", function()
-      -- mock the vim.api
       local api = mock(vim.api, true)
       local buffer = 5
       local ns = 10

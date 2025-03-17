@@ -156,12 +156,10 @@ describe("enlighten commands and keymaps", function()
 
     describe("keep", function()
       it("should do nothing if the cursor is not on a diff highlight", function()
-        -- Position the cursor on a line with no highlights
         vim.api.nvim_win_set_cursor(0, { 2, 0 })
 
         vim.cmd("lua require('enlighten').keep()")
 
-        --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
         assert_extmark_exists(added_only_mark)
         assert_extmark_exists(added_mark)
@@ -169,72 +167,59 @@ describe("enlighten commands and keymaps", function()
         assert_extmark_exists(changed_mark)
         assert_extmark_exists(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         equals(test_lines, lines)
       end)
 
       it("should clear deleted diff highlights from lines cursor is on", function()
-        -- Position the cursor below the line the removed mark is on
         vim.api.nvim_win_set_cursor(0, { 3, 0 })
 
         vim.cmd("lua require('enlighten').keep()")
 
-        -- Expect that the extmark is removed
         assert_extmark_removed(removed_only_mark)
         assert_buffer_var_cleared(removed_only_mark)
 
-        --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(added_only_mark)
         assert_extmark_exists(added_mark)
         assert_extmark_exists(removed_mark)
         assert_extmark_exists(changed_mark)
         assert_extmark_exists(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         equals(test_lines, lines)
       end)
 
       it("should clear added diff highlights from lines cursor is on", function()
-        -- Position the cursor below the line the removed mark is on
         vim.api.nvim_win_set_cursor(0, { 5, 0 })
 
         vim.cmd("lua require('enlighten').keep()")
 
-        -- Expect that the extmark is removed
         assert_extmark_removed(added_only_mark)
 
-        --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
         assert_extmark_exists(added_mark)
         assert_extmark_exists(removed_mark)
         assert_extmark_exists(changed_mark)
         assert_extmark_exists(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         equals(test_lines, lines)
       end)
 
       it("should clear added and deleted diff highlights from lines cursor is on", function()
-        -- Position the cursor below the line the removed mark is on
         vim.api.nvim_win_set_cursor(0, { 8, 0 })
 
         vim.cmd("lua require('enlighten').keep()")
 
-        -- Expect that the extmark is removed
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
         assert_buffer_var_cleared(removed_mark)
 
-        --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
         assert_extmark_exists(added_only_mark)
         assert_extmark_exists(changed_mark)
         assert_extmark_exists(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         equals(test_lines, lines)
       end)
@@ -242,56 +227,46 @@ describe("enlighten commands and keymaps", function()
       it(
         "should clear changed diff highlights with removed lines from lines cursor is on",
         function()
-          -- Position the cursor below the line the removed mark is on
           vim.api.nvim_win_set_cursor(0, { 10, 0 })
 
           vim.cmd("lua require('enlighten').keep()")
 
-          -- Expect that the extmark is removed
           assert_extmark_removed(changed_mark)
           assert_buffer_var_cleared(changed_mark)
 
-          --Expect all of the other extmarks to still be in the buffer
           assert_extmark_exists(removed_only_mark)
           assert_extmark_exists(added_only_mark)
           assert_extmark_exists(added_mark)
           assert_extmark_exists(removed_mark)
           assert_extmark_exists(changed_only_mark)
 
-          -- Verify buffer content is unchanged
           local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
           equals(test_lines, lines)
         end
       )
 
       it("should clear changed diff highlights from lines cursor is on", function()
-        -- Position the cursor below the line the removed mark is on
         vim.api.nvim_win_set_cursor(0, { 12, 0 })
 
         vim.cmd("lua require('enlighten').keep()")
 
-        -- Expect that the extmark is removed
         assert_extmark_removed(changed_only_mark)
 
-        --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
         assert_extmark_exists(added_only_mark)
         assert_extmark_exists(added_mark)
         assert_extmark_exists(removed_mark)
         assert_extmark_exists(changed_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         equals(test_lines, lines)
       end)
 
       it("should clear all diff highlights when the whole buffer is selected", function()
-        -- Select the entire buffer
         vim.cmd("normal! ggVG")
 
         vim.cmd("lua require('enlighten').keep()")
 
-        -- Expect that all extmarks are removed
         assert_extmark_removed(removed_only_mark)
         assert_buffer_var_cleared(removed_only_mark)
         assert_extmark_removed(added_only_mark)
@@ -302,30 +277,25 @@ describe("enlighten commands and keymaps", function()
         assert_buffer_var_cleared(changed_mark)
         assert_extmark_removed(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         equals(test_lines, lines)
       end)
 
       it("should clear diff highlights only in the selected range", function()
-        -- Select a range that includes only the middle diff highlights
         vim.api.nvim_win_set_cursor(0, { 5, 0 }) -- Start at line 5
         vim.cmd("normal! V2j") -- Select 3 lines (5, 6, 7)
 
         vim.cmd("lua require('enlighten').keep()")
 
-        -- Expect that only the middle extmarks are removed
         assert_extmark_removed(added_only_mark)
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
         assert_buffer_var_cleared(removed_mark)
 
-        -- Expect the extmarks outside the selection to still be in the buffer
         assert_extmark_exists(removed_only_mark)
         assert_extmark_exists(changed_mark)
         assert_extmark_exists(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         equals(test_lines, lines)
       end)
@@ -333,12 +303,10 @@ describe("enlighten commands and keymaps", function()
 
     describe("discard", function()
       it("should do nothing if the cursor is not on a diff highlight", function()
-        -- Position the cursor on a line with no highlights
         vim.api.nvim_win_set_cursor(0, { 2, 0 })
 
         vim.cmd("lua require('enlighten').discard()")
 
-        --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
         assert_extmark_exists(added_only_mark)
         assert_extmark_exists(added_mark)
@@ -346,74 +314,61 @@ describe("enlighten commands and keymaps", function()
         assert_extmark_exists(changed_mark)
         assert_extmark_exists(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         equals(test_lines, lines)
       end)
 
       it("should clear deleted diff highlights from lines cursor is on", function()
-        -- Position the cursor below the line the removed mark is on
         vim.api.nvim_win_set_cursor(0, { 3, 0 })
 
         vim.cmd("lua require('enlighten').discard()")
 
-        -- Expect that the extmark is removed
         assert_extmark_removed(removed_only_mark)
         assert_buffer_var_cleared(removed_only_mark)
 
-        --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(added_only_mark)
         assert_extmark_exists(added_mark)
         assert_extmark_exists(removed_mark)
         assert_extmark_exists(changed_mark)
         assert_extmark_exists(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         table.insert(test_lines, 3, "deleted line")
         equals(test_lines, lines)
       end)
 
       it("should clear added diff highlights from lines cursor is on", function()
-        -- Position the cursor below the line the removed mark is on
         vim.api.nvim_win_set_cursor(0, { 5, 0 })
 
         vim.cmd("lua require('enlighten').discard()")
 
-        -- Expect that the extmark is removed
         assert_extmark_removed(added_only_mark)
 
-        --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
         assert_extmark_exists(added_mark)
         assert_extmark_exists(removed_mark)
         assert_extmark_exists(changed_mark)
         assert_extmark_exists(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         table.remove(test_lines, 5)
         equals(test_lines, lines)
       end)
 
       it("should clear added and deleted diff highlights from lines cursor is on", function()
-        -- Position the cursor below the line the removed mark is on
         vim.api.nvim_win_set_cursor(0, { 8, 0 })
 
         vim.cmd("lua require('enlighten').discard()")
 
-        -- Expect that the extmark is removed
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
         assert_buffer_var_cleared(removed_mark)
 
-        --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
         assert_extmark_exists(added_only_mark)
         assert_extmark_exists(changed_mark)
         assert_extmark_exists(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         table.remove(test_lines, 7)
         table.remove(test_lines, 7)
@@ -424,23 +379,19 @@ describe("enlighten commands and keymaps", function()
       it(
         "should clear changed diff highlights with removed lines from lines cursor is on",
         function()
-          -- Position the cursor below the line the removed mark is on
           vim.api.nvim_win_set_cursor(0, { 10, 0 })
 
           vim.cmd("lua require('enlighten').discard()")
 
-          -- Expect that the extmark still exists
           assert_extmark_removed(changed_mark)
           assert_buffer_var_cleared(changed_mark)
 
-          --Expect all of the other extmarks to still be in the buffer
           assert_extmark_exists(removed_only_mark)
           assert_extmark_exists(added_only_mark)
           assert_extmark_exists(added_mark)
           assert_extmark_exists(removed_mark)
           assert_extmark_exists(changed_only_mark)
 
-          -- Verify buffer content is unchanged
           local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
           table.remove(test_lines, 10)
           table.insert(test_lines, 10, "old line")
@@ -449,34 +400,28 @@ describe("enlighten commands and keymaps", function()
       )
 
       it("should clear changed diff highlights from lines cursor is on", function()
-        -- Position the cursor below the line the removed mark is on
         vim.api.nvim_win_set_cursor(0, { 12, 0 })
 
         vim.cmd("lua require('enlighten').discard()")
 
-        -- Expect that the extmark still exists
         assert_extmark_removed(changed_only_mark)
 
-        --Expect all of the other extmarks to still be in the buffer
         assert_extmark_exists(removed_only_mark)
         assert_extmark_exists(added_only_mark)
         assert_extmark_exists(added_mark)
         assert_extmark_exists(removed_mark)
         assert_extmark_exists(changed_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         table.remove(test_lines, 12)
         equals(test_lines, lines)
       end)
 
       it("should clear all diff highlights when the whole buffer is selected", function()
-        -- Select the entire buffer
         vim.cmd("normal! ggVG")
 
         vim.cmd("lua require('enlighten').discard()")
 
-        -- Expect that all extmarks are removed
         assert_extmark_removed(removed_only_mark)
         assert_buffer_var_cleared(removed_only_mark)
         assert_extmark_removed(added_only_mark)
@@ -487,7 +432,6 @@ describe("enlighten commands and keymaps", function()
         assert_buffer_var_cleared(changed_mark)
         assert_extmark_removed(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         table.remove(test_lines, 12)
         table.remove(test_lines, 10)
@@ -501,24 +445,20 @@ describe("enlighten commands and keymaps", function()
       end)
 
       it("should clear diff highlights only in the selected range", function()
-        -- Select a range that includes only the middle diff highlights
         vim.api.nvim_win_set_cursor(0, { 5, 0 }) -- Start at line 5
         vim.cmd("normal! V2j") -- Select 3 lines (5, 6, 7)
 
         vim.cmd("lua require('enlighten').discard()")
 
-        -- Expect that only the middle extmarks are removed
         assert_extmark_removed(added_only_mark)
         assert_extmark_removed(added_mark)
         assert_extmark_removed(removed_mark)
         assert_buffer_var_cleared(removed_mark)
 
-        -- Expect the extmarks outside the selection to still be in the buffer
         assert_extmark_exists(removed_only_mark)
         assert_extmark_exists(changed_mark)
         assert_extmark_exists(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         table.remove(test_lines, 7)
         table.remove(test_lines, 7)
@@ -530,12 +470,8 @@ describe("enlighten commands and keymaps", function()
 
     describe("keep_all", function()
       it("should clear all diff highlights", function()
-        -- Select the entire buffer
-        vim.cmd("normal! ggVG")
-
         vim.cmd("lua require('enlighten').keep_all()")
 
-        -- Expect that all extmarks are removed
         assert_extmark_removed(removed_only_mark)
         assert_buffer_var_cleared(removed_only_mark)
         assert_extmark_removed(added_only_mark)
@@ -546,7 +482,6 @@ describe("enlighten commands and keymaps", function()
         assert_buffer_var_cleared(changed_mark)
         assert_extmark_removed(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         equals(test_lines, lines)
       end)
@@ -554,12 +489,8 @@ describe("enlighten commands and keymaps", function()
 
     describe("discard_all", function()
       it("should clear all diff highlights", function()
-        -- Select the entire buffer
-        vim.cmd("normal! ggVG")
-
         vim.cmd("lua require('enlighten').discard_all()")
 
-        -- Expect that all extmarks are removed
         assert_extmark_removed(removed_only_mark)
         assert_buffer_var_cleared(removed_only_mark)
         assert_extmark_removed(added_only_mark)
@@ -570,7 +501,6 @@ describe("enlighten commands and keymaps", function()
         assert_buffer_var_cleared(changed_mark)
         assert_extmark_removed(changed_only_mark)
 
-        -- Verify buffer content is unchanged
         local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
         table.remove(test_lines, 12)
         table.remove(test_lines, 10)
