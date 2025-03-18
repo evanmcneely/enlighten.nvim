@@ -246,12 +246,27 @@ function DiffWriter:_remove_remaining_selected_lines()
   end
 end
 
-function DiffWriter:_clear_diff_highlights()
-  api.nvim_buf_clear_namespace(self.buffer, self.diff_ns_id, 0, -1)
-end
+--- Reset buffer content if true
+---@param reset_buffer boolean|nil defaults to false
+function DiffWriter:_clear_diff_highlights(reset_buffer)
+  if reset_buffer == nil then
+    reset_buffer = false
+  end
 
-function DiffWriter:_clear_lines()
-  api.nvim_buf_set_lines(self.buffer, self.orig_range[1], self.focused_line, false, self.orig_lines)
+  --- A range that encompasses the whole buffer
+  ---@type SelectionRange
+  local range = {
+    col_start = 0,
+    row_start = 0,
+    col_end = 0,
+    row_end = math.huge,
+  }
+  local hunks = diff_hl.get_hunk_in_range(self.buffer, range)
+  if reset_buffer then
+    diff_hl.reset_hunk(self.buffer, hunks)
+  else
+    diff_hl.keep_hunk(self.buffer, hunks)
+  end
 end
 
 function DiffWriter:_clear_state()
@@ -264,34 +279,14 @@ function DiffWriter:_clear_state()
 end
 
 function DiffWriter:reset()
-  if self.accumulated_text ~= "" then
-    --- A range that encompasses the whole buffer
-    ---@type SelectionRange
-    local range = {
-      col_start = 0,
-      row_start = 0,
-      col_end = 0,
-      row_end = math.huge,
-    }
-    local hunks = diff_hl.get_hunk_in_range(self.buffer, range)
-    diff_hl.reset_hunk(self.buffer, hunks)
-  end
-
+  Logger:log("diff:reset")
+  self:_clear_diff_highlights(true)
   self:_clear_state()
 end
 
 function DiffWriter:keep()
   Logger:log("diff:keep")
-  --- A range that encompasses the whole buffer
-  ---@type SelectionRange
-  local range = {
-    col_start = 0,
-    row_start = 0,
-    col_end = 0,
-    row_end = math.huge,
-  }
-  local hunks = diff_hl.get_hunk_in_range(self.buffer, range)
-  diff_hl.keep_hunk(self.buffer, hunks)
+  self:_clear_diff_highlights()
   self:_clear_state()
 end
 
