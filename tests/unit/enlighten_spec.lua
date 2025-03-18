@@ -44,7 +44,7 @@ describe("enlighten commands and keymaps", function()
     end)
   end)
 
-  describe("", function()
+  describe("hunks", function()
     local test_lines
     local buffer
     local ns
@@ -81,6 +81,11 @@ describe("enlighten commands and keymaps", function()
         },
         virt_lines_above = true,
       })
+      vim.api.nvim_buf_set_var(
+        buffer,
+        "enlighten_removed_lines_" .. removed_only_mark,
+        { "deleted line" }
+      )
 
       -- Create a hunk with additions (line 4)
       added_only_mark = vim.api.nvim_buf_set_extmark(buffer, ns, 4, 0, {

@@ -2,32 +2,6 @@ local api = vim.api
 
 local M = {}
 
----Extract text content from virtual lines with a specific highlight group
----@param virt_lines any[][]
----@param highlight_group string|nil
----@return string[]
-local function extract_lines_from_virt_lines(virt_lines, highlight_group)
-  local lines = {}
-
-  if not virt_lines then
-    return lines
-  end
-
-  for _, virt_line in ipairs(virt_lines) do
-    for _, virt_text in ipairs(virt_line) do
-      local text, hl_group = virt_text[1], virt_text[2]
-      if not highlight_group or hl_group == highlight_group then
-        -- Remove trailing spaces that were added to fill the line
-        local content = text:gsub("%s+$", "")
-        table.insert(lines, content)
-        break -- Only take the first matching text chunk from each virtual line
-      end
-    end
-  end
-
-  return lines
-end
-
 ---@param buffer number
 ---@param mark_id number
 ---@param value unknown
@@ -191,13 +165,8 @@ function M.get_hunk_in_range(buffer, range)
       table.insert(classified_marks.added, data)
     elseif mark_details.hl_group == "EnlightenDiffChange" then -- CHANGED line highlight
       table.insert(classified_marks.changed, data)
-    else
-      -- REMOVED line highlight
-      local lines = extract_lines_from_virt_lines(mark_details.virt_lines, "EnlightenDiffDelete")
-      if #lines > 0 then
-        data.lines = lines
-        table.insert(classified_marks.removed, data)
-      end
+    elseif has_removed_lines then -- REMOVED line highlight
+      table.insert(classified_marks.removed, data)
     end
   end
 

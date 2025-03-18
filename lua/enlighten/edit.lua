@@ -294,8 +294,8 @@ end
 -- Clean side effects like autocommands, highlights, extmarks, etc. that
 -- not related to the prompt buffer on window
 function EnlightenEdit:cleanup()
-  self.writer:reset()
   self.writer:stop()
+  self.writer:reset()
 
   if api.nvim_buf_is_valid(self.target_buf) and self.prompt_ext_id then
     api.nvim_buf_del_extmark(self.target_buf, self.prompt_ns_id, self.prompt_ext_id)
