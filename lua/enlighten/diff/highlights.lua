@@ -265,98 +265,74 @@ function M.reset_hunk(buffer, hunks)
   local namespaces = api.nvim_get_namespaces()
   local highlight_ns = namespaces["EnlightenDiffHighlights"]
 
-  -- Reset hunk requires modifying the buffer. We start by iterating through the provided
-  -- added, removed and changed hunks and group a subset of the needed to reset that hunk
-  -- under the mark ID.
-  -- TODO This can probably be simplfied
-  local added_marks = {}
-  local removed_marks = {}
-  local changed_marks = {}
-
-  for _, mark in ipairs(hunks.added) do
-    if mark then
-      added_marks[mark.id] = {
-        start_row = mark.row,
-        end_row = mark.row_end,
-      }
-    end
-  end
-
-  for _, mark in ipairs(hunks.removed) do
-    if mark and mark.lines then
-      removed_marks[mark.id] = {
-        row = mark.row,
-        lines = mark.lines,
-      }
-    end
-  end
-
-  for _, mark in ipairs(hunks.changed) do
-    if mark and mark.lines then
-      changed_marks[mark.id] = {
-        row = mark.row,
-        end_row = mark.row_end,
-        lines = mark.lines,
-      }
-    end
-  end
-
-  -- We can then classify each task of modifying the buffer as an insert,
-  -- delete or replace operation. An insert operation requires adding lines to the buffer
-  -- (that were previously removed). A delete operation requires removing lines from the buffer
-  -- (that were previously added). A replace operation requires swapping lins from the buffer
-  -- with some new lines.
+  -- Classify each task of modifying the buffer as an insert, delete or replace
+  -- operation. An insert operation requires adding lines to the buffer (that
+  -- were previously removed). A delete operation requires removing lines from the
+  -- buffer (that were previously added). A replace operation requires swapping lines
+  -- from the buffer with some new lines.
   local operations = {} ---@type Operation[]
 
-  -- Create operations for matching pairs of added and removed marks (replace)
-  for added_id, added_info in pairs(added_marks) do
-    for removed_id, removed_info in pairs(removed_marks) do
-      if added_info.start_row == removed_info.row then
-        table.insert(operations, {
-          type = "replace",
-          row = added_info.start_row,
-          end_row = added_info.end_row,
-          lines = removed_info.lines,
-          added_id = added_id,
-          removed_id = removed_id,
-        })
-        -- Mark as matched
-        added_marks[added_id] = nil
-        removed_marks[removed_id] = nil
+  -- Process added marks (potential deletes or part of replace)
+  for _, mark in ipairs(hunks.added) do
+    -- Look for a matching removed mark at the same position
+    local matching_removed = nil
+    for _, removed_mark in ipairs(hunks.removed) do
+      if removed_mark.row == mark.row then
+        matching_removed = removed_mark
         break
       end
     end
+
+    if matching_removed then
+      -- Create replace operation
+      table.insert(operations, {
+        type = "replace",
+        row = mark.row,
+        end_row = mark.row_end,
+        lines = matching_removed.lines,
+        added_id = mark.id,
+        removed_id = matching_removed.id,
+      })
+    else
+      -- Create delete operation for unmatched added lines
+      table.insert(operations, {
+        type = "delete",
+        row = mark.row,
+        end_row = mark.row_end,
+        added_id = mark.id,
+      })
+    end
   end
 
-  -- Create operations for unmatched added marks (delete)
-  for added_id, added_info in pairs(added_marks) do
-    table.insert(operations, {
-      type = "delete",
-      row = added_info.start_row,
-      end_row = added_info.end_row,
-      added_id = added_id,
-    })
+  -- Process removed marks that weren't matched with added marks
+  for _, mark in ipairs(hunks.removed) do
+    local already_processed = false
+    for _, op in ipairs(operations) do
+      if op.removed_id == mark.id then
+        already_processed = true
+        break
+      end
+    end
+
+    if not already_processed then
+      -- Create insert operation
+      table.insert(operations, {
+        type = "insert",
+        row = mark.row,
+        lines = mark.lines,
+        removed_id = mark.id,
+      })
+    end
   end
 
-  -- Create operations for unmatched removed marks (insert)
-  for removed_id, removed_info in pairs(removed_marks) do
-    table.insert(operations, {
-      type = "insert",
-      row = removed_info.row,
-      lines = removed_info.lines,
-      removed_id = removed_id,
-    })
-  end
-
-  -- Create operations for unmatched removed marks (insert)
-  for changed_id, changed_info in pairs(changed_marks) do
+  -- Process changed marks
+  for _, mark in ipairs(hunks.changed) do
     table.insert(operations, {
       type = "replace",
-      row = changed_info.row,
-      end_row = changed_info.end_row,
-      lines = changed_info.lines,
-      added_id = changed_id,
-      removed_id = nil,
+      row = mark.row,
+      end_row = mark.row_end,
+      lines = mark.lines,
+      added_id = mark.id,
     })
   end
 
