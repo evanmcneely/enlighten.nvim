@@ -91,8 +91,6 @@ This is the default configuration.
 
 To customize this configuration, pass overrides into setup: `require('enlighten').setup({...}) `.
 
-I've only tested this with the [tokyonight](https://github.com/folke/tokyonight.nvim) theme and it's possible the highlight groups not not quite right for other themes. Open an issue if you have problems.
-
 #### Using Anthropic as the provider
 
 Example configuration to use Anthropic AI as the completion provider:
