@@ -12,6 +12,7 @@ end
 ---@param opts PartialCompletionOptions
 ---@return CompletionOptions
 function M.build_completion_opts(opts)
+  ---@diagnostic disable-next-line: return-type-mismatch
   return vim.tbl_extend("force", {
     provider = "openai",
     model = "gpt-4o",
@@ -148,7 +149,7 @@ function M.assert_substring_exists(substring, content)
     "Expected substring not found in buffer content\n\n"
       .. "... Expected to find\n\n"
       .. substring
-      .. "\n\n...Recieved\n"
+      .. "\n\n...Received\n"
       .. content
   )
 end
