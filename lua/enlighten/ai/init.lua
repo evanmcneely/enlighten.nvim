@@ -1,6 +1,6 @@
 -- Modified from https://github.com/aduros/ai.vim/blob/main/lua/_ai/openai.lua
 
-local Logger = require("enlighten/logger")
+local Logger = require("enlighten.logger")
 
 --- The interface that any new AI provider must implement to be integrated as the
 --- AI backend for plugin features.
@@ -25,7 +25,7 @@ local Logger = require("enlighten/logger")
 --- The response is passed straight to curl as command line arguments.
 ---@field build_headers fun(): string[]
 ---A function to build a streaming request body to send to the API.
----@field build_request fun(prompt: string|AiMessages, config: EnlightenAiProviderConfig): table
+---@field build_request fun(prompt: string|AiMessages, config: CompletionOptions): table
 
 ---@class CompletionOptions
 --- The AI model provider.
@@ -257,8 +257,8 @@ end
 function M.complete(prompt, writer, opts)
   -- TODO implement streaming false for use in background work / automations
   -- TODO implement JSON format for use in background work / automations
-  local defaults = { stream = true, json = false }
-  opts = vim.tbl_extend("force", defaults, opts)
+  opts.json = opts.json ~= nil and opts.json or false
+  opts.stream = opts.stream ~= nil and opts.stream or true
 
   ---@type AiProvider
   local provider

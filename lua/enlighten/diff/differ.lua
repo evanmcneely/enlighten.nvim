@@ -1,4 +1,4 @@
-local utils = require("enlighten/utils")
+local utils = require("enlighten.utils")
 
 local M = {}
 
@@ -7,6 +7,10 @@ M.constants = utils.protect({
   removal = "removal",
   unchanged = "unchanged",
 })
+
+---@class Hunk
+---@field add string[]
+---@field remove string[]
 
 ---@param left string[]
 ---@param right string[]
@@ -70,10 +74,6 @@ function M.diff(left, right)
   return reversed_results
 end
 
----@class Hunk
----@field add string[]
----@field remove string[]
-
 --- Extract information about hunks from a computed diff. Hunks are
 --- groups of added or removed lines (or both). Hunk row numbers are
 --- for the first added line, computed from the provided start line.
@@ -81,7 +81,7 @@ end
 ---@param diff LineDiff
 ---@return table<number, Hunk>
 function M.extract_hunks(start_row, diff)
-  local hunks = {}
+  local hunks = {} ---@type table<number, Hunk>
   local current = nil
   local row = start_row
 

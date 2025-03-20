@@ -1,6 +1,6 @@
 local tu = require("tests.testutils")
 local buffer = require("enlighten.buffer")
-local ai = require("enlighten/ai")
+local ai = require("enlighten.ai")
 local stub = require("luassert.stub")
 
 -- stylua: ignore

@@ -1,4 +1,4 @@
-local Logger = require("enlighten/logger")
+local Logger = require("enlighten.logger")
 
 local M = {}
 
@@ -19,8 +19,8 @@ local M = {}
 ---@field chat? EnlightenPartialChatSettings
 
 ---@class EnlightenAiConfig
----@field chat EnlightenAiProviderConfig
----@field edit EnlightenAiProviderConfig
+---@field chat? EnlightenAiProviderConfig
+---@field edit? EnlightenAiProviderConfig
 ---@field timeout number Completion timeout in seconds
 ---@field provider string AI model provider
 ---@field model string Model used for completions
@@ -101,7 +101,7 @@ function M.get_default_config()
         split = "right",
       },
     },
-  }
+  } ---@type EnlightenConfig
 end
 
 M.config = M.get_default_config()

@@ -1,11 +1,11 @@
 local api = vim.api
-local ai = require("enlighten/ai")
-local augroup = require("enlighten/autocmd")
-local buffer = require("enlighten/buffer")
-local Writer = require("enlighten/writer/stream")
-local Logger = require("enlighten/logger")
-local History = require("enlighten/history")
-local utils = require("enlighten/utils")
+local ai = require("enlighten.ai")
+local augroup = require("enlighten.autocmd")
+local buffer = require("enlighten.buffer")
+local Writer = require("enlighten.writer.stream")
+local Logger = require("enlighten.logger")
+local History = require("enlighten.history")
+local utils = require("enlighten.utils")
 
 ---@class EnlightenChat
 --- Settings injected into this class from the plugin config

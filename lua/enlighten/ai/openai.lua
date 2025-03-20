@@ -29,10 +29,9 @@
 
 ---@class OpenAIRequest
 ---@field model string
----@field prompt string
----@field max_tokens number
+---@field max_tokens? number
 ---@field stream? boolean
----@field temperature number
+---@field temperature? number
 ---@field messages OpenAIMessage[]
 
 -- luacheck: push ignore

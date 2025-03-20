@@ -1,4 +1,4 @@
-local Logger = require("enlighten/logger")
+local Logger = require("enlighten.logger")
 
 --- TODO save history for feature under project name (default if not git directory)
 

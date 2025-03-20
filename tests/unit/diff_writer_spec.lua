@@ -61,7 +61,7 @@ describe("DiffWriter", function()
   local content = "aaa\nbbb\nccc\nddd\neee"
   local buf
   local win
-  ---@type Range
+  ---@type SelectionRange
   local range
   local opts
 
@@ -379,16 +379,19 @@ describe("DiffWriter", function()
       equals("aaa\nbbb\none\ntwo\nthree\neee", buffer.get_content(buf))
     end)
 
-    it("should insert new lines with new content when out of range and lines are the same", function()
-      local writer = DiffWriter:new(buf, win, range, opts)
+    it(
+      "should insert new lines with new content when out of range and lines are the same",
+      function()
+        local writer = DiffWriter:new(buf, win, range, opts)
 
-      writer:on_data("one\n")
-      writer:on_data("two\n")
+        writer:on_data("one\n")
+        writer:on_data("two\n")
 
-      -- Insterts new text when this line is the same as the focused line
-      writer:on_data("eee\n")
-      equals("aaa\nbbb\none\ntwo\neee\neee", buffer.get_content(buf))
-    end)
+        -- Insterts new text when this line is the same as the focused line
+        writer:on_data("eee\n")
+        equals("aaa\nbbb\none\ntwo\neee\neee", buffer.get_content(buf))
+      end
+    )
 
     it("should remove excess selected lines on complete", function()
       range.row_start = 1

@@ -1,8 +1,10 @@
-local Edit = require("enlighten/edit")
-local Chat = require("enlighten/chat")
-local config = require("enlighten/config")
-local highlights = require("enlighten/highlights")
-local Logger = require("enlighten/logger")
+local Edit = require("enlighten.edit")
+local Chat = require("enlighten.chat")
+local config = require("enlighten.config")
+local highlights = require("enlighten.highlights")
+local Logger = require("enlighten.logger")
+local diff_hl = require("enlighten.diff.highlights")
+local buffer = require("enlighten.buffer")
 
 ---@class Enlighten
 --- Full plugin configuration with default values overridden by user provided ones.
@@ -79,6 +81,68 @@ function enlighten.chat()
   end
 
   Chat:new(enlighten.config.ai.chat, enlighten.config.settings.chat)
+end
+
+function enlighten.keep()
+  if not enlighten.setup_complete then
+    return
+  end
+
+  local range = buffer.get_range()
+  local current_buf = vim.api.nvim_get_current_buf()
+  local hunks = diff_hl.get_hunk_in_range(current_buf, range)
+
+  diff_hl.keep_hunk(current_buf, hunks)
+end
+
+function enlighten.discard()
+  if not enlighten.setup_complete then
+    return
+  end
+
+  local range = buffer.get_range()
+  local current_buf = vim.api.nvim_get_current_buf()
+  local hunks = diff_hl.get_hunk_in_range(current_buf, range)
+
+  diff_hl.reset_hunk(current_buf, hunks)
+end
+
+function enlighten.keep_all()
+  if not enlighten.setup_complete then
+    return
+  end
+
+  --- A range that encompasses the whole buffer
+  ---@type SelectionRange
+  local range = {
+    col_start = 0,
+    row_start = 0,
+    col_end = 0,
+    row_end = math.huge,
+  }
+  local current_buf = vim.api.nvim_get_current_buf()
+  local hunks = diff_hl.get_hunk_in_range(current_buf, range)
+
+  diff_hl.keep_hunk(current_buf, hunks)
+end
+
+function enlighten.discard_all()
+  if not enlighten.setup_complete then
+    return
+  end
+
+  --- A range that encompasses the whole buffer
+  ---@type SelectionRange
+  local range = {
+    col_start = 0,
+    row_start = 0,
+    col_end = 0,
+    row_end = math.huge,
+  }
+  local current_buf = vim.api.nvim_get_current_buf()
+  local hunks = diff_hl.get_hunk_in_range(current_buf, range)
+
+  diff_hl.reset_hunk(current_buf, hunks)
 end
 
 return enlighten

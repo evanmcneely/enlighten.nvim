@@ -7,7 +7,7 @@ local equals = assert.are.same
 describe("EditWriter", function()
   local content = "aaa\nbbb\nccc\nddd\neee"
   local buf
-  ---@type Range
+  ---@type SelectionRange
   local range
 
   before_each(function()

@@ -1,22 +1,22 @@
 local api = vim.api
-local Logger = require("enlighten/logger")
+local Logger = require("enlighten.logger")
 
 ---@class EditWriter: Writer
----@field range Range
+---@field range SelectionRange
 ---@field accumulated_text string -- stores all accumulated text
 ---@field accumulated_line string -- stores text of the current line before it added to the buffer
 ---@field focused_line number -- the current line in the buffer we are ready to write too
 ---@field ns_id number
 local EditWriter = {}
 
----@class Range
+---@class SelectionRange
 ---@field col_start number
 ---@field row_start number
 ---@field col_end number
 ---@field row_end number
 
 ---@param buffer number
----@param range Range
+---@param range SelectionRange
 ---@param on_done? fun():nil
 ---@return EditWriter
 function EditWriter:new(buffer, range, on_done)
