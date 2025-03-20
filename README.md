@@ -160,6 +160,6 @@ Chat responses are streamed into the chat buffer. Chat conversations will only b
 ### 🏎️ TODO
 
 - Persist history across Neovim sessions. ✅
-- Approve/Reject generated chunks from file
+- Approve/Reject generated chunks from file. ✅
 - Edit buffer with context from the chat.
 - Use codebase as context (files, functions, classes, etc.).
