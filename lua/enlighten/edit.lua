@@ -334,7 +334,7 @@ end
 --- Keep (approve) AI generated content and close the buffer. If no content
 --- has been generated, this will do nothing. This is mapped to a key on the prompt buffer.
 function EnlightenEdit:confirm()
-  if self.writer.accumulated_text ~= "" and not self.writer.active then
+  if not self.writer.active then
     Logger:log("edit:confirm", { id = self.id })
     self.writer:keep()
     self:close()
