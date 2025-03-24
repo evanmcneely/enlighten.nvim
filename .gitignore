@@ -1,8 +1,11 @@
+# dependencies
 plenary.nvim/
 
-# luacov
+# testing
+tmp_home/
 luacov.report
 luacov.report.index
 luacov.stats
 
-tmp_home/
+# random
+todo
