@@ -2,8 +2,6 @@ local M = {}
 
 local function get_highlights()
   local float_title_hl = vim.api.nvim_get_hl(0, { name = "FloatTitle", link = false })
-  local float_footer_hl = vim.api.nvim_get_hl(0, { name = "FloatFooter", link = false })
-  local float_border_hl = vim.api.nvim_get_hl(0, { name = "FloatBorder", link = false })
   local comment_hl = vim.api.nvim_get_hl(0, { name = "Comment", link = false })
   local function_hl = vim.api.nvim_get_hl(0, { name = "Function", link = false })
   local number_hl = vim.api.nvim_get_hl(0, { name = "Number", link = false })
@@ -11,18 +9,19 @@ local function get_highlights()
   local cursorline_hl = vim.api.nvim_get_hl(0, { name = "Cursorline", link = false })
   local removed_fg_hl = vim.api.nvim_get_hl(0, { name = "diffRemoved", link = false })
   local removed_bg_hl = vim.api.nvim_get_hl(0, { name = "DiffDelete", link = false })
+  local normal_hl = vim.api.nvim_get_hl(0, { name = "NormalFloat", link = false })
 
   return {
     EnlightenDiffAdd = { default = true, link = "DiffAdd" },
     EnlightenDiffChange = { default = true, link = "DiffText" },
-    EnlightenDiffDelete = { fg = removed_fg_hl.fg, bg = removed_bg_hl.bg },
+    EnlightenDiffDelete = { fg = removed_fg_hl.fg, bg = removed_bg_hl.bg or "#616161" }, -- grey fallback
     EnlightenChatRoleUser = { fg = string_hl.fg, bg = cursorline_hl.bg },
     EnlightenChatRoleAssistant = { fg = number_hl.fg, bg = cursorline_hl.bg },
     EnlightenChatRoleSign = { fg = function_hl.fg },
-    EnlightenPromptTitle = { fg = function_hl.fg, bg = float_title_hl.bg },
-    EnlightenPromptBorder = { fg = comment_hl.fg, bg = float_border_hl.bg },
-    EnlightenPromptHelpMsg = { fg = comment_hl.fg, bg = float_footer_hl.bg },
-    EnlightenPromptHelpKey = { fg = function_hl.fg, bg = float_footer_hl.bg },
+    EnlightenPromptTitle = { fg = float_title_hl.fg, bg = normal_hl.bg },
+    EnlightenPromptBorder = { fg = comment_hl.fg, bg = normal_hl.bg },
+    EnlightenPromptHelpMsg = { fg = comment_hl.fg, bg = normal_hl.bg },
+    EnlightenPromptHelpKey = { fg = float_title_hl.fg, bg = normal_hl.bg },
   }
 end
 
