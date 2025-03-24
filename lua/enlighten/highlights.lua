@@ -9,11 +9,13 @@ local function get_highlights()
   local number_hl = vim.api.nvim_get_hl(0, { name = "Number", link = false })
   local string_hl = vim.api.nvim_get_hl(0, { name = "String", link = false })
   local cursorline_hl = vim.api.nvim_get_hl(0, { name = "Cursorline", link = false })
+  local removed_fg_hl = vim.api.nvim_get_hl(0, { name = "diffRemoved", link = false })
+  local removed_bg_hl = vim.api.nvim_get_hl(0, { name = "DiffDelete", link = false })
 
   return {
     EnlightenDiffAdd = { default = true, link = "DiffAdd" },
     EnlightenDiffChange = { default = true, link = "DiffText" },
-    EnlightenDiffDelete = { default = true, link = "DiffDelete" },
+    EnlightenDiffDelete = { fg = removed_fg_hl.fg, bg = removed_bg_hl.bg },
     EnlightenChatRoleUser = { fg = string_hl.fg, bg = cursorline_hl.bg },
     EnlightenChatRoleAssistant = { fg = number_hl.fg, bg = cursorline_hl.bg },
     EnlightenChatRoleSign = { fg = function_hl.fg },
