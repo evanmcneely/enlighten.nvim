@@ -2,6 +2,7 @@ local Edit = require("enlighten.edit")
 local Chat = require("enlighten.chat")
 local config = require("enlighten.config")
 local highlights = require("enlighten.highlights")
+local debug = require("enlighten.debug")
 local Logger = require("enlighten.logger")
 local diff_hl = require("enlighten.diff.highlights")
 local buffer = require("enlighten.buffer")
@@ -18,6 +19,7 @@ local enlighten = {
   config = config.config,
   setup_complete = false,
   logger = Logger,
+  debug = debug
 }
 
 ---@param user_config EnlightenPartialConfig?
