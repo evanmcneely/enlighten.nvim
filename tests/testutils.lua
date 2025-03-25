@@ -141,19 +141,6 @@ function M.feedkeys(keys)
   vim.api.nvim_feedkeys(escape_keys(keys), "xm", true)
 end
 
----@param substring string
----@param content string
-function M.assert_substring_exists(substring, content)
-  assert(
-    string.find(content, substring, 1, true),
-    "Expected substring not found in buffer content\n\n"
-      .. "... Expected to find\n\n"
-      .. substring
-      .. "\n\n...Received\n"
-      .. content
-  )
-end
-
 ---@param messages string[]
 function M.build_mock_history_item(messages)
   local role = "user"

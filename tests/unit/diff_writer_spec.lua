@@ -1,61 +1,9 @@
 local DiffWriter = require("enlighten.writer.diff")
 local tu = require("tests.testutils")
 local buffer = require("enlighten.buffer")
+local assertions = require("tests.assertions")
 
 local equals = assert.are.same
-
-local function assert_highlight(extmarks, start_row, end_row, hl_group)
-  for _, extmark in ipairs(extmarks) do
-    local _, s_row, _, details = unpack(extmark)
-    if s_row == start_row and details.end_row == end_row and details.hl_group == hl_group then
-      return true
-    end
-  end
-  error(
-    "Highlight "
-      .. hl_group
-      .. " from row "
-      .. start_row
-      .. " to "
-      .. end_row
-      .. "  does not exist:\n"
-      .. vim.inspect(extmarks)
-  )
-end
-
-local function assert_virtual_line(extmarks, row, start_text, hl_group)
-  for _, extmark in ipairs(extmarks) do
-    local _, s_row, _, details = unpack(extmark)
-    if s_row == row and details.virt_lines then
-      for _, virt_line in ipairs(details.virt_lines) do
-        local text, group = unpack(virt_line[1])
-        if text:find("^" .. start_text) and group == hl_group then
-          return true
-        end
-      end
-    end
-  end
-  error(
-    "Virtual line on row "
-      .. row
-      .. " starting with "
-      .. start_text
-      .. " and highlight "
-      .. hl_group
-      .. " does not exist:\n"
-      .. vim.inspect(extmarks)
-  )
-end
-
-local function assert_no_virt_lines(extmarks)
-  for _, extmark in ipairs(extmarks) do
-    local _, _, _, details = unpack(extmark)
-    if details.virt_lines then
-      error("Extmark with virtual lines exists")
-    end
-  end
-  return true
-end
 
 describe("DiffWriter", function()
   local content = "aaa\nbbb\nccc\nddd\neee"
@@ -64,10 +12,6 @@ describe("DiffWriter", function()
   ---@type SelectionRange
   local range
   local opts
-
-  local function get_extmarks_for_buffer(writer)
-    return vim.api.nvim_buf_get_extmarks(buf, writer.diff_ns_id, 0, -1, { details = true })
-  end
 
   before_each(function()
     opts = { mode = "diff" }
@@ -239,8 +183,7 @@ describe("DiffWriter", function()
 
         writer:on_data("hello\n")
 
-        local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 2, 3, "EnlightenDiffChange")
+        assertions.has_change_highlight(buf, 3, 3, true)
       end)
 
       it("should highlight changes at start of buffer", function()
@@ -250,8 +193,7 @@ describe("DiffWriter", function()
 
         writer:on_data("hello\n")
 
-        local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 0, 1, "EnlightenDiffChange")
+        assertions.has_change_highlight(buf, 1, 1, true)
       end)
 
       it("should highlight changes at the end of buffer", function()
@@ -261,8 +203,7 @@ describe("DiffWriter", function()
 
         writer:on_data("hello\n")
 
-        local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 4, 5, "EnlightenDiffChange")
+        assertions.has_change_highlight(buf, 5, 5)
       end)
 
       it("should highlight diffs at middle of buffer", function()
@@ -270,9 +211,8 @@ describe("DiffWriter", function()
 
         writer:on_data("hello\n")
 
-        local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 2, 3, "EnlightenDiffAdd")
-        assert_virtual_line(ext, 2, "ccc", "EnlightenDiffDelete")
+        assertions.has_add_highlight(buf, 3, 3)
+        assertions.has_remove_highlight(buf, 3, { "ccc" })
       end)
 
       it("should highlight diffs at start of buffer", function()
@@ -282,9 +222,8 @@ describe("DiffWriter", function()
 
         writer:on_data("hello\n")
 
-        local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 0, 1, "EnlightenDiffAdd")
-        assert_virtual_line(ext, 0, "aaa", "EnlightenDiffDelete")
+        assertions.has_add_highlight(buf, 1, 1)
+        assertions.has_remove_highlight(buf, 1, { "aaa" })
       end)
 
       it("should highlight diffs at the end of buffer", function()
@@ -294,9 +233,8 @@ describe("DiffWriter", function()
 
         writer:on_data("hello\n")
 
-        local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 4, 5, "EnlightenDiffAdd")
-        assert_virtual_line(ext, 4, "eee", "EnlightenDiffDelete")
+        assertions.has_add_highlight(buf, 5, 5)
+        assertions.has_remove_highlight(buf, 5, { "eee" })
       end)
 
       it("should not highlight diff when content hasn't changed", function()
@@ -304,8 +242,7 @@ describe("DiffWriter", function()
 
         writer:on_data("ccc\n")
 
-        local ext = get_extmarks_for_buffer(writer)
-        equals({}, ext)
+        assertions.no_highlights_at_all(buf)
       end)
 
       it("should highlight multiple added lines", function()
@@ -316,8 +253,7 @@ describe("DiffWriter", function()
         writer:on_data("yyy\n")
         writer:on_data("zzz\n")
 
-        local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 3, 6, "EnlightenDiffAdd")
+        assertions.has_add_highlight(buf, 4, 6)
       end)
 
       it("should highlight multiple hunks", function()
@@ -327,24 +263,21 @@ describe("DiffWriter", function()
         writer:on_data("ccc\n")
         writer:on_data("zzz\n")
 
-        local ext = get_extmarks_for_buffer(writer)
-        assert_highlight(ext, 2, 3, "EnlightenDiffAdd")
-        assert_highlight(ext, 4, 5, "EnlightenDiffAdd")
-        assert_no_virt_lines(ext) -- line "ccc" is recognised as being the existing line
+        assertions.has_add_highlight(buf, 3, 3)
+        assertions.has_add_highlight(buf, 5, 5)
+        assertions.no_remove_highlight(buf, 3) -- line "ccc" is recognised as being the existing line
       end)
 
       it("should reset diff highlights", function()
         local writer = DiffWriter:new(buf, win, range, opts)
 
         writer:on_data("hello\n")
-
-        local ext = get_extmarks_for_buffer(writer)
-        assert.are.not_equal({}, ext)
+        assertions.has_add_highlight(buf, 3, 3)
+        assertions.has_remove_highlight(buf, 3, { "ccc" })
 
         writer:reset()
 
-        ext = get_extmarks_for_buffer(writer)
-        equals({}, ext)
+        assertions.no_highlights_at_all(buf)
       end)
     end)
   end)
@@ -470,14 +403,11 @@ describe("DiffWriter", function()
         local writer = DiffWriter:new(buf, win, range, opts)
 
         writer:on_data("hello\n")
-
-        local ext = get_extmarks_for_buffer(writer)
-        assert.are.not_equal({}, ext)
+        assertions.has_remove_highlight(buf, 3, { "ccc" })
 
         writer:reset()
 
-        ext = get_extmarks_for_buffer(writer)
-        equals({}, ext)
+        assertions.no_highlights_at_all(buf)
       end)
     end)
   end)

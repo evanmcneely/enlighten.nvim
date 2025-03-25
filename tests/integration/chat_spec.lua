@@ -1,4 +1,5 @@
 local tu = require("tests.testutils")
+local assertions = require("tests.assertions")
 local buffer = require("enlighten.buffer")
 local ai = require("enlighten.ai")
 local stub = require("luassert.stub")
@@ -62,17 +63,17 @@ describe("chat", function()
     stream(content_1)
 
     local content = buffer.get_content(buf)
-    tu.assert_substring_exists("hello", content)
-    tu.assert_substring_exists(table.concat(content_1, ""), content)
+    assertions.contains("hello", content)
+    assertions.contains(table.concat(content_1, ""), content)
 
     tu.feedkeys("imore<Esc><CR>")
     stream(content_2)
 
     content = buffer.get_content(buf)
-    tu.assert_substring_exists("hello", content)
-    tu.assert_substring_exists(table.concat(content_1, ""), content)
-    tu.assert_substring_exists("more", content)
-    tu.assert_substring_exists(table.concat(content_2, ""), content)
+    assertions.contains("hello", content)
+    assertions.contains(table.concat(content_1, ""), content)
+    assertions.contains("more", content)
+    assertions.contains(table.concat(content_2, ""), content)
   end)
 
   it("should copy selected snippet to chat", function()
@@ -84,33 +85,8 @@ describe("chat", function()
     vim.cmd("lua require('enlighten'):chat()")
 
     buf = vim.api.nvim_get_current_buf()
-    tu.assert_substring_exists("some\ncontent\nto\ncopy", buffer.get_content(buf))
+    assertions.contains("some\ncontent\nto\ncopy", buffer.get_content(buf))
   end)
-
-  -- Cannot figure out the async assertions in CI
-  -- it("should be able to scroll chat history", function()
-  --   enlighten.chat_history =
-  --     { tu.build_mock_history_item({ "abc" }), tu.build_mock_history_item({ "def" }) }
-  --   vim.cmd("lua require('enlighten').chat()")
-  --   buf = vim.api.nvim_get_current_buf()
-  --   local content
-  --
-  --   tu.feedkeys("<Esc><C-o>")
-  --   content = buffer.get_content(buf)
-  --   tu.assert_substring_exists("abc", content)
-  --
-  --   tu.feedkeys("<C-o>")
-  --   content = buffer.get_content(buf)
-  --   tu.assert_substring_exists("def", content)
-  --
-  --   tu.feedkeys("<C-i>")
-  --   content = buffer.get_content(buf)
-  --   tu.assert_substring_exists("abc", content)
-  --
-  --   tu.feedkeys("<C-i>")
-  --   content = buffer.get_content(buf)
-  --   assert.are.same("\n\n\n\n\n", content)
-  -- end)
 
   it("should save convo to history after completion", function()
     vim.cmd("lua require('enlighten').chat()")
@@ -125,7 +101,7 @@ describe("chat", function()
     tu.feedkeys("<Esc><C-o>")
 
     local content = buffer.get_content(buf)
-    tu.assert_substring_exists("hello", content)
-    tu.assert_substring_exists(table.concat(content_1, ""), content)
+    assertions.contains("hello", content)
+    assertions.contains(table.concat(content_1, ""), content)
   end)
 end)
