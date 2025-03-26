@@ -19,7 +19,7 @@ local enlighten = {
   config = config.config,
   setup_complete = false,
   logger = Logger,
-  debug = debug
+  debug = debug,
 }
 
 ---@param user_config EnlightenPartialConfig?

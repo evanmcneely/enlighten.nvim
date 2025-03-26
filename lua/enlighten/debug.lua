@@ -59,5 +59,4 @@ function M.hl_extmarks()
   print(vim.inspect(extmarks))
 end
 
-
 return M

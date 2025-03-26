@@ -46,6 +46,10 @@
 ---@field stream? boolean
 ---@field temperature? number
 ---@field messages OpenAIMessage[]
+---@field response_format? OpenAIResponseFormat
+
+---@class OpenAIResponseFormat
+---@field type string
 
 -- luacheck: push ignore
 local edit_system_prompt = [[
@@ -159,7 +163,7 @@ function M.build_request(prompt, opts)
   }
 
   if opts.json then
-    request.response_format = {type = "json_object"}
+    request.response_format = { type = "json_object" }
   end
 
   -- OpenAI reasoning models do not accept max_tokens or temperature

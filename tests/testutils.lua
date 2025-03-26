@@ -59,13 +59,13 @@ function M.openai_response(text)
         index = 0,
         message = {
           role = "assistant",
-          content =text,
+          content = text,
           refusal = nil,
-          annotations = {}
+          annotations = {},
         },
         logprobs = nil,
-        finish_reason = "stop"
-      }
+        finish_reason = "stop",
+      },
     },
     usage = {
       prompt_tokens = 8,
@@ -73,17 +73,17 @@ function M.openai_response(text)
       total_tokens = 18,
       prompt_tokens_details = {
         cached_tokens = 0,
-        audio_tokens = 0
+        audio_tokens = 0,
       },
       completion_tokens_details = {
         reasoning_tokens = 0,
         audio_tokens = 0,
         accepted_prediction_tokens = 0,
-        rejected_prediction_tokens = 0
-      }
+        rejected_prediction_tokens = 0,
+      },
     },
     service_tier = "default",
-    system_fingerprint = "fp_6bb567654c"
+    system_fingerprint = "fp_6bb567654c",
   }
 end
 
