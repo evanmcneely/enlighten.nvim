@@ -28,7 +28,7 @@ end
 ---@param text string
 ---@param finish_reason? string
 ---@return OpenAIStreamingResponse
-function M.openai_response(text, finish_reason)
+function M.openai_streaming_response(text, finish_reason)
   return {
     id = "chatcmpl-9nxbCSxY2A7Jp9nOBDhu4jdo9z6ME",
     object = "chat.completion.chunk",
@@ -46,10 +46,51 @@ function M.openai_response(text, finish_reason)
   }
 end
 
+---@param text string
+---@return OpenAIResponse
+function M.openai_response(text)
+  return {
+    id = "chatcmpl-BF9KXnJzOi5qZCGAuNGEuRUKindVS",
+    object = "chat.completion",
+    created = 1742950485,
+    model = "gpt-4o-2024-08-06",
+    choices = {
+      {
+        index = 0,
+        message = {
+          role = "assistant",
+          content = text,
+          refusal = nil,
+          annotations = {},
+        },
+        logprobs = nil,
+        finish_reason = "stop",
+      },
+    },
+    usage = {
+      prompt_tokens = 8,
+      completion_tokens = 10,
+      total_tokens = 18,
+      prompt_tokens_details = {
+        cached_tokens = 0,
+        audio_tokens = 0,
+      },
+      completion_tokens_details = {
+        reasoning_tokens = 0,
+        audio_tokens = 0,
+        accepted_prediction_tokens = 0,
+        rejected_prediction_tokens = 0,
+      },
+    },
+    service_tier = "default",
+    system_fingerprint = "fp_6bb567654c",
+  }
+end
+
 ---@param type string
 ---@param text? string
 ---@return AnthropicStreamingResponse
-function M.anthropic_response(type, text)
+function M.anthropic_streaming_response(type, text)
   local responses = {
     message_start = {
       type = "message_start",
@@ -106,6 +147,31 @@ function M.anthropic_response(type, text)
   }
 
   return responses[type] or {}
+end
+
+---@param text? string
+---@return AnthropicResponse
+function M.anthropic_response(text)
+  return {
+    id = "msg_01VJLNYeZLT6x6Z11kxC7HgQ",
+    type = "message",
+    role = "assistant",
+    model = "claude-3-7-sonnet-20250219",
+    content = {
+      {
+        type = "text",
+        text = text,
+      },
+    },
+    stop_reason = "end_turn",
+    stop_sequence = nil,
+    usage = {
+      input_tokens = 55,
+      cache_creation_input_tokens = 0,
+      cache_read_input_tokens = 0,
+      output_tokens = 52,
+    },
+  }
 end
 
 ---@return OpenAIError

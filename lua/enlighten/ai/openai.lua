@@ -10,9 +10,22 @@
 ---@field system_fingerprint string
 ---@field choices OpenAIStreamingChoice[]
 
+---@class OpenAIResponse
+---@field id string
+---@field object string
+---@field created number
+---@field model string
+---@field choices OpenAIChoice[]
+
 ---@class OpenAIStreamingChoice
 ---@field index number
----@field delta OpenAIDelta
+---@field delta? OpenAIDelta
+---@field logprobs any
+---@field finish_reason any
+
+---@class OpenAIChoice
+---@field index number
+---@field message OpenAIMessage
 ---@field logprobs any
 ---@field finish_reason any
 
@@ -26,6 +39,7 @@
 ---@class OpenAIMessage
 ---@field role string
 ---@field content string
+---@field refusal any
 
 ---@class OpenAIRequest
 ---@field model string
@@ -33,6 +47,10 @@
 ---@field stream? boolean
 ---@field temperature? number
 ---@field messages OpenAIMessage[]
+---@field response_format? OpenAIResponseFormat
+
+---@class OpenAIResponseFormat
+---@field type string
 
 -- luacheck: push ignore
 local edit_system_prompt = [[
@@ -95,13 +113,17 @@ function M.get_error_message(body)
   return ""
 end
 
----@param body OpenAIStreamingResponse
+---@param body OpenAIStreamingResponse | OpenAIResponse
 ---@return string
 function M.get_text(body)
   local completion = body.choices[1]
 
-  if not completion.finish_reason or completion.finish_reason == vim.NIL then
-    return completion.delta.content
+  if completion.delta then -- streaming response
+    if not completion.finish_reason or completion.finish_reason == vim.NIL then
+      return completion.delta.content
+    end
+  elseif completion.message then -- regular response
+    return completion.message.content
   end
 
   return ""
@@ -140,6 +162,10 @@ function M.build_request(prompt, opts)
     stream = opts.stream,
     messages = messages,
   }
+
+  if opts.json then
+    request.response_format = { type = "json_object" }
+  end
 
   -- OpenAI reasoning models do not accept max_tokens or temperature
   local reasoning_models = { "o1", "o3-mini" }

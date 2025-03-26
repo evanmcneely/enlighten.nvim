@@ -184,9 +184,6 @@ function M.request(body, writer, provider, opts)
   local curl_args = {
     "--silent",
     "--show-error",
-    "--no-buffer",
-    "--max-time",
-    opts.timeout,
     "-L",
     provider.endpoint,
     "-X",
@@ -195,7 +192,15 @@ function M.request(body, writer, provider, opts)
     "Content-Type: application/json",
     "-d",
     vim.json.encode(body),
+    "--max-time",
+    opts.timeout,
   }
+
+  -- Only use --no-buffer for streaming requests
+  if opts.stream then
+    table.insert(curl_args, "--no-buffer")
+  end
+
   for _, arg in ipairs(provider.build_headers()) do
     table.insert(curl_args, arg)
   end
@@ -204,61 +209,78 @@ function M.request(body, writer, provider, opts)
 
   writer:start()
 
-  -- Chunks of text to be processed. Can be incomplete JSON strings mixed with "data:" prefixes.
-  local buffered_chunks = ""
-  -- A queue of JSON object strings to handle. Add to the end and take from the front.
-  local processed_chunks = {}
+  if opts.stream then
+    -- Streaming implementation
+    -- Chunks of text to be processed. Can be incomplete JSON strings mixed with "data:" prefixes.
+    local buffered_chunks = ""
+    -- A queue of JSON object strings to handle. Add to the end and take from the front.
+    local processed_chunks = {}
 
-  ---@param chunk string
-  local function on_stdout_chunk(chunk)
-    -- A chunk here can look like three known things
-    --  1. "data: {...} data: [done]" : a single JSON object with data and prefix/suffix
-    --  2. "data: {...} data: {...} data: {...} ... data: [done]" : multiple JSON objects with data and prefix/suffix
-    --  3. {...} : a single JSON object with no prefix or suffix
-    --  4. "data: {.." : an incomplete string of text
-    --
-    --  To handle incomplete chunks (a rarity) we assemble all the text we have in
-    --  buffered_chunks before trying to extract as many complete JSON strings out
-    --  of it as we can. Those get processed, leaving the rest for next time.
-    buffered_chunks = buffered_chunks .. chunk
-    local c, s = extract_json(buffered_chunks)
-    buffered_chunks = s
+    ---@param chunk string
+    local function on_stdout_chunk(chunk)
+      buffered_chunks = buffered_chunks .. chunk
+      local c, s = extract_json(buffered_chunks)
+      buffered_chunks = s
 
-    for _, json_str in ipairs(c) do
-      table.insert(processed_chunks, json_str)
-    end
+      for _, json_str in ipairs(c) do
+        table.insert(processed_chunks, json_str)
+      end
 
-    -- Decode and use all JSON objects here until none remain.
-    while processed_chunks[1] ~= nil do
-      local json_str = table.remove(processed_chunks, 1)
+      -- Decode and use all JSON objects here until none remain.
+      while processed_chunks[1] ~= nil do
+        local json_str = table.remove(processed_chunks, 1)
 
-      ---@type table
-      local json = vim.json.decode(json_str)
+        ---@type table
+        local json = vim.json.decode(json_str)
 
-      if provider.is_error(json) then
-        writer:on_complete(provider.get_error_message(json))
-      elseif not provider.is_streaming_finished(json) then
-        local text = provider.get_text(json)
-        if #text > 0 then
-          writer:on_data(text)
+        if provider.is_error(json) then
+          writer:on_complete(provider.get_error_message(json))
+        elseif not provider.is_streaming_finished(json) then
+          local text = provider.get_text(json)
+          if #text > 0 then
+            writer:on_data(text)
+          end
         end
       end
     end
-  end
 
-  M.exec("curl", curl_args, on_stdout_chunk, function(err)
-    writer:on_complete(err)
-  end)
+    M.exec("curl", curl_args, on_stdout_chunk, function(err)
+      writer:on_complete(err)
+    end)
+  else
+    local function on_stdout_chunk(json)
+      local success, data = pcall(vim.json.decode, json)
+      if not success then
+        writer:on_complete("Failed to parse JSON response: " .. data:sub(1, 100))
+        return
+      end
+
+      if provider.is_error(data) then
+        writer:on_complete(provider.get_error_message(data))
+      else
+        local text = provider.get_text(data)
+        if #text > 0 then
+          writer:on_data(text)
+        end
+        writer:on_complete()
+      end
+    end
+
+    M.exec("curl", curl_args, on_stdout_chunk, function(err)
+      if err then
+        writer:on_complete(err)
+      end
+    end)
+  end
 end
 
 ---@param writer Writer
 ---@param prompt string | AiMessages
 ---@param opts CompletionOptions
 function M.complete(prompt, writer, opts)
-  -- TODO implement streaming false for use in background work / automations
-  -- TODO implement JSON format for use in background work / automations
-  opts.json = opts.json ~= nil and opts.json or false
-  opts.stream = opts.stream ~= nil and opts.stream or true
+  if opts.json == nil then
+    opts.json = false
+  end
 
   ---@type AiProvider
   local provider

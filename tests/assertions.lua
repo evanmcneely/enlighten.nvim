@@ -175,7 +175,6 @@ function M.no_highlights_at_all(buffer)
   return true
 end
 
-
 ---@param buffer number
 ---@param mark_id number
 function M.no_removed_lines_var(buffer, mark_id)

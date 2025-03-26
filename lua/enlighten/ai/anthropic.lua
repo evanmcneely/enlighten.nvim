@@ -3,6 +3,19 @@
 ---@field index? number
 ---@field delta? AnthropicTextDelta
 
+---@class AnthropicResponse
+---@field id string
+---@field type string
+---@field role string
+---@field model string
+---@field content AnthropicContent[]
+---@field stop_reason string
+---@field stop_sequence string | nil
+
+---@class AnthropicContent
+---@field type string
+---@field text string
+
 ---@class AnthropicTextDelta
 ---@field type string
 ---@field text? string
@@ -28,6 +41,7 @@
 ---@field temperature number
 ---@field system? string
 ---@field messages AnthropicMessage[]
+---@field stop_sequences? string
 
 -- luacheck: push ignore
 -- Anthropic is having a very hard time respecting the indentation of the provided code snippet.
@@ -84,13 +98,13 @@ function M.get_error_message(body)
   return ""
 end
 
----@param body AnthropicStreamingResponse
+---@param body AnthropicStreamingResponse | AnthropicResponse
 ---@return string
 function M.get_text(body)
-  local completion = body.delta
-
-  if completion then
-    return completion.text or ""
+  if body.delta then -- streaming response
+    return body.delta.text or ""
+  elseif body.content and body.content[1] and body.content[1].type == "text" then -- regular response
+    return body.content[1].text or ""
   end
 
   return ""
