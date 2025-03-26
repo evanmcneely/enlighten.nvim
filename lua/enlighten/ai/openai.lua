@@ -117,11 +117,11 @@ end
 function M.get_text(body)
   local completion = body.choices[1]
 
-  if completion.delta then
+  if completion.delta then -- streaming response
     if not completion.finish_reason or completion.finish_reason == vim.NIL then
       return completion.delta.content
     end
-  elseif completion.message then
+  elseif completion.message then -- regular response
     return completion.message.content
   end
 

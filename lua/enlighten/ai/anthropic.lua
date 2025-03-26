@@ -98,9 +98,9 @@ end
 ---@param body AnthropicStreamingResponse | AnthropicResponse
 ---@return string
 function M.get_text(body)
-  if body.delta then
+  if body.delta then -- streaming response
     return body.delta.text or ""
-  elseif body.content and body.content[1] and body.content[1].type == "text" then
+  elseif body.content and body.content[1] and body.content[1].type == "text" then -- regular response
     return body.content[1].text or ""
   end
 
