@@ -102,6 +102,66 @@ local function extract_json(s)
   return complete_json_strings, remaining_string
 end
 
+---@param writer Writer
+---@param provider AiProvider
+---@return fun(chunk: string): nil
+local function create_streaming_chunk_handler(provider, writer)
+  -- Chunks of text to be processed. Can be incomplete JSON strings mixed with "data:" prefixes.
+  local buffered_chunks = ""
+  -- A queue of JSON object strings to handle. Add to the end and take from the front.
+  local processed_chunks = {}
+
+  return function(chunk)
+    buffered_chunks = buffered_chunks .. chunk
+    local c, s = extract_json(buffered_chunks)
+    buffered_chunks = s
+
+    for _, json_str in ipairs(c) do
+      table.insert(processed_chunks, json_str)
+    end
+
+    -- Decode and use all JSON objects here until none remain.
+    while processed_chunks[1] ~= nil do
+      local json_str = table.remove(processed_chunks, 1)
+
+      ---@type table
+      local json = vim.json.decode(json_str)
+
+      if provider.is_error(json) then
+        writer:on_complete(provider.get_error_message(json))
+      elseif not provider.is_streaming_finished(json) then
+        local text = provider.get_text(json)
+        if #text > 0 then
+          writer:on_data(text)
+        end
+      end
+    end
+  end
+end
+
+---@param writer Writer
+---@param provider AiProvider
+---@return fun(chunk: string): nil
+local function create_response_chunk_handler(provider, writer)
+  return function(chunk)
+    local success, json = pcall(vim.json.decode, chunk)
+    if not success then
+      writer:on_complete("Failed to parse JSON response: " .. json:sub(1, 100))
+      return
+    end
+
+    if provider.is_error(json) then
+      writer:on_complete(provider.get_error_message(json))
+    else
+      local text = provider.get_text(json)
+      if #text > 0 then
+        writer:on_data(text)
+      end
+      writer:on_complete()
+    end
+  end
+end
+
 ---@param cmd string
 ---@param args string[]
 ---@param on_stdout_chunk fun(chunk: string): nil
@@ -210,62 +270,12 @@ function M.request(body, writer, provider, opts)
   writer:start()
 
   if opts.stream then
-    -- Streaming implementation
-    -- Chunks of text to be processed. Can be incomplete JSON strings mixed with "data:" prefixes.
-    local buffered_chunks = ""
-    -- A queue of JSON object strings to handle. Add to the end and take from the front.
-    local processed_chunks = {}
-
-    ---@param chunk string
-    local function on_stdout_chunk(chunk)
-      buffered_chunks = buffered_chunks .. chunk
-      local c, s = extract_json(buffered_chunks)
-      buffered_chunks = s
-
-      for _, json_str in ipairs(c) do
-        table.insert(processed_chunks, json_str)
-      end
-
-      -- Decode and use all JSON objects here until none remain.
-      while processed_chunks[1] ~= nil do
-        local json_str = table.remove(processed_chunks, 1)
-
-        ---@type table
-        local json = vim.json.decode(json_str)
-
-        if provider.is_error(json) then
-          writer:on_complete(provider.get_error_message(json))
-        elseif not provider.is_streaming_finished(json) then
-          local text = provider.get_text(json)
-          if #text > 0 then
-            writer:on_data(text)
-          end
-        end
-      end
-    end
-
+    local on_stdout_chunk = create_streaming_chunk_handler(provider, writer)
     M.exec("curl", curl_args, on_stdout_chunk, function(err)
       writer:on_complete(err)
     end)
   else
-    local function on_stdout_chunk(json)
-      local success, data = pcall(vim.json.decode, json)
-      if not success then
-        writer:on_complete("Failed to parse JSON response: " .. data:sub(1, 100))
-        return
-      end
-
-      if provider.is_error(data) then
-        writer:on_complete(provider.get_error_message(data))
-      else
-        local text = provider.get_text(data)
-        if #text > 0 then
-          writer:on_data(text)
-        end
-        writer:on_complete()
-      end
-    end
-
+    local on_stdout_chunk = create_response_chunk_handler(provider, writer)
     M.exec("curl", curl_args, on_stdout_chunk, function(err)
       if err then
         writer:on_complete(err)
