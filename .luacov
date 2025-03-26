@@ -3,6 +3,10 @@ return {
     "lua/enlighten$",
     "lua/enlighten%/.+$",
   },
-  statsfile = 'luacov.stats',
-  reportfile = 'luacov.report',
+  exclude = {
+    "lua/enlighten/debug"
+  },
+  statsfile = "luacov.stats",
+  reporter = "html",
+  reportfile = "luacov.report.html",
 }

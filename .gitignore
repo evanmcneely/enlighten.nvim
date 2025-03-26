@@ -4,6 +4,8 @@ plenary.nvim/
 # testing
 tmp_home/
 luacov.report
+luacov.report.html
+luacov.report.html.index
 luacov.report.index
 luacov.stats
 
