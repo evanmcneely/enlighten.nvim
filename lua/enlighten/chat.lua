@@ -306,7 +306,7 @@ function EnlightenChat:submit()
       timeout = self.aiConfig.timeout,
       temperature = self.aiConfig.temperature,
       feature = "chat",
-      stream = true,
+      stream = false,
     }
     ai.complete(messages, self.writer, opts)
   end

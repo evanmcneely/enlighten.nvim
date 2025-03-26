@@ -3,6 +3,18 @@
 ---@field index? number
 ---@field delta? AnthropicTextDelta
 
+-- {"id":"msg_01VJLNYeZLT6x6Z11kxC7HgQ","type":"message","role":"assistant","model":"claude-3-7-sonnet-20250219","content":[{"type":"text","text":"Hello! I'm here to help you with coding questions and tasks in your IDE. Whether you need help understanding code, debugging an issue, fixing errors, or implementing new features, I'm ready to assist. What are you working on today?"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":55,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":52}}
+---@class AnthropicResponse
+---@field id string
+---@field type string
+---@field role string
+---@field model string
+---@field content AnthropicContent[]
+
+---@class AnthropicContent
+---@field type string
+---@field text string
+
 ---@class AnthropicTextDelta
 ---@field type string
 ---@field text? string
@@ -84,13 +96,13 @@ function M.get_error_message(body)
   return ""
 end
 
----@param body AnthropicStreamingResponse
+---@param body AnthropicStreamingResponse | AnthropicResponse
 ---@return string
 function M.get_text(body)
-  local completion = body.delta
-
-  if completion then
-    return completion.text or ""
+  if body.delta then
+    return body.delta.text or ""
+  elseif body.content and body.content[1] and body.content[1].type == "text" then
+    return body.content[1].text or ""
   end
 
   return ""
