@@ -3,7 +3,6 @@
 ---@field index? number
 ---@field delta? AnthropicTextDelta
 
--- {"id":"msg_01VJLNYeZLT6x6Z11kxC7HgQ","type":"message","role":"assistant","model":"claude-3-7-sonnet-20250219","content":[{"type":"text","text":"Hello! I'm here to help you with coding questions and tasks in your IDE. Whether you need help understanding code, debugging an issue, fixing errors, or implementing new features, I'm ready to assist. What are you working on today?"}],"stop_reason":"end_turn","stop_sequence":null,"usage":{"input_tokens":55,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":52}}
 ---@class AnthropicResponse
 ---@field id string
 ---@field type string

@@ -54,9 +54,9 @@ describe("edit", function()
   ---@param content string[]
   local function stream(content)
     for _, chunk in ipairs(content) do
-      buffer_chunk("data: " .. vim.json.encode(tu.openai_response(chunk)))
+      buffer_chunk("data: " .. vim.json.encode(tu.openai_streaming_response(chunk)))
     end
-    buffer_chunk(vim.json.encode(tu.openai_response("", "stop")))
+    buffer_chunk(vim.json.encode(tu.openai_streaming_response("", "stop")))
     complete()
   end
 

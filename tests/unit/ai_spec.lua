@@ -23,7 +23,7 @@ describe("ai", function()
   end)
 
   it("should not call writer:on_data when completion is ''", function()
-    local obj = tu.openai_response("")
+    local obj = tu.openai_streaming_response("")
 
     buffer_chunk(vim.json.encode(obj))
 
@@ -32,7 +32,7 @@ describe("ai", function()
   end)
 
   it("should not call writer:on_data when completion is ''", function()
-    local obj = tu.openai_response("")
+    local obj = tu.openai_streaming_response("")
 
     buffer_chunk(vim.json.encode(obj))
 
@@ -42,7 +42,7 @@ describe("ai", function()
 
   it("should call writer:on_data when a chunk is received", function()
     local text = "wassup"
-    local obj = tu.openai_response(text)
+    local obj = tu.openai_streaming_response(text)
 
     -- When a response streams in, it should get buffered into the writer:on_data method
     buffer_chunk(vim.json.encode(obj))
@@ -55,7 +55,7 @@ describe("ai", function()
 
   it("should process chunks with 'data:' prefix", function()
     local text = "wassup"
-    local obj = tu.openai_response(text)
+    local obj = tu.openai_streaming_response(text)
 
     -- When a response streams in, it should get buffered into the writer:on_data method
     buffer_chunk("data: " .. vim.json.encode(obj))
@@ -76,7 +76,7 @@ describe("ai", function()
     )
 
     local text = "wassup"
-    local obj = tu.anthropic_response("content_block_delta", text)
+    local obj = tu.anthropic_streaming_response("content_block_delta", text)
 
     -- When a response streams in, it should get buffered into the writer:on_data method
     buffer_chunk("event:content_block_delta data: " .. vim.json.encode(obj))
@@ -89,7 +89,7 @@ describe("ai", function()
 
   it("should process multiple incoming chunks with 'data:' prefix", function()
     local text = "wassup"
-    local res = tu.openai_response(text)
+    local res = tu.openai_streaming_response(text)
     local chunk = vim.json.encode(res)
 
     -- When a response streams in, it should get buffered into the writer:on_data method
@@ -105,7 +105,7 @@ describe("ai", function()
 
   it("should process incomplete json chunks", function()
     local text = "wassup"
-    local response = tu.openai_response(text)
+    local response = tu.openai_streaming_response(text)
     local chunk = vim.json.encode(response) or ""
     local chunk_1 = chunk:sub(1, #chunk / 2)
     local chunk_2 = chunk:sub(#chunk / 2 + 1)
@@ -124,11 +124,11 @@ describe("ai", function()
   end)
 
   it("should process open and close {} in completion content", function()
-    local open = tu.openai_response("{")
+    local open = tu.openai_streaming_response("{")
     buffer_chunk(vim.json.encode(open))
     equals("{", writer.data[1])
 
-    local close = tu.openai_response("}")
+    local close = tu.openai_streaming_response("}")
     buffer_chunk(vim.json.encode(close))
     equals("}", writer.data[2])
   end)
@@ -152,23 +152,23 @@ describe("ai", function()
     )
 
     local routine = {
-      tu.anthropic_response("message_start"),
-      tu.anthropic_response("content_block_start"),
-      tu.anthropic_response("ping"),
-      tu.anthropic_response("content_block_delta", "hello"),
-      tu.anthropic_response("content_block_delta", "hello"),
-      tu.anthropic_response("ping"),
-      tu.anthropic_response("content_block_delta", "hello"),
-      tu.anthropic_response("content_block_stop"),
-      tu.anthropic_response("content_block_start"),
-      tu.anthropic_response("content_block_delta", "hello"),
-      tu.anthropic_response("ping"),
-      tu.anthropic_response("content_block_delta", "hello"),
-      tu.anthropic_response("content_block_delta", "hello"),
-      tu.anthropic_response("ping"),
-      tu.anthropic_response("content_block_stop"),
-      tu.anthropic_response("message_delta"),
-      tu.anthropic_response("message_stop"),
+      tu.anthropic_streaming_response("message_start"),
+      tu.anthropic_streaming_response("content_block_start"),
+      tu.anthropic_streaming_response("ping"),
+      tu.anthropic_streaming_response("content_block_delta", "hello"),
+      tu.anthropic_streaming_response("content_block_delta", "hello"),
+      tu.anthropic_streaming_response("ping"),
+      tu.anthropic_streaming_response("content_block_delta", "hello"),
+      tu.anthropic_streaming_response("content_block_stop"),
+      tu.anthropic_streaming_response("content_block_start"),
+      tu.anthropic_streaming_response("content_block_delta", "hello"),
+      tu.anthropic_streaming_response("ping"),
+      tu.anthropic_streaming_response("content_block_delta", "hello"),
+      tu.anthropic_streaming_response("content_block_delta", "hello"),
+      tu.anthropic_streaming_response("ping"),
+      tu.anthropic_streaming_response("content_block_stop"),
+      tu.anthropic_streaming_response("message_delta"),
+      tu.anthropic_streaming_response("message_stop"),
     }
 
     for _, obj in ipairs(routine) do
