@@ -158,6 +158,10 @@ function M.build_request(prompt, opts)
     messages = messages,
   }
 
+  if opts.json then
+    request.response_format = {type = "json_object"}
+  end
+
   -- OpenAI reasoning models do not accept max_tokens or temperature
   local reasoning_models = { "o1", "o3-mini" }
   if not vim.tbl_contains(reasoning_models, opts.model) then

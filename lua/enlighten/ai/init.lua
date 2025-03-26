@@ -281,8 +281,6 @@ end
 ---@param prompt string | AiMessages
 ---@param opts CompletionOptions
 function M.complete(prompt, writer, opts)
-  -- TODO implement streaming false for use in background work / automations
-  -- TODO implement JSON format for use in background work / automations
   opts.json = opts.json ~= nil and opts.json or false
 
   ---@type AiProvider
