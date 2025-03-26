@@ -10,9 +10,22 @@
 ---@field system_fingerprint string
 ---@field choices OpenAIStreamingChoice[]
 
+---@class OpenAIResponse
+---@field id string
+---@field object string
+---@field created number
+---@field model string
+---@field choices OpenAIChoice[]
+
 ---@class OpenAIStreamingChoice
 ---@field index number
 ---@field delta OpenAIDelta
+---@field logprobs any
+---@field finish_reason any
+
+---@class OpenAIChoice
+---@field index number
+---@field message OpenAIMessage
 ---@field logprobs any
 ---@field finish_reason any
 
@@ -95,13 +108,17 @@ function M.get_error_message(body)
   return ""
 end
 
----@param body OpenAIStreamingResponse
+---@param body OpenAIStreamingResponse | OpenAIResponse
 ---@return string
 function M.get_text(body)
   local completion = body.choices[1]
 
-  if not completion.finish_reason or completion.finish_reason == vim.NIL then
-    return completion.delta.content
+  if completion.delta then
+    if not completion.finish_reason or completion.finish_reason == vim.NIL then
+      return completion.delta.content
+    end
+  elseif completion.message then
+    return completion.message.content
   end
 
   return ""
