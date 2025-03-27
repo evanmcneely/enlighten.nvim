@@ -2,7 +2,9 @@ local api = vim.api
 local ai = require("enlighten.ai")
 local augroup = require("enlighten.autocmd")
 local buffer = require("enlighten.buffer")
-local Writer = require("enlighten.writer.stream")
+local StreamWriter = require("enlighten.writer.stream")
+local MemoryWriter = require("enlighten.writer.memory")
+-- local DiffWriter = require("enlighten.writer.diff")
 local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
 local utils = require("enlighten.utils")
@@ -260,7 +262,7 @@ function EnlightenChat:new(aiConfig, settings)
   context.target_buf = buf
   context.history = History:new("chat")
   context.has_generated = false
-  context.writer = Writer:new(chat_win.win_id, chat_win.bufnr, function()
+  context.writer = StreamWriter:new(chat_win.win_id, chat_win.bufnr, function()
     context.has_generated = true
     context:_add_user()
     context.messages = context:_build_messages()
@@ -488,17 +490,36 @@ function EnlightenChat:write_to_buffer()
   --    - Need new "feature" that stores content
   -- 2. Use start and end line to init diff writer to write to buffer
 
-  -- local opts = {
-  --   provider = self.aiConfig.provider,
-  --   model = self.aiConfig.model,
-  --   tokens = self.aiConfig.tokens,
-  --   timeout = self.aiConfig.timeout,
-  --   temperature = self.aiConfig.temperature,
-  --   feature = "chat",
-  --   stream = false,
-  --   json = true,
-  -- }
-  -- ai.complete(self.messages, self.writer, opts)
+  local function on_done(response)
+    local success, json = pcall(vim.fn.json_decode, response)
+    if not success then
+      print("Failed to parse JSON response")
+    end
+
+    local start_row = json.start_row
+    local end_row = json.end_row
+    print(start_row, end_row)
+
+  end
+
+  local messages = vim.fn.json_encode(self.messages)
+  local content = buffer.get_content_with_lines(self.target_buf)
+  local prompt = "For the following chat conversation and buffer content, return the `start_row` and `end_row` (inclusive) from the buffer that would need to be edited to make the changes discussed in the conversation a reality. Return yor response as JSON. If the buffer should not be edited, retrun `-1` for the value of `start_row'\n\nConversation\n\n"
+    .. messages
+    .. "\n\n\nBuffer:\n"
+    .. content
+
+  local opts = {
+    provider = self.aiConfig.provider,
+    model = self.aiConfig.model,
+    tokens = self.aiConfig.tokens,
+    timeout = self.aiConfig.timeout,
+    temperature = self.aiConfig.temperature,
+    feature = "get_range",
+    stream = false,
+    json = true,
+  }
+  ai.complete(prompt, MemoryWriter:new(on_done), opts)
 end
 
 return EnlightenChat

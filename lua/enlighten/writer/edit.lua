@@ -17,7 +17,7 @@ local EditWriter = {}
 
 ---@param buffer number
 ---@param range SelectionRange
----@param on_done? fun():nil
+---@param on_done? fun(string):nil
 ---@return EditWriter
 function EditWriter:new(buffer, range, on_done)
   local ns_id = api.nvim_create_namespace("Enlighten")
@@ -71,7 +71,7 @@ function EditWriter:on_complete(err)
   self.accumulated_line = ""
   self:finish()
   if self.on_done ~= nil then
-    self:on_done()
+    self.on_done(self.accumulated_text)
   end
 
   Logger:log("edit:on_complete - ai completion", self.accumulated_text)

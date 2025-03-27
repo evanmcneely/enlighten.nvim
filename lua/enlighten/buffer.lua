@@ -90,4 +90,12 @@ function M.get_content(buffer, start, finish)
   return table.concat(M.get_lines(buffer, start, finish), "\n")
 end
 
+function M.get_content_with_lines(buffer)
+  local lines = M.get_lines(buffer)
+  for i, line in ipairs(lines) do
+    lines[i] = i .. ": " .. line
+  end
+  return table.concat(lines, "\n")
+end
+
 return M

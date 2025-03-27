@@ -14,7 +14,7 @@ local utils = require("enlighten.utils")
 ---@field buffer number
 ---@field on_complete fun(self: Writer, err: string?): nil
 ---@field on_data fun(self: Writer, data: string): nil
----@field on_done fun(): nil
+---@field on_done fun(string): nil
 ---@field start fun(): nil
 ---@field stop fun(): nil
 ---@field reset fun(): nil
@@ -145,7 +145,7 @@ function DiffWriter:on_complete(err)
   self:_clear_focused_line_highlight()
   self:_remove_remaining_selected_lines()
   self:_highlight_diff(self.orig_lines, self.accumulated_lines)
-  self:on_done()
+  self.on_done(self.accumulated_text)
 
   Logger:log("diff:on_complete - ai completion", self.accumulated_text)
   Logger:log("diff:on_complete - diff", self.diff)
