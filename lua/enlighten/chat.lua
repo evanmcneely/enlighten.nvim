@@ -159,6 +159,20 @@ local function insert_line(buf, content, highlight)
   end
 end
 
+---@return EnlightenCommand[]
+local function get_directives()
+  return {
+    {
+      details = "Update buffer from chat context",
+      description = "Update buffer from chat context",
+      command = "edit",
+      callback = function(args, cb)
+        print("we did it")
+      end,
+    },
+  }
+end
+
 --- Set all autocommands that the feature is dependant on
 ---@param context EnlightenChat
 ---@return number[]
@@ -172,6 +186,29 @@ local function set_autocmds(context)
         context:stop()
         context:cleanup()
         context:_close_title_win()
+      end,
+    }),
+
+    -- Add completion sources
+    api.nvim_create_autocmd("InsertEnter", {
+      group = augroup,
+      buffer = context.chat_buf,
+      once = true,
+      desc = "Setup the completion of helpers in the input buffer",
+      callback = function()
+        local has_cmp, cmp = pcall(require, "cmp")
+        if has_cmp then
+          cmp.register_source(
+            "enlighten_commands",
+            require("enlighten.cmp").new(get_directives(), context.chat_buf)
+          )
+          cmp.setup.buffer({
+            enabled = true,
+            sources = {
+              { name = "enlighten_commands" },
+            },
+          })
+        end
       end,
     }),
   }
