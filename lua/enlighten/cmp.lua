@@ -1,22 +1,22 @@
 local api = vim.api
 
----@alias EnlightenCommandType "edit"
----@alias EnlightenCommandCB fun(args: string, cb?: fun(args: string): nil): nil
+---@alias EnlightenMentionType "edit"
+---@alias EnlightenMentionCB fun(args: string, cb?: fun(args: string): nil): nil
 
----@class EnlightenCommand
+---@class EnlightenMention
 ---@field description string
----@field command EnlightenCommandType
+---@field command EnlightenMentionType
 ---@field details string
----@field callback? EnlightenCommandCB
+---@field callback? EnlightenMentionCB
 
 
 ---@class cmp_source
----@field commands EnlightenCommand[]
+---@field commands EnlightenMention[]
 ---@field buffer integer
 local cmp_source = {}
 cmp_source.__index = cmp_source
 
----@param commands EnlightenCommand[]
+---@param commands EnlightenMention[]
 ---@param buffer integer
 function cmp_source.new(commands, buffer)
   local instance = setmetatable({}, cmp_source)
@@ -36,7 +36,7 @@ function cmp_source.get_position_encoding_kind()
 end
 
 function cmp_source.get_trigger_characters()
-  return { "/" }
+  return { "@" }
 end
 
 function cmp_source.get_keyword_pattern()
@@ -54,7 +54,7 @@ function cmp_source:complete(_, callback)
 
   for _, command in ipairs(self.commands) do
     table.insert(items, {
-      label = "/" .. command.command,
+      label = "@" .. command.command,
       kind = kind,
       detail = command.details,
     })

@@ -1,13 +1,13 @@
 local api = vim.api
 local Logger = require("enlighten.logger")
 
----@class MemoryWriter: Writer
-local MemoryWriter = {}
+---@class SelfWriter: Writer
+local SelfWriter = {}
 
 ---@param on_done fun(string):nil
----@return MemoryWriter
-function MemoryWriter:new(on_done)
-  Logger:log("memory:new")
+---@return SelfWriter
+function SelfWriter:new(on_done)
+  Logger:log("self:new")
 
   self.__index = self
   return setmetatable({
@@ -18,34 +18,34 @@ function MemoryWriter:new(on_done)
 end
 
 ---@param text string
-function MemoryWriter:on_data(text)
+function SelfWriter:on_data(text)
   self.accumulated_text = self.accumulated_text .. text
 end
 
-function MemoryWriter:on_complete(err)
+function SelfWriter:on_complete(err)
   self.active = false
 
   if err then
-    Logger:log("memory:on_complete - error", err)
+    Logger:log("self:on_complete - error", err)
     api.nvim_err_writeln("Enlighten: " .. err)
     return
   end
 
   self.on_done(self.accumulated_text)
 
-  Logger:log("memory:on_complete - ai completion", self.accumulated_text)
+  Logger:log("self:on_complete - ai completion", self.accumulated_text)
 end
 
-function MemoryWriter:start()
+function SelfWriter:start()
   self.active = true
 end
 
-function MemoryWriter:reset()
+function SelfWriter:reset()
   self.accumulated_text = ""
 end
 
-function MemoryWriter.stop()
+function SelfWriter.stop()
   -- nothing
 end
 
-return MemoryWriter
+return SelfWriter

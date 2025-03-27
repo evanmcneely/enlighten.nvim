@@ -3,7 +3,7 @@ local ai = require("enlighten.ai")
 local augroup = require("enlighten.autocmd")
 local buffer = require("enlighten.buffer")
 local StreamWriter = require("enlighten.writer.stream")
-local MemoryWriter = require("enlighten.writer.memory")
+local SelfWriter = require("enlighten.writer.self")
 local DiffWriter = require("enlighten.writer.diff")
 local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
@@ -108,6 +108,7 @@ end
 --- is the primary UX for the chat feature.
 --- - q        : close the prompt buffer
 --- - <cr>     : submit prompt for generation
+--- - <C-cr>   : write to buffer with context from chat
 --- - <C-o>    : scroll back in history
 --- - <C-i>    : scroll forward in history
 --- - <C-x>    : stop AI generation
@@ -118,6 +119,13 @@ local function set_keymaps(context)
     silent = true,
     callback = function()
       context:submit()
+    end,
+  })
+  api.nvim_buf_set_keymap(context.chat_buf, "n", "<C-CR>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      context:write_to_buffer()
     end,
   })
   api.nvim_buf_set_keymap(context.chat_buf, "n", "q", "", {
@@ -163,7 +171,7 @@ local function insert_line(buf, content, highlight)
 end
 
 ---@param context EnlightenChat
----@return EnlightenCommand[]
+---@return EnlightenMention[]
 local function get_directives(context)
   return {
     {
@@ -193,28 +201,29 @@ local function set_autocmds(context)
       end,
     }),
 
+    -- TODO add @mentions
     -- Add completion sources
-    api.nvim_create_autocmd("InsertEnter", {
-      group = augroup,
-      buffer = context.chat_buf,
-      once = true,
-      desc = "Setup the completion of helpers in the input buffer",
-      callback = function()
-        local has_cmp, cmp = pcall(require, "cmp")
-        if has_cmp then
-          cmp.register_source(
-            "enlighten_commands",
-            require("enlighten.cmp").new(get_directives(context), context.chat_buf)
-          )
-          cmp.setup.buffer({
-            enabled = true,
-            sources = {
-              { name = "enlighten_commands" },
-            },
-          })
-        end
-      end,
-    }),
+    -- api.nvim_create_autocmd("InsertEnter", {
+    --   group = augroup,
+    --   buffer = context.chat_buf,
+    --   -- once = true,
+    --   desc = "Setup the completion of helpers in the input buffer",
+    --   callback = function()
+    --     local has_cmp, cmp = pcall(require, "cmp")
+    --     if has_cmp then
+    --       cmp.register_source(
+    --         "enlighten_commands",
+    --         require("enlighten.cmp").new(get_directives(context), context.chat_buf)
+    --       )
+    --       cmp.setup.buffer({
+    --         enabled = true,
+    --         sources = {
+    --           { name = "enlighten_commands" },
+    --         },
+    --       })
+    --     end
+    --   end,
+    -- }),
   }
 
   context.autocommands = autocmd_ids
@@ -485,6 +494,49 @@ function EnlightenChat:scroll_forward()
   end
 end
 
+--- Format the prompt for generating content. The prompt includes the prompt buffer
+--- content (user command), code snippet that was selected when engaging with this
+--- feature (if any) as well as the current file name so that the model can know what
+--- file type this is and what language to write code in.
+---@return string
+function EnlightenChat:_build_prompt(messages, range)
+  local buf = self.target_buf
+  local lines = api.nvim_buf_line_count(buf)
+  local snippet_start = range.row_start
+  local snippet_finish = range.row_end
+  local context = 100
+  local context_start = snippet_start - context < 0 and 0 or snippet_start - context
+  local context_finish = snippet_finish + context > lines and -1 or snippet_finish + context
+
+  local file_name = api.nvim_buf_get_name(buf)
+  local indent = vim.api.nvim_get_option_value("tabstop", { buf = buf })
+
+  local context_above = buffer.get_content(buf, context_start, snippet_start)
+  local context_below = buffer.get_content(buf, snippet_finish + 1, context_finish)
+  local snippet = buffer.get_content(buf, snippet_start, snippet_finish + 1)
+
+  -- Wrap the above and below context with backticks if they actually exist
+  if vim.trim(context_above) ~= "" then
+    context_above = "Context above:\n" .. context_above .. "\n"
+  end
+  if vim.trim(context_below) ~= "" then
+    context_below = "Context below\n" .. context_below .. "\n"
+  end
+
+  return "File name of the file in the buffer is "
+    .. file_name
+    .. " with indentation (tabstop) of "
+    .. indent
+    .. ".\n\n"
+    .. context_above
+    .. "Snippet:\n"
+    .. snippet
+    .. "\n\n"
+    .. context_below
+    .. "\n\nConversation:\n"
+    .. messages
+end
+
 function EnlightenChat:write_to_buffer()
   local messages = vim.fn.json_encode(self:_build_messages())
 
@@ -494,14 +546,12 @@ function EnlightenChat:write_to_buffer()
     -- response should parse to { start_row = number, end_row = number }
     local success, json = pcall(vim.fn.json_decode, response)
     if not success then
-      -- TODO vim notify
-      print("Failed to parse JSON response")
+      vim.notify("Failed to edit buffer", vim.log.levels.ERROR)
       return
     end
 
     if json.start_row == -1 then
-      -- TODO vim notify
-      print("Escape sequence")
+      vim.notify("There is nothing in the buffer to edit", vim.log.levels.INFO)
       return
     end
 
@@ -515,8 +565,7 @@ function EnlightenChat:write_to_buffer()
     -- clear highlights in range before adding more to them
     diff_hl.reset_hunk(self.target_buf, diff_hl.get_hunk_in_range(self.target_buf, range))
 
-    -- TODO prompt needs to contain buffer information to be effective
-    local prompt = "Implement the changes discussed in this conversation:\n\n" .. messages
+    local prompt = self:_build_prompt(messages, range)
     local opts = {
       provider = self.aiConfig.provider,
       model = self.aiConfig.model,
@@ -545,7 +594,7 @@ function EnlightenChat:write_to_buffer()
     stream = false,
     json = true,
   }
-  ai.complete(prompt, MemoryWriter:new(on_done), opts)
+  ai.complete(prompt, SelfWriter:new(on_done), opts)
 end
 
 return EnlightenChat
