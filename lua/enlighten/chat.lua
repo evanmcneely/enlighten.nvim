@@ -4,10 +4,11 @@ local augroup = require("enlighten.autocmd")
 local buffer = require("enlighten.buffer")
 local StreamWriter = require("enlighten.writer.stream")
 local MemoryWriter = require("enlighten.writer.memory")
--- local DiffWriter = require("enlighten.writer.diff")
+local DiffWriter = require("enlighten.writer.diff")
 local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
 local utils = require("enlighten.utils")
+local diff_hl = require("enlighten.diff.highlights")
 
 ---@class EnlightenChat
 --- Settings injected into this class from the plugin config
@@ -485,24 +486,49 @@ function EnlightenChat:scroll_forward()
 end
 
 function EnlightenChat:write_to_buffer()
-  -- 1. With chat messages and buffer text (with line numbers) get start and end line to edit
-  --    - Need "memory writer" or something basic
-  --    - Need new "feature" that stores content
-  -- 2. Use start and end line to init diff writer to write to buffer
+  local messages = vim.fn.json_encode(self:_build_messages())
 
+  --- This function runs after the LLM call to get lines that should be edited
+  ---@param response string
   local function on_done(response)
+    -- response should parse to { start_row = number, end_row = number }
     local success, json = pcall(vim.fn.json_decode, response)
     if not success then
+      -- TODO vim notify
       print("Failed to parse JSON response")
+      return
     end
 
-    local start_row = json.start_row
-    local end_row = json.end_row
-    print(start_row, end_row)
+    if json.start_row == -1 then
+      -- TODO vim notify
+      print("Escape sequence")
+      return
+    end
 
+    local range = {
+      row_start = json.start_row,
+      row_end = json.end_row,
+      col_start = 0,
+      col_end = 0,
+    }
+
+    -- clear highlights in range before adding more to them
+    diff_hl.reset_hunk(self.target_buf, diff_hl.get_hunk_in_range(self.target_buf, range))
+
+    -- TODO prompt needs to contain buffer information to be effective
+    local prompt = "Implement the changes discussed in this conversation:\n\n" .. messages
+    local opts = {
+      provider = self.aiConfig.provider,
+      model = self.aiConfig.model,
+      tokens = self.aiConfig.tokens,
+      timeout = self.aiConfig.timeout,
+      temperature = self.aiConfig.temperature,
+      feature = "edit", -- simulate editing content from the edit feature
+      stream = true,
+    }
+    ai.complete(prompt, DiffWriter:new(self.target_buf, range, { mode = "diff" }), opts)
   end
 
-  local messages = vim.fn.json_encode(self.messages)
   local content = buffer.get_content_with_lines(self.target_buf)
   local prompt = "For the following chat conversation and buffer content, return the `start_row` and `end_row` (inclusive) from the buffer that would need to be edited to make the changes discussed in the conversation a reality. Return yor response as JSON. If the buffer should not be edited, retrun `-1` for the value of `start_row'\n\nConversation\n\n"
     .. messages
