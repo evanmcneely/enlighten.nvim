@@ -159,15 +159,16 @@ local function insert_line(buf, content, highlight)
   end
 end
 
+---@param context EnlightenChat
 ---@return EnlightenCommand[]
-local function get_directives()
+local function get_directives(context)
   return {
     {
       details = "Update buffer from chat context",
       description = "Update buffer from chat context",
       command = "edit",
-      callback = function(args, cb)
-        print("we did it")
+      callback = function()
+        context:write_to_buffer()
       end,
     },
   }
@@ -200,7 +201,7 @@ local function set_autocmds(context)
         if has_cmp then
           cmp.register_source(
             "enlighten_commands",
-            require("enlighten.cmp").new(get_directives(), context.chat_buf)
+            require("enlighten.cmp").new(get_directives(context), context.chat_buf)
           )
           cmp.setup.buffer({
             enabled = true,
@@ -479,6 +480,25 @@ function EnlightenChat:scroll_forward()
       self:_write_messages(self.messages)
     end
   end
+end
+
+function EnlightenChat:write_to_buffer()
+  -- 1. With chat messages and buffer text (with line numbers) get start and end line to edit
+  --    - Need "memory writer" or something basic
+  --    - Need new "feature" that stores content
+  -- 2. Use start and end line to init diff writer to write to buffer
+
+  -- local opts = {
+  --   provider = self.aiConfig.provider,
+  --   model = self.aiConfig.model,
+  --   tokens = self.aiConfig.tokens,
+  --   timeout = self.aiConfig.timeout,
+  --   temperature = self.aiConfig.temperature,
+  --   feature = "chat",
+  --   stream = false,
+  --   json = true,
+  -- }
+  -- ai.complete(self.messages, self.writer, opts)
 end
 
 return EnlightenChat
