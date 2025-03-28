@@ -62,6 +62,10 @@ local chat_system_prompt = [[
   You are a coding assistant helping a software developer (the user) edit code in their IDE.
   Support the user by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
 ]]
+
+local get_range_prompt = [[
+  You are not to respond with opening or closing ``` 
+]]
 -- luacheck: pop
 
 ---@class AnthropicProvider: AiProvider
@@ -123,6 +127,8 @@ function M._get_system_prompt(feature)
     system_prompt = chat_system_prompt
   elseif feature == "edit" then
     system_prompt = edit_system_prompt
+  elseif feature == "get_range" then
+    system_prompt = get_range_prompt
   end
   return system_prompt
 end
