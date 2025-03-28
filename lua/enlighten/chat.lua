@@ -121,7 +121,14 @@ local function set_keymaps(context)
       context:submit()
     end,
   })
-  api.nvim_buf_set_keymap(context.chat_buf, "n", "<C-CR>", "", {
+  api.nvim_buf_set_keymap(context.chat_buf, "i", "<C-CR>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      context:submit()
+    end,
+  })
+  api.nvim_buf_set_keymap(context.chat_buf, "n", "<S-C-CR>", "", {
     noremap = true,
     silent = true,
     callback = function()
@@ -542,6 +549,7 @@ function EnlightenChat:write_to_buffer()
   --- This function runs after the LLM call to get lines that should be edited
   ---@param response string
   local function on_done(response)
+    -- TODO Anthropic json response handling
     -- response should parse to { start_row = number, end_row = number }
     local success, json = pcall(vim.fn.json_decode, response)
     if not success then
