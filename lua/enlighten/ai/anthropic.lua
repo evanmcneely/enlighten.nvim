@@ -63,7 +63,8 @@ local chat_system_prompt = [[
   Support the user by answering questions and following instructions. Keep your explanations concise. Do not repeat any code snippet provided.
 ]]
 
-local get_range_prompt = [[
+-- Force raw JSON output that can be parsed
+local json_system_prompt = [[
   You are not to respond with opening or closing ``` 
 ]]
 -- luacheck: pop
@@ -128,7 +129,7 @@ function M._get_system_prompt(feature)
   elseif feature == "edit" then
     system_prompt = edit_system_prompt
   elseif feature == "get_range" then
-    system_prompt = get_range_prompt
+    system_prompt = json_system_prompt
   end
   return system_prompt
 end
