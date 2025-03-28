@@ -170,20 +170,20 @@ local function insert_line(buf, content, highlight)
   end
 end
 
----@param context EnlightenChat
----@return EnlightenMention[]
-local function get_directives(context)
-  return {
-    {
-      details = "Update buffer from chat context",
-      description = "Update buffer from chat context",
-      command = "edit",
-      callback = function()
-        context:write_to_buffer()
-      end,
-    },
-  }
-end
+-- ---@param context EnlightenChat
+-- ---@return EnlightenMention[]
+-- local function get_directives(context)
+--   return {
+--     {
+--       details = "Update buffer from chat context",
+--       description = "Update buffer from chat context",
+--       command = "edit",
+--       callback = function()
+--         context:write_to_buffer()
+--       end,
+--     },
+--   }
+-- end
 
 --- Set all autocommands that the feature is dependant on
 ---@param context EnlightenChat
@@ -494,17 +494,16 @@ function EnlightenChat:scroll_forward()
   end
 end
 
---- Format the prompt for generating content. The prompt includes the prompt buffer
---- content (user command), code snippet that was selected when engaging with this
---- feature (if any) as well as the current file name so that the model can know what
---- file type this is and what language to write code in.
+--- Format the prompt for generating content in the target buffer.
+---@param messages string
+---@param range SelectionRange
 ---@return string
-function EnlightenChat:_build_prompt(messages, range)
+function EnlightenChat:_build_edit_prompt(messages, range)
   local buf = self.target_buf
   local lines = api.nvim_buf_line_count(buf)
   local snippet_start = range.row_start
   local snippet_finish = range.row_end
-  local context = 100
+  local context = self.settings.context
   local context_start = snippet_start - context < 0 and 0 or snippet_start - context
   local context_finish = snippet_finish + context > lines and -1 or snippet_finish + context
 
@@ -533,7 +532,7 @@ function EnlightenChat:_build_prompt(messages, range)
     .. snippet
     .. "\n\n"
     .. context_below
-    .. "\n\nConversation:\n"
+    .. "\n\nInstructions in the form of a chat conversation:\n"
     .. messages
 end
 
@@ -565,7 +564,7 @@ function EnlightenChat:write_to_buffer()
     -- clear highlights in range before adding more to them
     diff_hl.reset_hunk(self.target_buf, diff_hl.get_hunk_in_range(self.target_buf, range))
 
-    local prompt = self:_build_prompt(messages, range)
+    local prompt = self:_build_edit_prompt(messages, range)
     local opts = {
       provider = self.aiConfig.provider,
       model = self.aiConfig.model,
@@ -575,11 +574,19 @@ function EnlightenChat:write_to_buffer()
       feature = "edit", -- simulate editing content from the edit feature
       stream = true,
     }
-    ai.complete(prompt, DiffWriter:new(self.target_buf, range, { mode = "diff" }), opts)
+    ai.complete(
+      prompt,
+      DiffWriter:new(self.target_buf, range, { mode = self.settings.diff_mode }),
+      opts
+    )
   end
 
   local content = buffer.get_content_with_lines(self.target_buf)
-  local prompt = "For the following chat conversation and buffer content, return the `start_row` and `end_row` (inclusive) from the buffer that would need to be edited to make the changes discussed in the conversation a reality. Return yor response as JSON. If the buffer should not be edited, retrun `-1` for the value of `start_row'\n\nConversation\n\n"
+  local prompt = "For the following chat conversation and buffer content, "
+    .. "return the `start_row` and `end_row` (inclusive) from the buffer that would "
+    .. "need to be edited to make the changes discussed in the conversation a reality. "
+    .. "Return your response as JSON. If the buffer should not be edited, return `-1` "
+    .. "for the value of `start_row`.\n\nConversation\n\n"
     .. messages
     .. "\n\n\nBuffer:\n"
     .. content
