@@ -167,12 +167,12 @@ function M.build_config(partial_config)
 
   config.ai = vim.tbl_deep_extend("force", config.ai, partial_config.ai or {})
 
-  ---@diagnostic disable-next-line: missing-fields
   if config.ai.edit == nil then
+    ---@diagnostic disable-next-line: missing-fields
     config.ai.edit = {}
   end
-  ---@diagnostic disable-next-line: missing-fields
   if config.ai.chat == nil then
+    ---@diagnostic disable-next-line: missing-fields
     config.ai.chat = {}
   end
 
