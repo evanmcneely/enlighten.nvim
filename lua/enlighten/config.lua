@@ -158,7 +158,7 @@ end
 
 ---@param partial_config EnlightenPartialConfig?
 ---@return EnlightenConfig
--- TODO fail and return early if config is invalid
+--- TODO this can be refactored!
 function M.build_config(partial_config)
   partial_config = partial_config or {}
   local config = M.get_default_config()
@@ -187,6 +187,7 @@ function M.build_config(partial_config)
   config.ai.edit.temperature = config.ai.edit.temperature or config.ai.temperature
   config.ai.chat.temperature = config.ai.chat.temperature or config.ai.temperature
 
+  -- TODO fail and return early if config is invalid
   if not M.is_valid_ai_provider(config.ai.edit.provider) then
     M.warn(
       "Enlighten: Invalid provider "
