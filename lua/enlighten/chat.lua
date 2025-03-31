@@ -504,13 +504,13 @@ end
 --- Format the prompt for generating content in the target buffer.
 ---@param messages string
 ---@param range SelectionRange
+---@param buf number
+---@param context number
 ---@return string
-function EnlightenChat:_build_edit_prompt(messages, range)
-  local buf = self.target_buf
+function EnlightenChat._build_edit_prompt(messages, range, buf, context)
   local lines = api.nvim_buf_line_count(buf)
   local snippet_start = range.row_start
   local snippet_finish = range.row_end
-  local context = self.settings.context
   local context_start = snippet_start - context < 0 and 0 or snippet_start - context
   local context_finish = snippet_finish + context > lines and -1 or snippet_finish + context
 
@@ -523,10 +523,10 @@ function EnlightenChat:_build_edit_prompt(messages, range)
 
   -- Wrap the above and below context with backticks if they actually exist
   if vim.trim(context_above) ~= "" then
-    context_above = "Context above:\n" .. context_above .. "\n"
+    context_above = "Context above:\n" .. context_above .. "\n\n"
   end
   if vim.trim(context_below) ~= "" then
-    context_below = "Context below\n" .. context_below .. "\n"
+    context_below = "Context below:\n" .. context_below .. "\n\n"
   end
 
   return "File name of the file in the buffer is "
@@ -539,7 +539,7 @@ function EnlightenChat:_build_edit_prompt(messages, range)
     .. snippet
     .. "\n\n"
     .. context_below
-    .. "\n\nInstructions in the form of a chat conversation:\n"
+    .. "Instructions in the form of a chat conversation:\n"
     .. messages
 end
 
@@ -572,7 +572,7 @@ function EnlightenChat:write_to_buffer()
     -- clear highlights in range before adding more to them
     diff_hl.reset_hunk(self.target_buf, diff_hl.get_hunk_in_range(self.target_buf, range))
 
-    local prompt = self:_build_edit_prompt(messages, range)
+    local prompt = self._build_edit_prompt(messages, range, self.target_buf, self.settings.context)
     local opts = {
       provider = self.aiConfig.provider,
       model = self.aiConfig.model,
