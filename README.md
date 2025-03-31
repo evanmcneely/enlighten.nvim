@@ -21,11 +21,13 @@ See **TODO**'s for a list of things I will eventually get to.
 ### 🥖 Features
 
 - Generate code from a prompt.
-- Edit selected code in place without leaving the buffer.
-- Highlight differences in generated or edited code.
+- Edit selected code in place with change highlights.
 - Conversational chat without leaving Neovim.
 - Conversation and prompt history.
-- OpenAI and Anthropic models are supported.
+- Edit buffer from chat with the conversation as context.
+- Use other tools for reviewing, accepting and rejecting generated code by turning highlights off.
+- All OpenAI and Anthropic models can be supported (I can't always keep up though).
+- `curl` is the only dependency!
 
 ### 💾 Setup
 
@@ -84,7 +86,7 @@ This is the default configuration.
       },
       chat = {
         width = 80, -- chat window width
-        split = "right", -- split the chat window left or right
+        split = "right", -- split the chat window 'left' or 'right'
       },
     },
   }
@@ -123,7 +125,7 @@ You can override the AI and Settings configurations for the edit or chat feature
     },
     settings = {
       edit = {
-        context = 150, -- save tokens for quick edits
+        context = 100, -- save tokens for quick edits
       },
       chat = {
         diff_mode = "off" -- turn diff highlights off when editing from chat
@@ -164,9 +166,11 @@ Chat responses are streamed into the chat buffer. Chat conversations will only b
 
 ### 👍 Kudos
 
-- [aduros/ai.vim](https://github.com/aduros/ai.vim) which provided the foundation of this project. The two projects look nothing the same now, but ai.vim made me think this was possible.
+- [aduros/ai.vim](https://github.com/aduros/ai.vim) : Which provided the foundation of this project. The two projects look nothing the same now, but ai.vim made me think this was possible.
 
-- [Cursor](https://www.cursor.com/) the AI Code Editor which, in my opinion, has pioneered AI-editor integrations and inspired the features here and on the roadmap.
+- [Cursor](https://www.cursor.com/) : The AI Code Editor which, in my opinion, has pioneered AI-editor integrations and inspired many features here.
+
+- [avante.nvim](https://github.com/yetone/avante.nvim) : A very different experience and ultimate goal, but with a lot of overlap in problems and implementation.
 
 ### 🏎️ TODO
 
@@ -174,3 +178,4 @@ Chat responses are streamed into the chat buffer. Chat conversations will only b
 - Approve/Reject generated chunks from file. ✅
 - Edit buffer with context from the chat. ✅
 - Use codebase as context (files, functions, classes, git history etc.).
+- Edit multiple buffers with context from chat.
