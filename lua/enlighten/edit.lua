@@ -365,10 +365,10 @@ function EnlightenEdit:_build_prompt()
 
   -- Wrap the above and below context with backticks if they actually exist
   if vim.trim(context_above) ~= "" then
-    context_above = "Context above:\n" .. context_above .. "\n"
+    context_above = "Context above:\n" .. context_above .. "\n\n"
   end
   if vim.trim(context_below) ~= "" then
-    context_below = "Context below\n" .. context_below .. "\n"
+    context_below = "Context below\n" .. context_below .. "\n\n"
   end
 
   self.prompt = user_prompt
@@ -383,7 +383,7 @@ function EnlightenEdit:_build_prompt()
     .. snippet
     .. "\n\n"
     .. context_below
-    .. "\n\nInstructions:\n"
+    .. "Instructions:\n"
     .. user_prompt
 end
 
