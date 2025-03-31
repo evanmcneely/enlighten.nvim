@@ -109,22 +109,30 @@ At the moment, OpenAI's `gpt-4o` model is a fair bit better at generating code t
 
 #### Feature specific configuration
 
-You can override the AI configuration for the prompt-completion or chat feature using the following feature specific overrides:
+You can override the AI and Settings configurations for the edit or chat feature using the following feature specific overrides:
 
 ```lua
   {
     ai = {
       edit = {
-        timeout = 10, -- set a lower timeout for the prompt feature only
+        timeout = 30, -- set a lower timeout for the prompt feature only
       },
       chat = {
-        model = "gpt-3.5-turbo", -- use a different model for the chat feature only
+        model = "o1-mini", -- use a different model for the chat feature only
       }
     },
+    settings = {
+      edit = {
+        context = 150, -- save tokens for quick edits
+      },
+      chat = {
+        diff_mode = "off" -- turn diff highlights off when editing from chat
+      }
+    }
   }
 ```
 
-These are just examples, all `ai` configurations can be overridden in this way.
+These are just examples, base `settings` and all `ai` configurations can be overridden in this way.
 
 ### 📖 Usage
 
