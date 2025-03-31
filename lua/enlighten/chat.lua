@@ -561,8 +561,7 @@ function EnlightenChat:write_to_buffer()
   --- This function runs after the LLM call to get lines that should be edited
   ---@param response string
   local function on_done(response)
-    -- TODO Anthropic json response handling
-    -- response should parse to { start_row = number, end_row = number }
+    -- Response should parse to { start_row = number, end_row = number }
     local success, json = pcall(vim.fn.json_decode, response)
     if not success then
       vim.notify("Failed to edit buffer", vim.log.levels.ERROR)
