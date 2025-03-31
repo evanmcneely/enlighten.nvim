@@ -501,6 +501,18 @@ function EnlightenChat:scroll_forward()
   end
 end
 
+function EnlightenChat._build_get_range_prompt(messages, buf)
+  local content = buffer.get_content_with_lines(buf)
+  return "For the following chat conversation and buffer content, "
+    .. "return the `start_row` and `end_row` (inclusive) from the buffer that would "
+    .. "need to be edited to make the changes discussed in the conversation a reality. "
+    .. "Return your response as JSON. If the buffer should not be edited, return `-1` "
+    .. "for the value of `start_row`.\n\nConversation\n\n"
+    .. messages
+    .. "\n\n\nBuffer:\n"
+    .. content
+end
+
 --- Format the prompt for generating content in the target buffer.
 ---@param messages string
 ---@param range SelectionRange
@@ -572,7 +584,6 @@ function EnlightenChat:write_to_buffer()
     -- clear highlights in range before adding more to them
     diff_hl.reset_hunk(self.target_buf, diff_hl.get_hunk_in_range(self.target_buf, range))
 
-    local prompt = self._build_edit_prompt(messages, range, self.target_buf, self.settings.context)
     local opts = {
       provider = self.aiConfig.provider,
       model = self.aiConfig.model,
@@ -583,21 +594,11 @@ function EnlightenChat:write_to_buffer()
       stream = true,
     }
     ai.complete(
-      prompt,
+      self._build_edit_prompt(messages, range, self.target_buf, self.settings.context),
       DiffWriter:new(self.target_buf, range, { mode = self.settings.diff_mode }),
       opts
     )
   end
-
-  local content = buffer.get_content_with_lines(self.target_buf)
-  local prompt = "For the following chat conversation and buffer content, "
-    .. "return the `start_row` and `end_row` (inclusive) from the buffer that would "
-    .. "need to be edited to make the changes discussed in the conversation a reality. "
-    .. "Return your response as JSON. If the buffer should not be edited, return `-1` "
-    .. "for the value of `start_row`.\n\nConversation\n\n"
-    .. messages
-    .. "\n\n\nBuffer:\n"
-    .. content
 
   local opts = {
     provider = self.aiConfig.provider,
@@ -609,7 +610,11 @@ function EnlightenChat:write_to_buffer()
     stream = false,
     json = true,
   }
-  ai.complete(prompt, SelfWriter:new(on_done), opts)
+  ai.complete(
+    self._build_get_range_prompt(messages, self.target_buf),
+    SelfWriter:new(on_done),
+    opts
+  )
 end
 
 return EnlightenChat
