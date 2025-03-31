@@ -69,17 +69,18 @@ This is the default configuration.
       timeout = 60,
     },
     settings = {
+      context = 500 -- lines above and below the selected text passed to the model as context
+        -- Can be "diff" or "change" or "off":
+        -- - "diff" will show added and removed lines with DiffAdd and DiffRemove highlights
+        -- - "change" when a hunk has both added and removed lines, this will show only generated content with DiffText highlights
+        -- - "off" will not add highlights around generated content
+      diff_mode = "diff"
       edit = {
         width = 80, -- prompt window width
         height = 5, -- prompt window height
         showTitle = true, -- show the title in the prompt window
         showHelp = true, -- show the help footer in the prompt window
-        context = 500 -- lines above and below the selected text passed to the model as context
         border = "═" -- top/bottom border character of prompt window
-        -- Experimental: Can be "diff" or "change"
-        -- - "diff" will show added and removed lines with DiffAdd and DiffRemove highlights
-        -- - "change" when a hunk has both added and removed lines, this will show only added lines with DiffText highlights for a  (sometimes all added and removed lines is overwhelming)
-        diff_mode = "diff"
       },
       chat = {
         width = 80, -- chat window width

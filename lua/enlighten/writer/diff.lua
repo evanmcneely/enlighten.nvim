@@ -52,7 +52,7 @@ local DiffWriter = {}
 --- Can be "diff" or "change"
 --- - "diff" will show added and removed lines with highlights
 --- - "change" will show only added lines with change highlights
----@field mode string
+---@field mode diffmode
 --- A callback for when streaming content is complete
 ---@field on_done? fun():nil
 
@@ -112,7 +112,7 @@ function DiffWriter:on_data(text)
     end
     self.accumulated_line = lines[#lines]
 
-    if needs_diff_update then
+    if self.opts.mode ~= "off" and needs_diff_update then
       local right = self.accumulated_lines
       local left = utils.slice(self.orig_lines, 1, #right)
       self:_highlight_diff(left, right)
@@ -141,7 +141,9 @@ function DiffWriter:on_complete(err)
 
   self:_clear_focused_line_highlight()
   self:_remove_remaining_selected_lines()
-  self:_highlight_diff(self.orig_lines, self.accumulated_lines)
+  if self.opts.mode ~= "off" then
+    self:_highlight_diff(self.orig_lines, self.accumulated_lines)
+  end
   self.on_done(self.accumulated_text)
 
   Logger:log("diff:on_complete - ai completion", self.accumulated_text)

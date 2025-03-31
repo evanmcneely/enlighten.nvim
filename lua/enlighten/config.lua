@@ -2,7 +2,7 @@ local Logger = require("enlighten.logger")
 
 local M = {}
 
----@alias diffmode 'diff' | 'change'
+---@alias diffmode 'diff' | 'change' | 'off'
 
 ---@class EnlightenConfig
 ---@field ai EnlightenAiConfig

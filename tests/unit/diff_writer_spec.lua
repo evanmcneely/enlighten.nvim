@@ -277,6 +277,18 @@ describe("DiffWriter", function()
 
         assertions.no_highlights_at_all(buf)
       end)
+
+      it("should not highlight hunks when diff mode is 'off'", function ()
+        opts.mode = 'off'
+        local writer = DiffWriter:new(buf, range, opts)
+
+        writer:on_data("xxx\n")
+        writer:on_data("ccc\n")
+        writer:on_data("zzz\n")
+        writer:on_complete()
+
+        assertions.no_highlights_at_all(buf)
+      end)
     end)
   end)
 
