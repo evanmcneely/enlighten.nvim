@@ -73,7 +73,7 @@ This is the default configuration.
         -- Can be "diff" or "change" or "off":
         -- - "diff" will show added and removed lines with DiffAdd and DiffRemove highlights
         -- - "change" when a hunk has both added and removed lines, this will show only generated content with DiffText highlights
-        -- - "off" will not add highlights around generated content
+        -- - "off" will not add highlights around generated content (use other tooling to review, accept and revert changes)
       diff_mode = "diff"
       edit = {
         width = 80, -- prompt window width
