@@ -9,7 +9,6 @@ local api = vim.api
 ---@field details string
 ---@field callback? EnlightenMentionCB
 
-
 ---@class cmp_source
 ---@field commands EnlightenMention[]
 ---@field buffer integer
