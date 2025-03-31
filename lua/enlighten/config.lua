@@ -2,15 +2,21 @@ local Logger = require("enlighten.logger")
 
 local M = {}
 
+---@alias diffmode 'diff' | 'change'
+
 ---@class EnlightenConfig
 ---@field ai EnlightenAiConfig
 ---@field settings EnlightenSettings
 
 ---@class EnlightenPartialConfig
+---@field context? number
+---@field diff_mode? diffmode
 ---@field ai? EnlightenPartialAiConfig
 ---@field settings? EnlightenPartialSettings
 ---
 ---@class EnlightenSettings
+---@field context number
+---@field diff_mode diffmode
 ---@field edit EnlightenEditSettings
 ---@field chat EnlightenChatSettings
 
@@ -55,9 +61,9 @@ local M = {}
 ---@field height number Edit popup window height (number of rows)
 ---@field showTitle boolean Whether to render a title in the edit UI
 ---@field showHelp boolean Whether to render help footer in the edit UI
----@field context number Number of lines above and below selection to use as context in completion
+---@field context? number Number of lines above and below selection to use as context in completion
 ---@field border string Character used as top and bottomm border in popup window
----@field diff_mode string Whether to show added/removed lines or only changes (diff or change)
+---@field diff_mode? diffmode Whether to show added/removed lines or only changes (diff or change)
 
 ---@class EnlightenPartialEditSettings
 ---@field width? number
@@ -66,15 +72,19 @@ local M = {}
 ---@field showHelp? boolean
 ---@field context? number
 ---@field border? string
----@field diff_mode? string
+---@field diff_mode? diffmode
 
 ---@class EnlightenChatSettings
 ---@field width number Chat pane width (number of columns)
 ---@field split string Side that the chat pane opens on (left or right)
+---@field diff_mode? diffmode
+---@field context? number
 
 ---@class EnlightenPartialChatSettings
 ---@field width? number
 ---@field split? string
+---@field diff_mode? diffmode
+---@field context? number
 
 ---@return EnlightenConfig
 function M.get_default_config()
@@ -87,14 +97,14 @@ function M.get_default_config()
       timeout = 60,
     },
     settings = {
+      diff_mode = "diff",
+      context = 500,
       edit = {
         width = 80,
         height = 5,
         showTitle = true,
         showHelp = true,
-        context = 500,
         border = "═",
-        diff_mode = "diff",
       },
       chat = {
         width = 80,
@@ -148,7 +158,7 @@ end
 
 ---@param partial_config EnlightenPartialConfig?
 ---@return EnlightenConfig
--- TODO fail and return early if config is invalid
+--- TODO this can be refactored!
 function M.build_config(partial_config)
   partial_config = partial_config or {}
   local config = M.get_default_config()
@@ -157,17 +167,27 @@ function M.build_config(partial_config)
 
   config.ai = vim.tbl_deep_extend("force", config.ai, partial_config.ai or {})
 
-  local base_provider_config = {
-    provider = config.ai.provider,
-    timeout = config.ai.timeout,
-    model = config.ai.model,
-    tokens = config.ai.tokens,
-    temperature = config.ai.temperature,
-  }
+  if config.ai.edit == nil then
+    ---@diagnostic disable-next-line: missing-fields
+    config.ai.edit = {}
+  end
+  if config.ai.chat == nil then
+    ---@diagnostic disable-next-line: missing-fields
+    config.ai.chat = {}
+  end
 
-  config.ai.edit = vim.tbl_deep_extend("force", base_provider_config, config.ai.edit or {})
-  config.ai.chat = vim.tbl_deep_extend("force", base_provider_config, config.ai.chat or {})
+  config.ai.edit.provider = config.ai.edit.provider or config.ai.provider
+  config.ai.chat.provider = config.ai.chat.provider or config.ai.provider
+  config.ai.edit.timeout = config.ai.edit.timeout or config.ai.timeout
+  config.ai.chat.timeout = config.ai.chat.timeout or config.ai.timeout
+  config.ai.edit.model = config.ai.edit.model or config.ai.model
+  config.ai.chat.model = config.ai.chat.model or config.ai.model
+  config.ai.edit.tokens = config.ai.edit.tokens or config.ai.tokens
+  config.ai.chat.tokens = config.ai.chat.tokens or config.ai.tokens
+  config.ai.edit.temperature = config.ai.edit.temperature or config.ai.temperature
+  config.ai.chat.temperature = config.ai.chat.temperature or config.ai.temperature
 
+  -- TODO fail and return early if config is invalid
   if not M.is_valid_ai_provider(config.ai.edit.provider) then
     M.warn(
       "Enlighten: Invalid provider "
@@ -186,12 +206,11 @@ function M.build_config(partial_config)
     config.ai.chat.provider = "openai"
   end
 
-  if partial_config.settings then
-    config.settings.edit =
-      vim.tbl_deep_extend("force", config.settings.edit, partial_config.settings.edit or {})
-    config.settings.chat =
-      vim.tbl_deep_extend("force", config.settings.chat, partial_config.settings.chat or {})
-  end
+  config.settings = vim.tbl_deep_extend("force", config.settings, partial_config.settings or {})
+  config.settings.edit.context = config.settings.edit.context or config.settings.context
+  config.settings.chat.context = config.settings.chat.context or config.settings.context
+  config.settings.edit.diff_mode = config.settings.edit.diff_mode or config.settings.diff_mode
+  config.settings.chat.diff_mode = config.settings.chat.diff_mode or config.settings.diff_mode
 
   -- Set border to " " if title or footer is true
   if

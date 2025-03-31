@@ -14,14 +14,13 @@ local utils = require("enlighten.utils")
 ---@field buffer number
 ---@field on_complete fun(self: Writer, err: string?): nil
 ---@field on_data fun(self: Writer, data: string): nil
----@field on_done fun(): nil
+---@field on_done fun(string): nil
 ---@field start fun(): nil
 ---@field stop fun(): nil
 ---@field reset fun(): nil
 
 ---@class DiffWriter: Writer
 ---@field opts DiffWriterOpts
----@field window number
 --- The start and end rows of a range of text in the buffer (end inclusive). ex: [1, 3]
 --- At a minimum the range covers one line, so one line can always be replaced. This
 --- is for simplicity, only one case where a range of text is being written to, rather
@@ -58,11 +57,10 @@ local DiffWriter = {}
 ---@field on_done? fun():nil
 
 ---@param buf number
----@param win number
 ---@param range SelectionRange
 ---@param opts DiffWriterOpts
 ---@return DiffWriter
-function DiffWriter:new(buf, win, range, opts)
+function DiffWriter:new(buf, range, opts)
   local diff_ns_id = api.nvim_create_namespace("EnlightenDiffHighlights")
   local line_ns_id = api.nvim_create_namespace("EnlightenLineHighlights")
   Logger:log("diff:new", { buffer = buf, range = range, ns_id = diff_ns_id })
@@ -73,7 +71,6 @@ function DiffWriter:new(buf, win, range, opts)
     shortcircuit = false,
     show_diff = false,
     buffer = buf,
-    window = win,
     on_done = opts.on_done or function() end,
     orig_lines = vim.api.nvim_buf_get_lines(buf, range.row_start, range.row_end + 1, false),
     orig_range = { range.row_start, range.row_end }, -- end inclusive
@@ -145,7 +142,7 @@ function DiffWriter:on_complete(err)
   self:_clear_focused_line_highlight()
   self:_remove_remaining_selected_lines()
   self:_highlight_diff(self.orig_lines, self.accumulated_lines)
-  self:on_done()
+  self.on_done(self.accumulated_text)
 
   Logger:log("diff:on_complete - ai completion", self.accumulated_text)
   Logger:log("diff:on_complete - diff", self.diff)

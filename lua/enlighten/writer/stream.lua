@@ -101,7 +101,7 @@ function StreamWriter:on_complete(err)
   end
 
   if self.on_done ~= nil then
-    self:on_done()
+    self.on_done(self.accumulated_text)
   end
 
   Logger:log("stream:on_complete - ai completion", self.accumulated_text)

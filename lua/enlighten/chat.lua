@@ -2,10 +2,13 @@ local api = vim.api
 local ai = require("enlighten.ai")
 local augroup = require("enlighten.autocmd")
 local buffer = require("enlighten.buffer")
-local Writer = require("enlighten.writer.stream")
+local StreamWriter = require("enlighten.writer.stream")
+local SelfWriter = require("enlighten.writer.self")
+local DiffWriter = require("enlighten.writer.diff")
 local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
 local utils = require("enlighten.utils")
+local diff_hl = require("enlighten.diff.highlights")
 
 ---@class EnlightenChat
 --- Settings injected into this class from the plugin config
@@ -104,7 +107,9 @@ end
 --- Set all keymaps for the chat buffer needed for user interactions. This
 --- is the primary UX for the chat feature.
 --- - q        : close the prompt buffer
---- - <cr>     : submit prompt for generation
+--- - <cr>     : submit prompt for generation (normal mode)
+--- - <C-cr>   : submit prompt for generation (insert mode)
+--- - <S-C-cr> : AI edit target buffer from chat
 --- - <C-o>    : scroll back in history
 --- - <C-i>    : scroll forward in history
 --- - <C-x>    : stop AI generation
@@ -115,6 +120,20 @@ local function set_keymaps(context)
     silent = true,
     callback = function()
       context:submit()
+    end,
+  })
+  api.nvim_buf_set_keymap(context.chat_buf, "i", "<C-CR>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      context:submit()
+    end,
+  })
+  api.nvim_buf_set_keymap(context.chat_buf, "n", "<S-C-CR>", "", {
+    noremap = true,
+    silent = true,
+    callback = function()
+      context:ai_edit_target_buffer()
     end,
   })
   api.nvim_buf_set_keymap(context.chat_buf, "n", "q", "", {
@@ -159,6 +178,21 @@ local function insert_line(buf, content, highlight)
   end
 end
 
+-- ---@param context EnlightenChat
+-- ---@return EnlightenMention[]
+-- local function get_directives(context)
+--   return {
+--     {
+--       details = "Update buffer from chat context",
+--       description = "Update buffer from chat context",
+--       command = "edit",
+--       callback = function()
+--         context:write_to_buffer()
+--       end,
+--     },
+--   }
+-- end
+
 --- Set all autocommands that the feature is dependant on
 ---@param context EnlightenChat
 ---@return number[]
@@ -174,6 +208,30 @@ local function set_autocmds(context)
         context:_close_title_win()
       end,
     }),
+
+    -- TODO add @mentions
+    -- Add completion sources
+    -- api.nvim_create_autocmd("InsertEnter", {
+    --   group = augroup,
+    --   buffer = context.chat_buf,
+    --   -- once = true,
+    --   desc = "Setup the completion of helpers in the input buffer",
+    --   callback = function()
+    --     local has_cmp, cmp = pcall(require, "cmp")
+    --     if has_cmp then
+    --       cmp.register_source(
+    --         "enlighten_commands",
+    --         require("enlighten.cmp").new(get_directives(context), context.chat_buf)
+    --       )
+    --       cmp.setup.buffer({
+    --         enabled = true,
+    --         sources = {
+    --           { name = "enlighten_commands" },
+    --         },
+    --       })
+    --     end
+    --   end,
+    -- }),
   }
 
   context.autocommands = autocmd_ids
@@ -222,7 +280,7 @@ function EnlightenChat:new(aiConfig, settings)
   context.target_buf = buf
   context.history = History:new("chat")
   context.has_generated = false
-  context.writer = Writer:new(chat_win.win_id, chat_win.bufnr, function()
+  context.writer = StreamWriter:new(chat_win.win_id, chat_win.bufnr, function()
     context.has_generated = true
     context:_add_user()
     context.messages = context:_build_messages()
@@ -442,6 +500,121 @@ function EnlightenChat:scroll_forward()
       self:_write_messages(self.messages)
     end
   end
+end
+
+function EnlightenChat._build_get_range_prompt(messages, buf)
+  local content = buffer.get_content_with_line_numbers(buf)
+  return "For the following chat conversation and buffer content, "
+    .. "return the `start_row` and `end_row` (inclusive) from the buffer that would "
+    .. "need to be edited to make the changes discussed in the conversation a reality. "
+    .. "Return your response as JSON. If the buffer should not be edited, return `-1` "
+    .. "for the value of `start_row`.\n\nConversation\n\n"
+    .. messages
+    .. "\n\n\nBuffer:\n"
+    .. content
+end
+
+--- Format the prompt for generating content in the target buffer.
+---@param messages string
+---@param range SelectionRange
+---@param buf number
+---@param context number
+---@return string
+function EnlightenChat._build_edit_prompt(messages, range, buf, context)
+  local lines = api.nvim_buf_line_count(buf)
+  local snippet_start = range.row_start
+  local snippet_finish = range.row_end
+  local context_start = snippet_start - context < 0 and 0 or snippet_start - context
+  local context_finish = snippet_finish + context > lines and -1 or snippet_finish + context
+
+  local file_name = api.nvim_buf_get_name(buf)
+  local indent = vim.api.nvim_get_option_value("tabstop", { buf = buf })
+
+  local context_above = buffer.get_content(buf, context_start, snippet_start)
+  local context_below = buffer.get_content(buf, snippet_finish + 1, context_finish)
+  local snippet = buffer.get_content(buf, snippet_start, snippet_finish + 1)
+
+  -- Wrap the above and below context with backticks if they actually exist
+  if vim.trim(context_above) ~= "" then
+    context_above = "Context above:\n" .. context_above .. "\n\n"
+  end
+  if vim.trim(context_below) ~= "" then
+    context_below = "Context below:\n" .. context_below .. "\n\n"
+  end
+
+  return "File name of the file in the buffer is "
+    .. file_name
+    .. " with indentation (tabstop) of "
+    .. indent
+    .. ".\n\n"
+    .. context_above
+    .. "Snippet:\n"
+    .. snippet
+    .. "\n\n"
+    .. context_below
+    .. "Instructions in the form of a chat conversation:\n"
+    .. messages
+end
+
+function EnlightenChat:ai_edit_target_buffer()
+  local messages = vim.fn.json_encode(self:_build_messages())
+
+  --- This function runs after the LLM call to get lines that should be edited
+  ---@param response string
+  local function on_done(response)
+    -- Response should parse to { start_row = number, end_row = number }
+    local success, json = pcall(vim.fn.json_decode, response)
+    if not success then
+      vim.notify("Failed to edit buffer", vim.log.levels.ERROR)
+      return
+    end
+
+    if json.start_row == -1 then
+      vim.notify("There is nothing in the buffer to edit", vim.log.levels.INFO)
+      return
+    end
+
+    local range = {
+      row_start = json.start_row,
+      row_end = json.end_row,
+      col_start = 0,
+      col_end = 0,
+    }
+
+    -- clear highlights in range before adding more to them
+    diff_hl.reset_hunk(self.target_buf, diff_hl.get_hunk_in_range(self.target_buf, range))
+
+    local opts = {
+      provider = self.aiConfig.provider,
+      model = self.aiConfig.model,
+      tokens = self.aiConfig.tokens,
+      timeout = self.aiConfig.timeout,
+      temperature = self.aiConfig.temperature,
+      feature = "edit", -- simulate editing content from the edit feature
+      stream = true,
+    }
+    ai.complete(
+      self._build_edit_prompt(messages, range, self.target_buf, self.settings.context),
+      DiffWriter:new(self.target_buf, range, { mode = self.settings.diff_mode }),
+      opts
+    )
+  end
+
+  local opts = {
+    provider = self.aiConfig.provider,
+    model = self.aiConfig.model,
+    tokens = self.aiConfig.tokens,
+    timeout = self.aiConfig.timeout,
+    temperature = self.aiConfig.temperature,
+    feature = "get_range",
+    stream = false,
+    json = true,
+  }
+  ai.complete(
+    self._build_get_range_prompt(messages, self.target_buf),
+    SelfWriter:new(on_done),
+    opts
+  )
 end
 
 return EnlightenChat

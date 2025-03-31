@@ -39,7 +39,7 @@ local Logger = require("enlighten.logger")
 --- Completion timeout in seconds.
 ---@field timeout number
 --- The name of the plugin feature initiating this request (ex. chat).
----@field feature string
+---@field feature 'edit' | 'chat' | 'get_range'
 --- Whether or not to stream text (for future use).
 ---@field stream? boolean
 --- Whether or not request the response format as JSON (for future use).

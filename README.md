@@ -143,7 +143,9 @@ Generated code is diff'd against the initially selected code and highlighted as 
 
 Open the chat window. You can optionally select code from the buffer to have it populate the prompt. The keymaps available to you are:
 
-- `<CR>` - submit the prompt for completion
+- `<CR>` - submit the prompt for completion (normal mode)
+- `<C-CR>` - submit the prompt for completion (insert mode)
+- `<S-C-CR` - AI edit buffer with context from chat
 - `q` - close the chat window
 - `<C-o>` - scroll back through past chat conversations
 - `<C-i>` - scroll forward through past chat conversations
