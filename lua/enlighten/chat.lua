@@ -107,8 +107,9 @@ end
 --- Set all keymaps for the chat buffer needed for user interactions. This
 --- is the primary UX for the chat feature.
 --- - q        : close the prompt buffer
---- - <cr>     : submit prompt for generation
---- - <C-cr>   : write to buffer with context from chat
+--- - <cr>     : submit prompt for generation (normal mode)
+--- - <C-cr>   : submit prompt for generation (insert mode)
+--- - <S-C-cr> : AI edit target buffer from chat
 --- - <C-o>    : scroll back in history
 --- - <C-i>    : scroll forward in history
 --- - <C-x>    : stop AI generation
@@ -132,7 +133,7 @@ local function set_keymaps(context)
     noremap = true,
     silent = true,
     callback = function()
-      context:write_to_buffer()
+      context:ai_edit_target_buffer()
     end,
   })
   api.nvim_buf_set_keymap(context.chat_buf, "n", "q", "", {
@@ -502,7 +503,7 @@ function EnlightenChat:scroll_forward()
 end
 
 function EnlightenChat._build_get_range_prompt(messages, buf)
-  local content = buffer.get_content_with_lines(buf)
+  local content = buffer.get_content_with_line_numbers(buf)
   return "For the following chat conversation and buffer content, "
     .. "return the `start_row` and `end_row` (inclusive) from the buffer that would "
     .. "need to be edited to make the changes discussed in the conversation a reality. "
@@ -555,7 +556,7 @@ function EnlightenChat._build_edit_prompt(messages, range, buf, context)
     .. messages
 end
 
-function EnlightenChat:write_to_buffer()
+function EnlightenChat:ai_edit_target_buffer()
   local messages = vim.fn.json_encode(self:_build_messages())
 
   --- This function runs after the LLM call to get lines that should be edited
