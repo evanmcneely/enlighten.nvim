@@ -2,6 +2,12 @@ local api = vim.api
 
 local M = {}
 
+ ---@class SelectionRange
+ ---@field col_start number
+ ---@field row_start number
+ ---@field col_end number
+ ---@field row_end number
+
 --- Get the selected range (start and end column and row) regardless of
 --- whether the user has text text selected. The users cursor position is
 --- represented as a range if no text is currently selected.
