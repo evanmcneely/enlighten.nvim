@@ -5,23 +5,29 @@ local file_utils = require("enlighten.file")
 local PROMPT_TITLE = "(Enlighten) Add a file"
 
 --- @class FilePicker
-local FileSelector = {}
+local FilePicker = {}
+
+---@alias FileSelectorHandler fun(path:string, content:string[]): nil
 
 --- @class FilePicker
 --- @field id integer
 --- @field selected_filepaths string[]
---- @field on_file_selected fun(path:string, content:string[]): nil
+--- @field on_file_selected FileSelectorHandler
 
----@alias FileSelectorHandler fun(self: FilePicker, on_select: fun(filepaths: string[] | nil)): nil
-
+-- Check if the path has a URI scheme (like http://, file://, etc.)
 local function has_scheme(path)
   return path:find("^%w+://") ~= nil
 end
 
-function FileSelector:process_directory(absolute_path, project_root)
+--- Handles user selection of a directory from the file picker
+---@param absolute_path string
+---@param project_root string
+function FilePicker:process_directory(absolute_path, project_root)
+  -- Remove trailing slash from the directory path
   if absolute_path:sub(-1) == file_utils.path_separator() then
     absolute_path = absolute_path:sub(1, -2)
   end
+
   local files = scan.scan_dir(absolute_path, {
     hidden = false,
     depth = math.huge,
@@ -35,20 +41,22 @@ function FileSelector:process_directory(absolute_path, project_root)
       table.insert(self.selected_filepaths, rel_path)
 
       -- Call the callback with filepath and content
-      local lines, _ = file_utils.read_file_from_buf_or_disk(rel_path)
-      if lines then
+      local lines, err = file_utils.read_file_from_buf_or_disk(rel_path)
+      if not err then
         self.on_file_selected(rel_path, lines)
       end
     end
   end
 end
 
+--- Handles user selection of a file path from the field picker
 ---@param selected_paths string[] | nil
 ---@return nil
-function FileSelector:handle_path_selection(selected_paths)
+function FilePicker:handle_path_selection(selected_paths)
   if not selected_paths then
     return
   end
+
   local project_root = file_utils.get_project_root()
 
   for _, selected_path in ipairs(selected_paths) do
@@ -62,17 +70,27 @@ function FileSelector:handle_path_selection(selected_paths)
       table.insert(self.selected_filepaths, uniform_path)
 
       -- Call the callback with filepath and content
-      local lines, _ = file_utils.read_file_from_buf_or_disk(uniform_path)
-      if lines then
+      local lines, err = file_utils.read_file_from_buf_or_disk(uniform_path)
+      if not err then
         self.on_file_selected(uniform_path, lines)
       end
     end
   end
 end
 
+--- Gets a list of all file paths in the project.
+--- Scans the project root directory and returns a list of relative file paths.
+--- Directory paths will have a trailing slash.
+---@return string[]
 local function get_project_filepaths()
   local project_root = file_utils.get_project_root()
-  local files = file_utils.scan_directory({ directory = project_root, add_dirs = true })
+  local files = scan.scan_dir(project_root, {
+    hidden = false,
+    depth = math.huge,
+    add_dirs = true,
+    respect_gitignore = true,
+  })
+
   files = vim
     .iter(files)
     :map(function(filepath)
@@ -80,17 +98,18 @@ local function get_project_filepaths()
     end)
     :totable()
 
-  return vim.tbl_map(function(path)
-    local rel_path = file_utils.make_relative_path(path, project_root)
-    local stat = vim.loop.fs_stat(path)
+  return vim.tbl_map(function(rel_path)
+    -- prepend a trailing slash for directories
+    local stat = vim.loop.fs_stat(rel_path)
     if stat and stat.type == "directory" then
       rel_path = rel_path .. "/"
     end
+
     return rel_path
   end, files)
 end
 
-function FileSelector:new(id, callback)
+function FilePicker:new(id, callback)
   return setmetatable({
     id = id,
     selected_filepaths = {},
@@ -98,12 +117,12 @@ function FileSelector:new(id, callback)
   }, { __index = self })
 end
 
-function FileSelector:reset()
+function FilePicker:reset()
   self.selected_filepaths = {}
 end
 
 ---@param filepath string | nil
-function FileSelector:add_selected_file(filepath)
+function FilePicker:add_selected_file(filepath)
   if not filepath or filepath == "" then
     return
   end
@@ -123,14 +142,14 @@ function FileSelector:add_selected_file(filepath)
     table.insert(self.selected_filepaths, uniform_path)
 
     -- Call the callback with filepath and content
-    local lines, _ = file_utils.read_file_from_buf_or_disk(uniform_path)
-    if lines then
+    local lines, err = file_utils.read_file_from_buf_or_disk(uniform_path)
+    if not err then
       self.on_file_selected(uniform_path, lines)
     end
   end
 end
 
-function FileSelector:add_current_buffer()
+function FilePicker:add_current_buffer()
   local current_buf = vim.api.nvim_get_current_buf()
   local filepath = vim.api.nvim_buf_get_name(current_buf)
 
@@ -143,7 +162,7 @@ function FileSelector:add_current_buffer()
   return false
 end
 
-function FileSelector:open()
+function FilePicker:open()
   local function handler(selected_paths)
     self:handle_path_selection(selected_paths)
   end
@@ -153,7 +172,7 @@ function FileSelector:open()
   end)
 end
 
-function FileSelector:get_filepaths()
+function FilePicker:get_filepaths()
   local filepaths = get_project_filepaths()
 
   table.sort(filepaths, function(a, b)
@@ -179,7 +198,7 @@ function FileSelector:get_filepaths()
     :totable()
 end
 
-function FileSelector:native_ui(handler)
+function FilePicker:native_ui(handler)
   local filepaths = self:get_filepaths()
 
   vim.ui.select(filepaths, {
@@ -197,12 +216,13 @@ function FileSelector:native_ui(handler)
 end
 
 ---@return { path: string, content: string, file_type: string }[]
-function FileSelector:get_selected_files_contents()
+function FilePicker:get_selected_files_contents()
   local contents = {}
+
   for _, filepath in ipairs(self.selected_filepaths) do
     local lines, error = file_utils.read_file_from_buf_or_disk(filepath)
-    lines = lines or {}
     local filetype = file_utils.get_filetype(filepath)
+
     if error ~= nil then
       vim.notify("Error reading file: " .. error, vim.log.levels.ERROR)
     else
@@ -210,15 +230,16 @@ function FileSelector:get_selected_files_contents()
       table.insert(contents, { path = filepath, content = content, file_type = filetype })
     end
   end
+
   return contents
 end
 
-function FileSelector:get_selected_filepaths()
+function FilePicker:get_selected_filepaths()
   return vim.deepcopy(self.selected_filepaths)
 end
 
 ---@return nil
-function FileSelector:add_quickfix_files()
+function FilePicker:add_quickfix_files()
   local quickfix_files = vim
     .iter(vim.fn.getqflist({ items = 0 }).items)
     :filter(function(item)
@@ -228,18 +249,21 @@ function FileSelector:add_quickfix_files()
       return file_utils.relative_path(vim.api.nvim_buf_get_name(item.bufnr))
     end)
     :totable()
+
   for _, filepath in ipairs(quickfix_files) do
     self:add_selected_file(filepath)
   end
 end
 
 ---@return nil
-function FileSelector:add_buffer_files()
+function FilePicker:add_buffer_files()
   local buffers = vim.api.nvim_list_bufs()
+
   for _, bufnr in ipairs(buffers) do
     -- Skip invalid or unlisted buffers
     if vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted then
       local filepath = vim.api.nvim_buf_get_name(bufnr)
+
       -- Skip empty paths and special buffers (like terminals)
       if filepath ~= "" and not has_scheme(filepath) then
         local relative_path = file_utils.relative_path(filepath)
@@ -249,4 +273,4 @@ function FileSelector:add_buffer_files()
   end
 end
 
-return FileSelector
+return FilePicker
