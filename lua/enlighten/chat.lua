@@ -288,7 +288,7 @@ function EnlightenChat:new(aiConfig, settings)
     context.messages = context:_build_messages()
     vim.cmd("startinsert")
   end)
-  context.file_picker = FilePicker:new(id,function(path, content)
+  context.file_picker = FilePicker:new(id, function(path, content)
     print("done", path, vim.inspect(content))
   end)
 
@@ -570,14 +570,21 @@ function EnlightenChat:ai_edit_target_buffer()
     -- Response should parse to { start_row = number, end_row = number }
     local success, json = pcall(vim.fn.json_decode, response)
     if not success then
+      Logger:log(
+        "ai_edit_target_buffer..on_done - failed to parse response",
+        { ai_response = response }
+      )
       vim.notify("Failed to edit buffer", vim.log.levels.ERROR)
       return
     end
 
     if json.start_row == -1 then
+      Logger:log("ai_edit_target_buffer..on_done - nothing to edit", { ai_response = response })
       vim.notify("There is nothing in the buffer to edit", vim.log.levels.INFO)
       return
     end
+
+    Logger:log("ai_edit_target_buffer..on_done - lines", { json = json })
 
     local range = {
       row_start = json.start_row,
