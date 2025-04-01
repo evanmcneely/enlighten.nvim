@@ -211,7 +211,6 @@ local function set_autocmds(context)
       end,
     }),
 
-    -- TODO add @mentions
     -- Add completion sources
     api.nvim_create_autocmd("InsertEnter", {
       group = augroup,
