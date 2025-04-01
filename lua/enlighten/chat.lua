@@ -241,6 +241,21 @@ local function set_autocmds(context)
   return autocmd_ids
 end
 
+local function clear_completion(win, path)
+      local cursor = vim.api.nvim_win_get_cursor(win)
+    local line = vim.api.nvim_get_current_line()
+    local col = cursor[2] + 1
+    local start_col = col
+
+    while start_col > 0 and line:sub(start_col, start_col) ~= " " do
+      start_col = start_col - 1
+    end
+
+    local new_line = line:sub(1, start_col) .. line:sub(col + 1) .. "@" .. path
+    vim.api.nvim_set_current_line(new_line)
+    vim.api.nvim_win_set_cursor(win, { cursor[1], start_col })
+end
+
 --- Clean up all autocommands that have been created
 ---@param context EnlightenChat
 local function delete_autocmds(context)
@@ -292,6 +307,7 @@ function EnlightenChat:new(aiConfig, settings)
   end)
   context.file_picker = FilePicker:new(id, function(path, content)
     context:_add_file_path(path, content)
+    clear_completion(context.chat_win, path)
     context.files[path] = content
   end)
 
@@ -474,7 +490,7 @@ function EnlightenChat:_add_file_path(path, content)
   table.insert(lines, "")
 
   -- Insert content at position
-  api.nvim_buf_set_lines(self.chat_buf, start_row-1, start_row -1, false, lines)
+  api.nvim_buf_set_lines(self.chat_buf, start_row - 1, start_row - 1, false, lines)
 
   local end_row = api.nvim_buf_line_count(self.chat_buf)
 
