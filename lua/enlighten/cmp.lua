@@ -1,6 +1,6 @@
 local api = vim.api
 
----@alias EnlightenMentionType "edit"
+---@alias EnlightenMentionType "files"
 ---@alias EnlightenMentionCB fun(args: string, cb?: fun(args: string): nil): nil
 
 ---@class EnlightenMention
@@ -42,8 +42,28 @@ function cmp_source.get_keyword_pattern()
   return [[\%(@\|#\|/\)\k*]]
 end
 
-function cmp_source.execute(item, _)
-  item.commands[1].callback()
+---@param completion {detail: string, kind: string, label: string}
+---@param callback fun()
+function cmp_source:execute(completion, callback)
+  print(vim.inspect(completion))
+  ---@type string
+  local label = completion.label:match("^@(%S+)") -- Extract mention command without '@' and space
+
+  -- Find the corresponding command
+  local selected_mention
+  for _, mention in ipairs(self.commands) do
+    if mention.command == label then
+      selected_mention = mention
+      break
+    end
+  end
+
+  -- Execute the commands's callback if it exists
+  if selected_mention and type(selected_mention.callback) == "function" then
+    selected_mention.callback(selected_mention)
+  end
+
+  callback()
 end
 
 function cmp_source:complete(_, callback)

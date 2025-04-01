@@ -42,6 +42,7 @@ local FilePicker = require("enlighten.picker")
 --- A flag for whether or not the user has generated completions this session.
 ---@field has_generated boolean
 ---@field file_picker FilePicker
+---@field files FileIndex
 local EnlightenChat = {}
 EnlightenChat.__index = EnlightenChat
 
@@ -215,7 +216,7 @@ local function set_autocmds(context)
     api.nvim_create_autocmd("InsertEnter", {
       group = augroup,
       buffer = context.chat_buf,
-      -- once = true,
+      once = true,
       desc = "Setup the completion of helpers in the input buffer",
       callback = function()
         local has_cmp, cmp = pcall(require, "cmp")
@@ -281,6 +282,7 @@ function EnlightenChat:new(aiConfig, settings)
   context.target_buf = buf
   context.history = History:new("chat")
   context.has_generated = false
+  context.files = {}
   context.writer = StreamWriter:new(chat_win.win_id, chat_win.bufnr, function()
     context.has_generated = true
     context:_add_user()
@@ -288,7 +290,8 @@ function EnlightenChat:new(aiConfig, settings)
     vim.cmd("startinsert")
   end)
   context.file_picker = FilePicker:new(id, function(path, content)
-    print("done", path, vim.inspect(content))
+    context:_add_file_path(path)
+    context.files[path] = content
   end)
 
   set_keymaps(context)
@@ -313,7 +316,7 @@ function EnlightenChat:close()
   end
 
   if self.has_generated then
-    self.history:update(self.messages)
+    self.history:update(self.messages, self.files)
   end
 
   self:_close_chat_win()
@@ -457,6 +460,33 @@ function EnlightenChat:_add_assistant()
   insert_line(self.chat_buf, "")
 end
 
+function EnlightenChat:_add_file_path(path)
+  -- Find the last user extmark
+  local message_marks =
+    api.nvim_buf_get_extmarks(self.chat_buf, self.messages_nsid, 0, -1, { details = true })
+  local last_user_mark_line = nil
+
+  for i = #message_marks, 1, -1 do
+    local mark = message_marks[i]
+    if mark[4].sign_text == USER_SIGN then
+      last_user_mark_line = mark[2] + 1 -- Position right below the user mark
+      break
+    end
+  end
+
+  local position = last_user_mark_line or (api.nvim_buf_line_count(self.chat_buf) - 1)
+
+  -- Insert line at position before adding mark
+  api.nvim_buf_set_lines(self.chat_buf, position, position, false, { "" })
+
+  api.nvim_buf_set_extmark(self.chat_buf, self.messages_nsid, position + 1, 0, {
+    virt_text = { { "--| " .. path, "Function" } },
+    virt_text_pos = "overlay",
+    invalidate = true,
+    undo_restore = false,
+  })
+end
+
 -- Highlight the chat user/assistant markers
 ---@param messages AiMessages
 function EnlightenChat:_write_messages(messages)
@@ -489,6 +519,7 @@ function EnlightenChat:scroll_back()
   if not self.writer.active then
     local data = self.history:scroll_back()
     if data then
+      self.files = data.files or {}
       self:_write_messages(data.messages)
     end
   end
@@ -499,6 +530,7 @@ function EnlightenChat:scroll_forward()
   if not self.writer.active then
     local data = self.history:scroll_forward()
     if data then
+      self.files = data.files or {}
       self:_write_messages(data.messages)
     else
       self:_write_messages(self.messages)

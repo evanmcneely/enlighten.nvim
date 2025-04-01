@@ -1,6 +1,7 @@
 local Logger = require("enlighten.logger")
 
 ---@alias Files { path: string, content: string[] }[]
+---@alias FileIndex table<number, Files>
 
 ---@class HistoryItem
 --- Conversation data from the past session.
@@ -9,7 +10,7 @@ local Logger = require("enlighten.logger")
 ---@field date string
 --- An index of files added to messages. Each key is a 1-based index of file information
 --- that map to the index of a message in messages.
----@field files? table<number, Files>
+---@field files? FileIndex
 
 --- A class for managing a history of past sessions with the a plugin feature for a current active session.
 ---@class History
