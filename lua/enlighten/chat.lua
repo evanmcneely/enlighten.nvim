@@ -75,6 +75,7 @@ local function create_window(id, settings)
   api.nvim_buf_set_name(buf, "enlighten-chat" .. id)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
+  api.nvim_set_option_value("foldmethod", "manual", { win = win })
 
   -- Title window and buffer, positioned in a popup at the top of the window
   local title_buf = api.nvim_create_buf(false, true)
@@ -290,7 +291,7 @@ function EnlightenChat:new(aiConfig, settings)
     vim.cmd("startinsert")
   end)
   context.file_picker = FilePicker:new(id, function(path, content)
-    context:_add_file_path(path)
+    context:_add_file_path(path, content)
     context.files[path] = content
   end)
 
@@ -460,31 +461,27 @@ function EnlightenChat:_add_assistant()
   insert_line(self.chat_buf, "")
 end
 
-function EnlightenChat:_add_file_path(path)
-  -- Find the last user extmark
-  local message_marks =
-    api.nvim_buf_get_extmarks(self.chat_buf, self.messages_nsid, 0, -1, { details = true })
-  local last_user_mark_line = nil
+function EnlightenChat:_add_file_path(path, content)
+  insert_line(self.chat_buf, "")
+  insert_line(self.chat_buf, "")
 
-  for i = #message_marks, 1, -1 do
-    local mark = message_marks[i]
-    if mark[4].sign_text == USER_SIGN then
-      last_user_mark_line = mark[2] + 1 -- Position right below the user mark
-      break
-    end
-  end
+  local start_row = api.nvim_buf_line_count(self.chat_buf)
 
-  local position = last_user_mark_line or (api.nvim_buf_line_count(self.chat_buf) - 1)
+  -- Insert file path and content
+  local lines = { "", "```" .. path }
+  vim.list_extend(lines, content)
+  table.insert(lines, "```")
+  table.insert(lines, "")
 
-  -- Insert line at position before adding mark
-  api.nvim_buf_set_lines(self.chat_buf, position, position, false, { "" })
+  -- Insert content at position
+  api.nvim_buf_set_lines(self.chat_buf, start_row-1, start_row -1, false, lines)
 
-  api.nvim_buf_set_extmark(self.chat_buf, self.messages_nsid, position + 1, 0, {
-    virt_text = { { "--| " .. path, "Function" } },
-    virt_text_pos = "overlay",
-    invalidate = true,
-    undo_restore = false,
-  })
+  local end_row = api.nvim_buf_line_count(self.chat_buf)
+
+  -- Create fold for the content
+  local fold_start = start_row + 1
+  local fold_end = end_row
+  vim.cmd(fold_start .. "," .. fold_end .. "fold")
 end
 
 -- Highlight the chat user/assistant markers

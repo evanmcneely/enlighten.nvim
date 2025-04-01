@@ -45,7 +45,6 @@ end
 ---@param completion {detail: string, kind: string, label: string}
 ---@param callback fun()
 function cmp_source:execute(completion, callback)
-  print(vim.inspect(completion))
   ---@type string
   local label = completion.label:match("^@(%S+)") -- Extract mention command without '@' and space
 
