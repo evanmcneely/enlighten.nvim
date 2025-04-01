@@ -9,6 +9,7 @@ local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
 local utils = require("enlighten.utils")
 local diff_hl = require("enlighten.diff.highlights")
+local FilePicker = require("enlighten.picker")
 
 ---@class EnlightenChat
 --- Settings injected into this class from the plugin config
@@ -40,6 +41,7 @@ local diff_hl = require("enlighten.diff.highlights")
 ---@field messages_nsid number
 --- A flag for whether or not the user has generated completions this session.
 ---@field has_generated boolean
+---@field file_picker FilePicker
 local EnlightenChat = {}
 EnlightenChat.__index = EnlightenChat
 
@@ -178,20 +180,20 @@ local function insert_line(buf, content, highlight)
   end
 end
 
--- ---@param context EnlightenChat
--- ---@return EnlightenMention[]
--- local function get_directives(context)
---   return {
---     {
---       details = "Update buffer from chat context",
---       description = "Update buffer from chat context",
---       command = "edit",
---       callback = function()
---         context:write_to_buffer()
---       end,
---     },
---   }
--- end
+---@param context EnlightenChat
+---@return EnlightenMention[]
+local function get_directives(context)
+  return {
+    {
+      details = "Add files to context",
+      description = "Add files to context",
+      command = "files",
+      callback = function()
+        context.file_picker:open()
+      end,
+    },
+  }
+end
 
 --- Set all autocommands that the feature is dependant on
 ---@param context EnlightenChat
@@ -211,27 +213,27 @@ local function set_autocmds(context)
 
     -- TODO add @mentions
     -- Add completion sources
-    -- api.nvim_create_autocmd("InsertEnter", {
-    --   group = augroup,
-    --   buffer = context.chat_buf,
-    --   -- once = true,
-    --   desc = "Setup the completion of helpers in the input buffer",
-    --   callback = function()
-    --     local has_cmp, cmp = pcall(require, "cmp")
-    --     if has_cmp then
-    --       cmp.register_source(
-    --         "enlighten_commands",
-    --         require("enlighten.cmp").new(get_directives(context), context.chat_buf)
-    --       )
-    --       cmp.setup.buffer({
-    --         enabled = true,
-    --         sources = {
-    --           { name = "enlighten_commands" },
-    --         },
-    --       })
-    --     end
-    --   end,
-    -- }),
+    api.nvim_create_autocmd("InsertEnter", {
+      group = augroup,
+      buffer = context.chat_buf,
+      -- once = true,
+      desc = "Setup the completion of helpers in the input buffer",
+      callback = function()
+        local has_cmp, cmp = pcall(require, "cmp")
+        if has_cmp then
+          cmp.register_source(
+            "enlighten_commands",
+            require("enlighten.cmp").new(get_directives(context), context.chat_buf)
+          )
+          cmp.setup.buffer({
+            enabled = true,
+            sources = {
+              { name = "enlighten_commands" },
+            },
+          })
+        end
+      end,
+    }),
   }
 
   context.autocommands = autocmd_ids
@@ -285,6 +287,9 @@ function EnlightenChat:new(aiConfig, settings)
     context:_add_user()
     context.messages = context:_build_messages()
     vim.cmd("startinsert")
+  end)
+  context.file_picker = FilePicker:new(id,function(path, content)
+    print("done", path, vim.inspect(content))
   end)
 
   set_keymaps(context)
