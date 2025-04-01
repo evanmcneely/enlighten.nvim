@@ -19,7 +19,7 @@ local function has_scheme(path)
 end
 
 function FileSelector:process_directory(absolute_path, project_root)
-  if absolute_path:sub(-1) == file_utils.path_sep() then
+  if absolute_path:sub(-1) == file_utils.path_separator() then
     absolute_path = absolute_path:sub(1, -2)
   end
   local files = scan.scan_dir(absolute_path, {

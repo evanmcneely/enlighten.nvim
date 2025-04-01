@@ -1,73 +1,73 @@
 local M = {}
 
-local fn = vim.fn
 
----@param filepath string
----@return string[] | nil
-function M.read_content(filepath)
-  local content = fn.readfile(filepath)
-  if content then
-    return content
+---@param options { directory: string, add_dirs?: boolean, max_depth?: integer }
+---@return table|nil cmd
+---@return boolean cmd_supports_max_depth
+function M.get_scan_command(options)
+  local cmd_supports_max_depth = true
+
+  if vim.fn.executable("rg") == 1 then
+    local cmd = { "rg", "--files", "--color", "never", "--no-require-git" }
+    if options.max_depth ~= nil then
+      vim.list_extend(cmd, { "--max-depth", options.max_depth })
+    end
+    table.insert(cmd, options.directory)
+    return cmd, cmd_supports_max_depth
   end
-  return nil
+
+  if vim.fn.executable("fd") == 1 then
+    local cmd = { "fd", "--type", "f", "--color", "never", "--no-require-git" }
+    if options.max_depth ~= nil then
+      vim.list_extend(cmd, { "--max-depth", options.max_depth })
+    end
+    vim.list_extend(cmd, { "--base-directory", options.directory })
+    return cmd, cmd_supports_max_depth
+  end
+
+  if vim.fn.executable("fdfind") == 1 then
+    local cmd = { "fdfind", "--type", "f", "--color", "never", "--no-require-git" }
+    if options.max_depth ~= nil then
+      vim.list_extend(cmd, { "--max-depth", options.max_depth })
+    end
+    vim.list_extend(cmd, { "--base-directory", options.directory })
+    return cmd, cmd_supports_max_depth
+  end
+
+  if M.exists(M.join_paths(options.directory, ".git")) and vim.fn.executable("git") == 1 then
+    cmd_supports_max_depth = false
+    if vim.fn.has("win32") == 1 then
+      return {
+        "powershell",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        string.format(
+          "Push-Location '%s'; (git ls-files --exclude-standard), (git ls-files --exclude-standard --others)",
+          options.directory:gsub("/", "\\")
+        ),
+      }, cmd_supports_max_depth
+    else
+      return {
+        "bash",
+        "-c",
+        string.format("cd %s && git ls-files -co --exclude-standard", options.directory),
+      }, cmd_supports_max_depth
+    end
+  end
+
+  return nil, cmd_supports_max_depth
 end
+
 
 ---@param options { directory: string, add_dirs?: boolean, max_depth?: integer }
 ---@return string[]
 function M.scan_directory(options)
-  local cmd_supports_max_depth = true
-  local cmd = (function()
-    if vim.fn.executable("rg") == 1 then
-      local cmd = { "rg", "--files", "--color", "never", "--no-require-git" }
-      if options.max_depth ~= nil then
-        vim.list_extend(cmd, { "--max-depth", options.max_depth })
-      end
-      table.insert(cmd, options.directory)
-      return cmd
-    end
-    if vim.fn.executable("fd") == 1 then
-      local cmd = { "fd", "--type", "f", "--color", "never", "--no-require-git" }
-      if options.max_depth ~= nil then
-        vim.list_extend(cmd, { "--max-depth", options.max_depth })
-      end
-      vim.list_extend(cmd, { "--base-directory", options.directory })
-      return cmd
-    end
-    if vim.fn.executable("fdfind") == 1 then
-      local cmd = { "fdfind", "--type", "f", "--color", "never", "--no-require-git" }
-      if options.max_depth ~= nil then
-        vim.list_extend(cmd, { "--max-depth", options.max_depth })
-      end
-      vim.list_extend(cmd, { "--base-directory", options.directory })
-      return cmd
-    end
-  end)()
+  local cmd, cmd_supports_max_depth = M.get_scan_command(options)
 
   if not cmd then
-    if M.path_exists(M.join_paths(options.directory, ".git")) and vim.fn.executable("git") == 1 then
-      if vim.fn.has("win32") == 1 then
-        cmd = {
-          "powershell",
-          "-NoProfile",
-          "-NonInteractive",
-          "-Command",
-          string.format(
-            "Push-Location '%s'; (git ls-files --exclude-standard), (git ls-files --exclude-standard --others)",
-            options.directory:gsub("/", "\\")
-          ),
-        }
-      else
-        cmd = {
-          "bash",
-          "-c",
-          string.format("cd %s && git ls-files -co --exclude-standard", options.directory),
-        }
-      end
-      cmd_supports_max_depth = false
-    else
-      M.error("No search command found")
-      return {}
-    end
+    M.error("No search command found")
+    return {}
   end
 
   local files = vim.fn.systemlist(cmd)
@@ -95,6 +95,7 @@ function M.scan_directory(options)
       end)
       :totable()
   end
+
   if options.add_dirs then
     local dirs = {}
     local dirs_seen = {}
@@ -111,20 +112,32 @@ function M.scan_directory(options)
   return files
 end
 
+--- Returns the parent directory of the given filepath. If the filepath is a root directory,
+--- returns the path separator for absolute paths or "." for relative paths.
+--- If filepath is empty, returns an empty string.
+---@param filepath string | nil
+---@return string
 function M.get_parent_path(filepath)
   if filepath == nil then error("filepath cannot be nil") end
   if filepath == "" then return "" end
+
   local is_abs = M.is_absolute_path(filepath)
-  if filepath:sub(-1) == M.path_sep then filepath = filepath:sub(1, -2) end
+
+  -- If filepath ends with a path separator, remove it before processing
+  if filepath:sub(-1) == M.path_separator() then filepath = filepath:sub(1, -2) end
   if filepath == "" then return "" end
-  local parts = vim.split(filepath, M.path_sep())
+
+  -- Get the parent path by splitting the string, removing the last part, and joining it all together again
+  local parts = vim.split(filepath, M.path_separator())
   local parent_parts = vim.list_slice(parts, 1, #parts - 1)
-  local res = table.concat(parent_parts, M.path_sep())
-  if res == "" then
-    if is_abs then return M.path_sep end
+  local parent_path = table.concat(parent_parts, M.path_separator())
+
+  if parent_path == "" then
+    if is_abs then return M.path_separator() end
     return "."
   end
-  return res
+
+  return parent_path
 end
 
 ---@param filepath string
@@ -138,15 +151,18 @@ end
 ---@return boolean
 function M.is_in_cwd(filepath)
   local cwd = vim.fn.getcwd()
+
   -- Make both paths absolute for comparison
   local abs_filepath = vim.fn.fnamemodify(filepath, ":p")
   local abs_cwd = vim.fn.fnamemodify(cwd, ":p")
+
   -- Check if filepath starts with cwd
   return abs_filepath:sub(1, #abs_cwd) == abs_cwd
 end
 
+--- Returns the path separator for the os
 ---@return string
-function M.path_sep()
+function M.path_separator()
   if M.is_win() then
     return "\\"
   else
@@ -154,65 +170,99 @@ function M.path_sep()
   end
 end
 
+---@param filepath string
+---@param base_dir string
+---@return string The
 function M.make_relative_path(filepath, base_dir)
-  if filepath:sub(-2) == M.path_sep() .. "." then filepath = filepath:sub(1, -3) end
-  if base_dir:sub(-2) == M.path_sep() .. "." then base_dir = base_dir:sub(1, -3) end
+
+  -- Normalize paths by removing trailing '/.' or '\.' if present
+  if filepath:sub(-2) == M.path_separator() .. "." then filepath = filepath:sub(1, -3) end
+  if base_dir:sub(-2) == M.path_separator() .. "." then base_dir = base_dir:sub(1, -3) end
+
   if filepath == base_dir then return "." end
+
+  -- If the filepath starts with the base directory, make it relative
   if filepath:sub(1, #base_dir) == base_dir then
+    -- Remove the base directory prefix from the filepath
     filepath = filepath:sub(#base_dir + 1)
-    if filepath:sub(1, 2) == "." .. M.path_sep() then
+
+    -- Handle edge cases in the resulting path:
+    -- 1. If it starts with "./" remove that prefix
+    -- 2. If it starts with a path separator, remove that too
+    if filepath:sub(1, 2) == "." .. M.path_separator() then
       filepath = filepath:sub(3)
-    elseif filepath:sub(1, 1) == M.path_sep() then
+    elseif filepath:sub(1, 1) == M.path_separator() then
       filepath = filepath:sub(2)
     end
   end
+
   return filepath
 end
 
+--- Returns whether the provided path is an absolute path by:
+--- 1.checking if it starts with a drive letter followed by a colon and a path separator on Windows.
+--- 2. checknig if it starts with a forward slash on Unix systems.
+---@param path string
+---@return boolean
 function M.is_absolute_path(path)
   if not path then return false end
   if M.is_win() then return path:match("^%a:[/\\]") ~= nil end
   return path:match("^/") ~= nil
 end
+
+
 local _is_win = nil
+---@return boolean
 function M.is_win()
   if _is_win == nil then _is_win = jit.os:find("Windows") ~= nil end
   return _is_win
 end
 
+---@param ... string
+---@return string
 function M.join_paths(...)
   local paths = { ... }
   local result = paths[1] or ""
+
   for i = 2, #paths do
     local path = paths[i]
     if path == nil or path == "" then goto continue end
 
+    -- If path is absolute, it becomes the new base path
     if M.is_absolute_path(path) then
       result = path
       goto continue
     end
 
-    if path:sub(1, 2) == "." .. M.path_sep() then path = path:sub(3) end
+    -- Remove leading "./" if present
+    if path:sub(1, 2) == "." .. M.path_separator() then path = path:sub(3) end
 
-    if result ~= "" and result:sub(-1) ~= M.path_sep() then result = result .. M.path_sep() end
+    -- Add separator if needed
+    if result ~= "" and result:sub(-1) ~= M.path_separator() then result = result .. M.path_separator() end
     result = result .. path
     ::continue::
   end
+
   return result
 end
 
-function M.path_exists(path) return vim.loop.fs_stat(path) ~= nil end
-
 function M.get_project_root()
+  -- Treat the cwd as the project root
+  -- TODO should correct this later
   return vim.uv.cwd()
 end
 
+---@param path string
+---@return string
 function M.uniform_path(path)
-  if type(path) ~= "string" then path = tostring(path) end
+  -- If the path is not within the current working directory, return it as is
   if not M.is_in_cwd(path) then return path end
+
+  -- Convert the path to an absolute path and then back to a relative from the CMD
   local project_root = M.get_project_root()
   local abs_path = M.is_absolute_path(path) and path or M.join_paths(project_root, path)
   local relative_path = M.make_relative_path(abs_path, project_root)
+
   return relative_path
 end
 
