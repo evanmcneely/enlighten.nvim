@@ -51,6 +51,9 @@ local USER = " User"
 local ASSISTANT = " Assistant"
 local USER_SIGN = " "
 local ASSISTANT_SIGN = "󰚩 " -- must be different from user sign
+-- luacheck: push ignore 631
+local FOLDTEXT = "[[substitute(getline(v:foldstart),'\\t',repeat('\\ ',&tabstop),'g').'...'.trim(getline(v:foldend)) . ' (' . (v:foldend - v:foldstart + 1) . ' lines)']]"
+-- luacheck: pop
 
 --- Create the chat buffer and popup window
 ---@param id string
@@ -76,6 +79,7 @@ local function create_window(id, settings)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
   api.nvim_set_option_value("foldmethod", "manual", { win = win })
+  api.nvim_set_option_value( "foldtext", FOLDTEXT, { win = win })
 
   -- Title window and buffer, positioned in a popup at the top of the window
   local title_buf = api.nvim_create_buf(false, true)
@@ -241,9 +245,9 @@ local function set_autocmds(context)
   return autocmd_ids
 end
 
-local function clear_completion(win, path)
-      local cursor = vim.api.nvim_win_get_cursor(win)
-    local line = vim.api.nvim_get_current_line()
+local function set_completion(win, path)
+    local cursor = api.nvim_win_get_cursor(win)
+    local line = api.nvim_get_current_line()
     local col = cursor[2] + 1
     local start_col = col
 
@@ -251,9 +255,9 @@ local function clear_completion(win, path)
       start_col = start_col - 1
     end
 
-    local new_line = line:sub(1, start_col) .. line:sub(col + 1) .. "@" .. path
-    vim.api.nvim_set_current_line(new_line)
-    vim.api.nvim_win_set_cursor(win, { cursor[1], start_col })
+    local new_line = line:sub(1, start_col) .."@" .. path.. line:sub(col + 1)
+    api.nvim_set_current_line(new_line)
+    api.nvim_win_set_cursor(win, { cursor[1], start_col + #path })
 end
 
 --- Clean up all autocommands that have been created
@@ -306,9 +310,11 @@ function EnlightenChat:new(aiConfig, settings)
     vim.cmd("startinsert")
   end)
   context.file_picker = FilePicker:new(id, function(path, content)
-    context:_add_file_path(path, content)
-    clear_completion(context.chat_win, path)
     context.files[path] = content
+    context:_add_file_path(path, content)
+    set_completion(context.chat_win, path)
+    -- Leave the user in insert mode so they can keep typing
+    vim.api.nvim_feedkeys("a", "n", false)
   end)
 
   set_keymaps(context)
@@ -477,26 +483,23 @@ function EnlightenChat:_add_assistant()
   insert_line(self.chat_buf, "")
 end
 
+--- Inject file content into the buffer with folds
+---@param path string
+---@param content string[]
 function EnlightenChat:_add_file_path(path, content)
-  insert_line(self.chat_buf, "")
   insert_line(self.chat_buf, "")
 
   local start_row = api.nvim_buf_line_count(self.chat_buf)
 
-  -- Insert file path and content
+  -- Append file path and content to the chat
   local lines = { "", "```" .. path }
   vim.list_extend(lines, content)
   table.insert(lines, "```")
-  table.insert(lines, "")
-
-  -- Insert content at position
   api.nvim_buf_set_lines(self.chat_buf, start_row - 1, start_row - 1, false, lines)
-
-  local end_row = api.nvim_buf_line_count(self.chat_buf)
 
   -- Create fold for the content
   local fold_start = start_row + 1
-  local fold_end = end_row
+  local fold_end = start_row + #lines - 1
   vim.cmd(fold_start .. "," .. fold_end .. "fold")
 end
 
