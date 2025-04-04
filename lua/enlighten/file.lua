@@ -89,7 +89,10 @@ function M.join_paths(...)
 
   for i = 2, #paths do
     local path = paths[i]
+
+    -- Skip the junk
     if path ~= nil and path ~= "" then
+
       -- If path is absolute, it becomes the new base path
       if M.is_absolute_path(path) then
         result = path
@@ -103,6 +106,7 @@ function M.join_paths(...)
         if result ~= "" and result:sub(-1) ~= M.path_separator() then
           result = result .. M.path_separator()
         end
+
         result = result .. path
       end
     end
