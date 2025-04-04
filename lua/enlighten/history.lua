@@ -1,16 +1,14 @@
 local Logger = require("enlighten.logger")
 
----@alias Files { path: string, content: string[] }[]
----@alias FileIndex table<number, Files>
+---@alias filepaths string[]
 
 ---@class HistoryItem
 --- Conversation data from the past session.
 ---@field messages AiMessages
 --- The date the session was saved to history.
 ---@field date string
---- An index of files added to messages. Each key is a 1-based index of file information
---- that map to the index of a message in messages.
----@field files? FileIndex
+--- List of file paths added by the user
+---@field files? filepaths
 
 --- A class for managing a history of past sessions with the a plugin feature for a current active session.
 ---@class History
@@ -132,7 +130,7 @@ end
 --- Updates history with new messages.
 --- If messages is a string, it will be wrapped as an AI message.
 ---@param messages AiMessages|string
----@param files Files
+---@param files filepaths
 ---@return HistoryItem[] Updated list of HistoryItem objects.
 function History:update(messages, files)
   if type(messages) == "string" then

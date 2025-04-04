@@ -42,7 +42,7 @@ local FilePicker = require("enlighten.picker")
 --- A flag for whether or not the user has generated completions this session.
 ---@field has_generated boolean
 ---@field file_picker FilePicker
----@field files FileIndex
+---@field files filepaths
 local EnlightenChat = {}
 EnlightenChat.__index = EnlightenChat
 
@@ -320,7 +320,7 @@ function EnlightenChat:new(aiConfig, settings)
     vim.cmd("startinsert")
   end)
   context.file_picker = FilePicker:new(id, function(path, content)
-    context.files[path] = content
+    table.insert(context.files, path)
     context:_add_file_path(path, content)
   end)
 
