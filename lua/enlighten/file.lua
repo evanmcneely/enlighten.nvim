@@ -27,12 +27,17 @@ end
 ---@param base_dir string
 ---@return string The
 function M.make_relative_path(filepath, base_dir)
-
   -- Normalize paths by removing trailing '/.' or '\.' if present
-  if filepath:sub(-2) == M.path_separator() .. "." then filepath = filepath:sub(1, -3) end
-  if base_dir:sub(-2) == M.path_separator() .. "." then base_dir = base_dir:sub(1, -3) end
+  if filepath:sub(-2) == M.path_separator() .. "." then
+    filepath = filepath:sub(1, -3)
+  end
+  if base_dir:sub(-2) == M.path_separator() .. "." then
+    base_dir = base_dir:sub(1, -3)
+  end
 
-  if filepath == base_dir then return "." end
+  if filepath == base_dir then
+    return "."
+  end
 
   -- If the filepath starts with the base directory, make it relative
   if filepath:sub(1, #base_dir) == base_dir then
@@ -58,16 +63,21 @@ end
 ---@param path string
 ---@return boolean
 function M.is_absolute_path(path)
-  if not path then return false end
-  if M.is_win() then return path:match("^%a:[/\\]") ~= nil end
+  if not path then
+    return false
+  end
+  if M.is_win() then
+    return path:match("^%a:[/\\]") ~= nil
+  end
   return path:match("^/") ~= nil
 end
-
 
 local _is_win = nil
 ---@return boolean
 function M.is_win()
-  if _is_win == nil then _is_win = jit.os:find("Windows") ~= nil end
+  if _is_win == nil then
+    _is_win = jit.os:find("Windows") ~= nil
+  end
   return _is_win
 end
 
@@ -79,7 +89,9 @@ function M.join_paths(...)
 
   for i = 2, #paths do
     local path = paths[i]
-    if path == nil or path == "" then goto continue end
+    if path == nil or path == "" then
+      goto continue
+    end
 
     -- If path is absolute, it becomes the new base path
     if M.is_absolute_path(path) then
@@ -88,10 +100,14 @@ function M.join_paths(...)
     end
 
     -- Remove leading "./" if present
-    if path:sub(1, 2) == "." .. M.path_separator() then path = path:sub(3) end
+    if path:sub(1, 2) == "." .. M.path_separator() then
+      path = path:sub(3)
+    end
 
     -- Add separator if needed
-    if result ~= "" and result:sub(-1) ~= M.path_separator() then result = result .. M.path_separator() end
+    if result ~= "" and result:sub(-1) ~= M.path_separator() then
+      result = result .. M.path_separator()
+    end
     result = result .. path
     ::continue::
   end
@@ -109,7 +125,9 @@ end
 ---@return string
 function M.uniform_path(path)
   -- If the path is not within the current working directory, return it as is
-  if not M.is_in_cwd(path) then return path end
+  if not M.is_in_cwd(path) then
+    return path
+  end
 
   -- Convert the path to an absolute path and then back to a relative from the CMD
   local project_root = M.get_project_root()

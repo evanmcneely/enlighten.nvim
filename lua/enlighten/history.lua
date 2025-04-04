@@ -141,7 +141,7 @@ function History:update(messages, files)
   local item = {
     messages = messages,
     date = tostring(os.date("%Y-%m-%d")),
-    files = files
+    files = files,
   }
 
   if self.index == 0 then

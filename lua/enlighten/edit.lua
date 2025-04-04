@@ -240,7 +240,7 @@ local function set_autocmds(context)
         context:cleanup()
       end,
     }),
-        -- Add completion sources
+    -- Add completion sources
     api.nvim_create_autocmd("InsertEnter", {
       group = augroup,
       buffer = context.prompt_buf,
@@ -260,9 +260,8 @@ local function set_autocmds(context)
             },
           })
         end
-      end
+      end,
     }),
-
   }
 
   context.autocommands = autocmd_ids
@@ -508,6 +507,5 @@ function EnlightenEdit:_add_file_path(path, content)
   local fold_end = start_row + #lines - 1
   vim.cmd(fold_start .. "," .. fold_end .. "fold")
 end
-
 
 return EnlightenEdit
