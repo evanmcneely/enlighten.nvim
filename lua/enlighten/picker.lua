@@ -239,20 +239,15 @@ end
 
 ---@return nil
 function FilePicker:add_quickfix_files()
-  local quickfix_files = vim
+  local quickfix_list = vim
     .iter(vim.fn.getqflist({ items = 0 }).items)
     :filter(function(item)
       return item.bufnr ~= 0
     end)
-    :map(function(item)
-      local filepath = vim.api.nvim_buf_get_name(item.bufnr)
-      local root = file_utils.get_project_root()
-      return file_utils.make_relative_path(filepath, root)
-    end)
     :totable()
 
-  for _, filepath in ipairs(quickfix_files) do
-    self:add_selected_file(filepath)
+  for _, item in ipairs(quickfix_list) do
+    self:add_buffer(item.bufnr)
   end
 end
 
@@ -263,14 +258,7 @@ function FilePicker:add_buffer_files()
   for _, bufnr in ipairs(buffers) do
     -- Skip invalid or unlisted buffers
     if vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].buflisted then
-      local filepath = vim.api.nvim_buf_get_name(bufnr)
-
-      -- Skip empty paths and special buffers (like terminals)
-      if filepath ~= "" and not has_scheme(filepath) then
-        local root = file_utils.get_project_root()
-        local relative_path = file_utils.make_relative_path(filepath, root)
-        self:add_selected_file(relative_path)
-      end
+      self:add_buffer(bufnr)
     end
   end
 end
