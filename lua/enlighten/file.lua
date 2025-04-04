@@ -89,27 +89,23 @@ function M.join_paths(...)
 
   for i = 2, #paths do
     local path = paths[i]
-    if path == nil or path == "" then
-      goto continue
-    end
+    if path ~= nil and path ~= "" then
+      -- If path is absolute, it becomes the new base path
+      if M.is_absolute_path(path) then
+        result = path
+      else
+        -- Remove leading "./" if present
+        if path:sub(1, 2) == "." .. M.path_separator() then
+          path = path:sub(3)
+        end
 
-    -- If path is absolute, it becomes the new base path
-    if M.is_absolute_path(path) then
-      result = path
-      goto continue
+        -- Add separator if needed
+        if result ~= "" and result:sub(-1) ~= M.path_separator() then
+          result = result .. M.path_separator()
+        end
+        result = result .. path
+      end
     end
-
-    -- Remove leading "./" if present
-    if path:sub(1, 2) == "." .. M.path_separator() then
-      path = path:sub(3)
-    end
-
-    -- Add separator if needed
-    if result ~= "" and result:sub(-1) ~= M.path_separator() then
-      result = result .. M.path_separator()
-    end
-    result = result .. path
-    ::continue::
   end
 
   return result
