@@ -52,7 +52,8 @@ local ASSISTANT = " Assistant"
 local USER_SIGN = " "
 local ASSISTANT_SIGN = "󰚩 " -- must be different from user sign
 -- luacheck: push ignore 631
-local FOLDTEXT = "[[substitute(getline(v:foldstart),'\\t',repeat('\\ ',&tabstop),'g').'...'.trim(getline(v:foldend)) . ' (' . (v:foldend - v:foldstart + 1) . ' lines)']]"
+local FOLDTEXT =
+  "[[substitute(getline(v:foldstart),'\\t',repeat('\\ ',&tabstop),'g').'...'.trim(getline(v:foldend)) . ' (' . (v:foldend - v:foldstart + 1) . ' lines)']]"
 -- luacheck: pop
 
 --- Create the chat buffer and popup window
@@ -79,7 +80,7 @@ local function create_window(id, settings)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
   api.nvim_set_option_value("foldmethod", "manual", { win = win })
-  api.nvim_set_option_value( "foldtext", FOLDTEXT, { win = win })
+  api.nvim_set_option_value("foldtext", FOLDTEXT, { win = win })
 
   -- Title window and buffer, positioned in a popup at the top of the window
   local title_buf = api.nvim_create_buf(false, true)
@@ -198,6 +199,30 @@ local function get_directives(context)
         context.file_picker:open()
       end,
     },
+    {
+      details = "Add the target buffer to context",
+      description = "Add the current buffer to context",
+      command = "target",
+      callback = function()
+        context.file_picker:add_buffer(context.target_buf)
+      end,
+    },
+    {
+      details = "Add quickfix to context",
+      description = "Add quickfix to context",
+      command = "quickfix",
+      callback = function()
+        context.file_picker:add_quickfix_files()
+      end,
+    },
+    {
+      details = "Add buffers list to context",
+      description = "Add quickfix to context",
+      command = "buffers",
+      callback = function()
+        context.file_picker:add_buffer_files()
+      end,
+    },
   }
 end
 
@@ -243,21 +268,6 @@ local function set_autocmds(context)
 
   context.autocommands = autocmd_ids
   return autocmd_ids
-end
-
-local function set_completion(win, path)
-    local cursor = api.nvim_win_get_cursor(win)
-    local line = api.nvim_get_current_line()
-    local col = cursor[2] + 1
-    local start_col = col
-
-    while start_col > 0 and line:sub(start_col, start_col) ~= " " do
-      start_col = start_col - 1
-    end
-
-    local new_line = line:sub(1, start_col) .."@" .. path.. line:sub(col + 1)
-    api.nvim_set_current_line(new_line)
-    api.nvim_win_set_cursor(win, { cursor[1], start_col + #path })
 end
 
 --- Clean up all autocommands that have been created
@@ -312,9 +322,6 @@ function EnlightenChat:new(aiConfig, settings)
   context.file_picker = FilePicker:new(id, function(path, content)
     context.files[path] = content
     context:_add_file_path(path, content)
-    set_completion(context.chat_win, path)
-    -- Leave the user in insert mode so they can keep typing
-    vim.api.nvim_feedkeys("a", "n", false)
   end)
 
   set_keymaps(context)

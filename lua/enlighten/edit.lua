@@ -274,7 +274,7 @@ function EnlightenEdit:close()
   end
 
   if self.has_generated then
-    self.history:update(build_messages(buffer.get_content(self.prompt_buf)))
+    self.history:update(build_messages(buffer.get_content(self.prompt_buf)), {})
   end
 
   Logger:log("edit:close", { id = self.id })
@@ -316,6 +316,8 @@ function EnlightenEdit:submit()
 
     self.writer:reset()
     local prompt = self:_build_prompt()
+
+    print(prompt)
 
     local opts = {
       provider = self.aiConfig.provider,

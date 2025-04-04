@@ -149,19 +149,6 @@ function FilePicker:add_selected_file(filepath)
   end
 end
 
-function FilePicker:add_current_buffer()
-  local current_buf = vim.api.nvim_get_current_buf()
-  local filepath = vim.api.nvim_buf_get_name(current_buf)
-
-  if filepath and filepath ~= "" and not has_scheme(filepath) then
-    local relative_path = file_utils.relative_path(filepath)
-    self:add_selected_file(relative_path)
-    return true
-  end
-
-  return false
-end
-
 function FilePicker:open()
   local function handler(selected_paths)
     self:handle_path_selection(selected_paths)
@@ -238,6 +225,18 @@ function FilePicker:get_selected_filepaths()
   return vim.deepcopy(self.selected_filepaths)
 end
 
+---@param buf number
+---@return nil
+function FilePicker:add_buffer(buf)
+  local filepath = vim.api.nvim_buf_get_name(buf)
+
+  if filepath and filepath ~= "" and not has_scheme(filepath) then
+    local root = file_utils.get_project_root()
+    local relative_path = file_utils.make_relative_path(filepath, root)
+    self:add_selected_file(relative_path)
+  end
+end
+
 ---@return nil
 function FilePicker:add_quickfix_files()
   local quickfix_files = vim
@@ -246,7 +245,9 @@ function FilePicker:add_quickfix_files()
       return item.bufnr ~= 0
     end)
     :map(function(item)
-      return file_utils.relative_path(vim.api.nvim_buf_get_name(item.bufnr))
+      local filepath = vim.api.nvim_buf_get_name(item.bufnr)
+      local root = file_utils.get_project_root()
+      return file_utils.make_relative_path(filepath, root)
     end)
     :totable()
 
@@ -266,7 +267,8 @@ function FilePicker:add_buffer_files()
 
       -- Skip empty paths and special buffers (like terminals)
       if filepath ~= "" and not has_scheme(filepath) then
-        local relative_path = file_utils.relative_path(filepath)
+        local root = file_utils.get_project_root()
+        local relative_path = file_utils.make_relative_path(filepath, root)
         self:add_selected_file(relative_path)
       end
     end
