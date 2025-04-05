@@ -5,7 +5,7 @@ local augroup = require("enlighten.autocmd")
 local Writer = require("enlighten.writer.diff")
 local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
-local FilePicker = require("enlighten.picker")
+local FilePicker = require("enlighten.file_picker")
 
 ---@class EnlightenPrompt
 --- Settings injected into this class from the plugin config.
@@ -392,8 +392,6 @@ function EnlightenEdit:submit()
 
     self.writer:reset()
     local prompt = self:_build_prompt()
-
-    print(prompt)
 
     local opts = {
       provider = self.aiConfig.provider,

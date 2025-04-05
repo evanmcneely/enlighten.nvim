@@ -9,7 +9,7 @@ local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
 local utils = require("enlighten.utils")
 local diff_hl = require("enlighten.diff.highlights")
-local FilePicker = require("enlighten.picker")
+local FilePicker = require("enlighten.file_picker")
 
 ---@class EnlightenChat
 --- Settings injected into this class from the plugin config

@@ -6,7 +6,6 @@ local debug = require("enlighten.debug")
 local Logger = require("enlighten.logger")
 local diff_hl = require("enlighten.diff.highlights")
 local buffer = require("enlighten.buffer")
-local Picker = require("enlighten.picker")
 
 ---@class Enlighten
 --- Full plugin configuration with default values overridden by user provided ones.
@@ -21,9 +20,6 @@ local enlighten = {
   setup_complete = false,
   logger = Logger,
   debug = debug,
-  picker = Picker:new("123", function(path, content)
-    print("done", path, vim.inspect(content))
-  end),
 }
 
 ---@param user_config EnlightenPartialConfig?
