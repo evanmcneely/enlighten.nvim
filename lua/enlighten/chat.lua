@@ -9,6 +9,7 @@ local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
 local utils = require("enlighten.utils")
 local diff_hl = require("enlighten.diff.highlights")
+local mentions = require("enlighten.mentions")
 local FilePicker = require("enlighten.file_picker")
 
 ---@class EnlightenChat
@@ -187,45 +188,6 @@ local function insert_line(buf, content, highlight)
   end
 end
 
----@param context EnlightenChat
----@return EnlightenMention[]
-local function get_directives(context)
-  return {
-    {
-      details = "Add files to context",
-      description = "Add files to context",
-      command = "files",
-      callback = function()
-        context.file_picker:open()
-      end,
-    },
-    {
-      details = "Add the target buffer to context",
-      description = "Add the current buffer to context",
-      command = "target",
-      callback = function()
-        context.file_picker:add_buffer(context.target_buf)
-      end,
-    },
-    {
-      details = "Add quickfix to context",
-      description = "Add quickfix to context",
-      command = "quickfix",
-      callback = function()
-        context.file_picker:add_quickfix_files()
-      end,
-    },
-    {
-      details = "Add buffers list to context",
-      description = "Add quickfix to context",
-      command = "buffers",
-      callback = function()
-        context.file_picker:add_buffer_files()
-      end,
-    },
-  }
-end
-
 --- Set all autocommands that the feature is dependant on
 ---@param context EnlightenChat
 ---@return number[]
@@ -253,7 +215,7 @@ local function set_autocmds(context)
         if has_cmp then
           cmp.register_source(
             "enlighten_commands",
-            require("enlighten.cmp").new(get_directives(context), context.chat_buf)
+            require("enlighten.cmp").new(mentions.get(context), context.chat_buf)
           )
           cmp.setup.buffer({
             enabled = true,
