@@ -1,14 +1,5 @@
 local api = vim.api
 
----@alias EnlightenMentionType "files"
----@alias EnlightenMentionCB fun(args: string, cb?: fun(args: string): nil): nil
-
----@class EnlightenMention
----@field description string
----@field command EnlightenMentionType
----@field details string
----@field callback? EnlightenMentionCB
-
 ---@class cmp_source
 ---@field commands EnlightenMention[]
 ---@field buffer integer

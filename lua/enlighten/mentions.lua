@@ -1,8 +1,18 @@
 local M = {}
 
+---@alias EnlightenMentionType "files" | "target" | "quickfix" | "buffers"
+---@alias EnlightenMentionCB fun(args: string, cb?: fun(args: string): nil): nil
+
+---@class EnlightenMention
+---@field description string
+---@field command EnlightenMentionType
+---@field details string
+---@field callback? EnlightenMentionCB
+
 ---@param context EnlightenChat | EnlightenPrompt
 ---@return EnlightenMention[]
 function M.get(context)
+  ---@type EnlightenMention[]
   return {
     {
       details = "Add files to context",
