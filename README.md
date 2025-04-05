@@ -120,7 +120,7 @@ You can override the AI and Settings configurations for the edit or chat feature
         timeout = 30, -- set a lower timeout for the prompt feature only
       },
       chat = {
-        model = "o1-mini", -- use a different model for the chat feature only
+        model = "o3-mini", -- use a different model for the chat feature only
       }
     },
     settings = {
