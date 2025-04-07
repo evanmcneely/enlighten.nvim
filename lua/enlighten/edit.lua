@@ -460,12 +460,8 @@ function EnlightenEdit:_add_file_path(path, content)
   local lines = { "", "```" .. path }
   vim.list_extend(lines, content)
   table.insert(lines, "```")
-  api.nvim_buf_set_lines(self.prompt_buf, start_row - 1, start_row - 1, false, lines)
 
-  -- Create fold for the content
-  local fold_start = start_row + 1
-  local fold_end = start_row + #lines - 1
-  vim.cmd(fold_start .. "," .. fold_end .. "fold")
+  buffer.insert_with_fold(self.target_buf, start_row, lines)
 end
 
 return EnlightenEdit

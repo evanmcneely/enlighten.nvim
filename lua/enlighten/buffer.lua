@@ -107,4 +107,13 @@ function M.get_content_with_line_numbers(buffer)
   return table.concat(lines, "\n")
 end
 
+function M.insert_with_fold(buffer, row, content)
+  api.nvim_buf_set_lines(buffer, row -1, row -1, false, content)
+
+  -- Create fold for the content
+  local fold_start = row + 1
+  local fold_end = row + #content - 1
+  vim.cmd(fold_start .. "," .. fold_end .. "fold")
+end
+
 return M
