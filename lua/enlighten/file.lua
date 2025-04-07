@@ -92,7 +92,6 @@ function M.join_paths(...)
 
     -- Skip the junk
     if path ~= nil and path ~= "" then
-
       -- If path is absolute, it becomes the new base path
       if M.is_absolute_path(path) then
         result = path

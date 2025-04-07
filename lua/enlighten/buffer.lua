@@ -108,7 +108,7 @@ function M.get_content_with_line_numbers(buffer)
 end
 
 function M.insert_with_fold(buffer, row, content)
-  api.nvim_buf_set_lines(buffer, row -1, row -1, false, content)
+  api.nvim_buf_set_lines(buffer, row - 1, row - 1, false, content)
 
   -- Create fold for the content
   local fold_start = row + 1
