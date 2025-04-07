@@ -156,13 +156,25 @@ Open the chat window. You can optionally select code from the buffer to have it 
 
 - `<CR>` - submit the prompt for completion (normal mode)
 - `<C-CR>` - submit the prompt for completion (insert mode)
-- `<S-C-CR` - AI edit buffer with context from chat
+- `<S-C-CR` - AI edit buffer with context from chat (⚠️  Experimental)
 - `q` - close the chat window
 - `<C-o>` - scroll back through past chat conversations
 - `<C-i>` - scroll forward through past chat conversations
 - `<C-x>` - stop the streamed response
 
-Chat responses are streamed into the chat buffer. Chat conversations will only be available for the current Neovim session
+Chat responses are streamed into the chat buffer.
+
+#### Mentions
+> ⚠️  Experimental
+
+Dependant on [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [plenary.nvim](https://github.com/nvim-lua/plenary.nvim).
+
+While using either of the above features, type `@` to see a list of available completions.
+
+- `@files` - Uses `vim.ui.select` to open a file picker. Select file contents are added to the chat/prompt.
+- `@target` - Adds the target buffer content (the buffer your cursor was in when the chat/prompt was initiated) to the chat/prompt.
+- `@buffers` - Adds all open buffers content to the chat/prompt.
+- `@quickfix` - Adds all buffer content from the quickfix list to the chat/prompt.
 
 ### 👍 Kudos
 
@@ -178,4 +190,7 @@ Chat responses are streamed into the chat buffer. Chat conversations will only b
 - Approve/Reject generated chunks from file. ✅
 - Edit buffer with context from the chat. ✅
 - Use codebase as context (files, functions, classes, git history etc.).
+    - files ✅
+    - lsp
+    - git
 - Edit multiple buffers with context from chat.
