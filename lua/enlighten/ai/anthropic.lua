@@ -81,7 +81,7 @@ function M.get_api_key()
   return os.getenv(M.api_key_env_var) or ""
 end
 
----@param body AnthropicStreamingResponse | AnthropicError
+---@param body AnthropicStreamingResponse | AnthropicResponse | AnthropicError
 ---@return boolean
 function M.is_error(body)
   return body.type == "error"

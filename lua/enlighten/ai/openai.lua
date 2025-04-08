@@ -33,8 +33,11 @@
 ---@field role string
 ---@field content string
 
+---@class OpenAIErrorDetails
+---@field message string
+---
 ---@class OpenAIError
----@field error { message: string }
+---@field error OpenAIErrorDetails
 
 ---@class OpenAIMessage
 ---@field role string
@@ -85,7 +88,7 @@ function M.get_api_key()
   return os.getenv(M.api_key_env_var) or ""
 end
 
----@param body OpenAIStreamingResponse | OpenAIError
+---@param body OpenAIStreamingResponse | OpenAIResponse | OpenAIError
 ---@return boolean
 function M.is_error(body)
   return body.error ~= nil
