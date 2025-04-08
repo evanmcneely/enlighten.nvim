@@ -68,7 +68,7 @@ This is the default configuration.
       model = "gpt-4o", -- model name for the specified provider. Only chat completion models are supported (plus the o3-mini reasoning model)
       temperature = 0,
       tokens = 4096,
-      timeout = 60,
+      timeout = 120, -- recommended to keep very high
     },
     settings = {
       context = 500 -- lines above and below the selected text passed to the model as context
