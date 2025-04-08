@@ -1,15 +1,18 @@
 {
   "runtime.version": "LuaJIT",
   "runtime.path": ["lua/?.lua", "lua/?/init.lua"],
+
   "workspace.checkThirdParty": false,
-  "diagnostics.enable": true,
-  "format.enable": false,
   "workspace.library": [
     "lua",
     "$VIMRUNTIME",
     "${3rd}/luv/library",
     "plenary.nvim"
   ],
+
+  "format.enable": false,
+
+  "diagnostics.enable": true,
   "type.castNumberToInteger": true,
   "type.checkTableShape": true,
   "type.inferParamType": true,

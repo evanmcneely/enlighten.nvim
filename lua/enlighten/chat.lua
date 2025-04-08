@@ -9,6 +9,8 @@ local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
 local utils = require("enlighten.utils")
 local diff_hl = require("enlighten.diff.highlights")
+local mentions = require("enlighten.mentions")
+local FilePicker = require("enlighten.file_picker")
 
 ---@class EnlightenChat
 --- Settings injected into this class from the plugin config
@@ -40,6 +42,8 @@ local diff_hl = require("enlighten.diff.highlights")
 ---@field messages_nsid number
 --- A flag for whether or not the user has generated completions this session.
 ---@field has_generated boolean
+---@field file_picker FilePicker
+---@field files filepaths
 local EnlightenChat = {}
 EnlightenChat.__index = EnlightenChat
 
@@ -48,6 +52,10 @@ local USER = " User"
 local ASSISTANT = " Assistant"
 local USER_SIGN = " "
 local ASSISTANT_SIGN = "󰚩 " -- must be different from user sign
+-- luacheck: push ignore 631
+local FOLDTEXT =
+  "[[substitute(getline(v:foldstart),'\\t',repeat('\\ ',&tabstop),'g').'...'.trim(getline(v:foldend)) . ' (' . (v:foldend - v:foldstart + 1) . ' lines)']]"
+-- luacheck: pop
 
 --- Create the chat buffer and popup window
 ---@param id string
@@ -72,6 +80,8 @@ local function create_window(id, settings)
   api.nvim_buf_set_name(buf, "enlighten-chat" .. id)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
+  api.nvim_set_option_value("foldmethod", "manual", { win = win })
+  api.nvim_set_option_value("foldtext", FOLDTEXT, { win = win })
 
   -- Title window and buffer, positioned in a popup at the top of the window
   local title_buf = api.nvim_create_buf(false, true)
@@ -178,21 +188,6 @@ local function insert_line(buf, content, highlight)
   end
 end
 
--- ---@param context EnlightenChat
--- ---@return EnlightenMention[]
--- local function get_directives(context)
---   return {
---     {
---       details = "Update buffer from chat context",
---       description = "Update buffer from chat context",
---       command = "edit",
---       callback = function()
---         context:write_to_buffer()
---       end,
---     },
---   }
--- end
-
 --- Set all autocommands that the feature is dependant on
 ---@param context EnlightenChat
 ---@return number[]
@@ -209,29 +204,28 @@ local function set_autocmds(context)
       end,
     }),
 
-    -- TODO add @mentions
     -- Add completion sources
-    -- api.nvim_create_autocmd("InsertEnter", {
-    --   group = augroup,
-    --   buffer = context.chat_buf,
-    --   -- once = true,
-    --   desc = "Setup the completion of helpers in the input buffer",
-    --   callback = function()
-    --     local has_cmp, cmp = pcall(require, "cmp")
-    --     if has_cmp then
-    --       cmp.register_source(
-    --         "enlighten_commands",
-    --         require("enlighten.cmp").new(get_directives(context), context.chat_buf)
-    --       )
-    --       cmp.setup.buffer({
-    --         enabled = true,
-    --         sources = {
-    --           { name = "enlighten_commands" },
-    --         },
-    --       })
-    --     end
-    --   end,
-    -- }),
+    api.nvim_create_autocmd("InsertEnter", {
+      group = augroup,
+      buffer = context.chat_buf,
+      once = true,
+      desc = "Setup the completion of helpers in the input buffer",
+      callback = function()
+        local has_cmp, cmp = pcall(require, "cmp")
+        if has_cmp then
+          cmp.register_source(
+            "enlighten_commands",
+            require("enlighten.cmp").new(mentions.get(context), context.chat_buf)
+          )
+          cmp.setup.buffer({
+            enabled = true,
+            sources = {
+              { name = "enlighten_commands" },
+            },
+          })
+        end
+      end,
+    }),
   }
 
   context.autocommands = autocmd_ids
@@ -280,11 +274,16 @@ function EnlightenChat:new(aiConfig, settings)
   context.target_buf = buf
   context.history = History:new("chat")
   context.has_generated = false
+  context.files = {}
   context.writer = StreamWriter:new(chat_win.win_id, chat_win.bufnr, function()
     context.has_generated = true
     context:_add_user()
     context.messages = context:_build_messages()
     vim.cmd("startinsert")
+  end)
+  context.file_picker = FilePicker:new(id, function(path, content)
+    table.insert(context.files, path)
+    context:_add_file_path(path, content)
   end)
 
   set_keymaps(context)
@@ -309,7 +308,7 @@ function EnlightenChat:close()
   end
 
   if self.has_generated then
-    self.history:update(self.messages)
+    self.history:update(self.messages, self.files)
   end
 
   self:_close_chat_win()
@@ -453,6 +452,22 @@ function EnlightenChat:_add_assistant()
   insert_line(self.chat_buf, "")
 end
 
+--- Inject file content into the buffer with folds
+---@param path string
+---@param content string[]
+function EnlightenChat:_add_file_path(path, content)
+  insert_line(self.chat_buf, "")
+
+  local start_row = api.nvim_buf_line_count(self.chat_buf)
+
+  -- Append file path and content to the chat
+  local lines = { "", "```" .. path }
+  vim.list_extend(lines, content)
+  table.insert(lines, "```")
+
+  buffer.insert_with_fold(self.chat_buf, start_row, lines)
+end
+
 -- Highlight the chat user/assistant markers
 ---@param messages AiMessages
 function EnlightenChat:_write_messages(messages)
@@ -485,6 +500,7 @@ function EnlightenChat:scroll_back()
   if not self.writer.active then
     local data = self.history:scroll_back()
     if data then
+      self.files = data.files or {}
       self:_write_messages(data.messages)
     end
   end
@@ -495,6 +511,7 @@ function EnlightenChat:scroll_forward()
   if not self.writer.active then
     local data = self.history:scroll_forward()
     if data then
+      self.files = data.files or {}
       self:_write_messages(data.messages)
     else
       self:_write_messages(self.messages)
@@ -565,14 +582,21 @@ function EnlightenChat:ai_edit_target_buffer()
     -- Response should parse to { start_row = number, end_row = number }
     local success, json = pcall(vim.fn.json_decode, response)
     if not success then
+      Logger:log(
+        "ai_edit_target_buffer..on_done - failed to parse response",
+        { ai_response = response }
+      )
       vim.notify("Failed to edit buffer", vim.log.levels.ERROR)
       return
     end
 
     if json.start_row == -1 then
+      Logger:log("ai_edit_target_buffer..on_done - nothing to edit", { ai_response = response })
       vim.notify("There is nothing in the buffer to edit", vim.log.levels.INFO)
       return
     end
+
+    Logger:log("ai_edit_target_buffer..on_done - lines", { json = json })
 
     local range = {
       row_start = json.start_row,

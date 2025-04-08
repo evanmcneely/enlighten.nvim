@@ -1,12 +1,14 @@
 local Logger = require("enlighten.logger")
 
---- TODO save history for feature under project name (default if not git directory)
+---@alias filepaths string[]
 
 ---@class HistoryItem
 --- Conversation data from the past session.
 ---@field messages AiMessages
 --- The date the session was saved to history.
 ---@field date string
+--- List of file paths added by the user
+---@field files? filepaths
 
 --- A class for managing a history of past sessions with the a plugin feature for a current active session.
 ---@class History
@@ -83,7 +85,7 @@ end
 
 --- Loads history items from the specified file. Returns an empty table if the file does not exist.
 ---@param file_path string
----@return HistoryItems[]
+---@return HistoryItem[]
 local function load_history_from_file(file_path)
   local file = io.open(file_path, "r")
   if not file then
@@ -128,8 +130,9 @@ end
 --- Updates history with new messages.
 --- If messages is a string, it will be wrapped as an AI message.
 ---@param messages AiMessages|string
+---@param files filepaths
 ---@return HistoryItem[] Updated list of HistoryItem objects.
-function History:update(messages)
+function History:update(messages, files)
   if type(messages) == "string" then
     messages = { { role = "user", content = messages } }
   end
@@ -138,6 +141,7 @@ function History:update(messages)
   local item = {
     messages = messages,
     date = tostring(os.date("%Y-%m-%d")),
+    files = files,
   }
 
   if self.index == 0 then

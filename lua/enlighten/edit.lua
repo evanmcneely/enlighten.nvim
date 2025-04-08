@@ -5,6 +5,8 @@ local augroup = require("enlighten.autocmd")
 local Writer = require("enlighten.writer.diff")
 local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
+local mentions = require("enlighten.mentions")
+local FilePicker = require("enlighten.file_picker")
 
 ---@class EnlightenPrompt
 --- Settings injected into this class from the plugin config.
@@ -41,8 +43,15 @@ local History = require("enlighten.history")
 ---@field prompt string
 --- A flag for whether or the not the user has generated text this session.
 ---@field has_generated boolean
+---@field file_picker FilePicker
+---@field files filepaths
 local EnlightenEdit = {}
 EnlightenEdit.__index = EnlightenEdit
+
+-- luacheck: push ignore 631
+local FOLDTEXT =
+  "[[substitute(getline(v:foldstart),'\\t',repeat('\\ ',&tabstop),'g').'...'.trim(getline(v:foldend)) . ' (' . (v:foldend - v:foldstart + 1) . ' lines)']]"
+-- luacheck: pop
 
 --- Create the prompt buffer and popup window.
 ---
@@ -114,6 +123,8 @@ local function create_window(id, target_buf, range, settings)
   api.nvim_set_option_value("filetype", "enlighten", { buf = buf })
   api.nvim_set_option_value("wrap", true, { win = win })
   api.nvim_set_option_value("winhl", "FloatBorder:EnlightenPromptBorder", { win = win })
+  api.nvim_set_option_value("foldmethod", "manual", { win = win })
+  api.nvim_set_option_value("foldtext", FOLDTEXT, { win = win })
 
   return {
     bufnr = buf,
@@ -191,6 +202,28 @@ local function set_autocmds(context)
         context:cleanup()
       end,
     }),
+    -- Add completion sources
+    api.nvim_create_autocmd("InsertEnter", {
+      group = augroup,
+      buffer = context.prompt_buf,
+      once = true,
+      desc = "Setup the completion of helpers in the input buffer",
+      callback = function()
+        local has_cmp, cmp = pcall(require, "cmp")
+        if has_cmp then
+          cmp.register_source(
+            "enlighten_commands",
+            require("enlighten.cmp").new(mentions.get(context), context.prompt_buf)
+          )
+          cmp.setup.buffer({
+            enabled = true,
+            sources = {
+              { name = "enlighten_commands" },
+            },
+          })
+        end
+      end,
+    }),
   }
 
   context.autocommands = autocmd_ids
@@ -239,12 +272,17 @@ function EnlightenEdit:new(aiConfig, settings)
   context.history = History:new("edit")
   context.prompt = ""
   context.has_generated = false
+  context.files = {}
   context.writer = Writer:new(buf, range, {
     mode = settings.diff_mode,
     on_done = function()
       context.has_generated = true
     end,
   })
+  context.file_picker = FilePicker:new(id, function(path, content)
+    table.insert(context.files, path)
+    context:_add_file_path(path, content)
+  end)
 
   set_keymaps(context)
   set_autocmds(context)
@@ -274,7 +312,7 @@ function EnlightenEdit:close()
   end
 
   if self.has_generated then
-    self.history:update(build_messages(buffer.get_content(self.prompt_buf)))
+    self.history:update(build_messages(buffer.get_content(self.prompt_buf)), self.files)
   end
 
   Logger:log("edit:close", { id = self.id })
@@ -391,6 +429,7 @@ end
 function EnlightenEdit:scroll_back()
   local data = self.history:scroll_back()
   if data then
+    self.files = data.files or {}
     -- Only one message is expected
     api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(data.messages[1].content, "\n"))
   end
@@ -400,12 +439,29 @@ end
 function EnlightenEdit:scroll_forward()
   local data = self.history:scroll_forward()
   if data then
+    self.files = data.files or {}
     -- Only one message is expected
     api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(data.messages[1].content, "\n"))
   else
     -- Use the prompt from this session when no data is returned
     api.nvim_buf_set_lines(self.prompt_buf, 0, -1, false, vim.split(self.prompt, "\n"))
   end
+end
+
+--- Inject file content into the buffer with folds
+---@param path string
+---@param content string[]
+function EnlightenEdit:_add_file_path(path, content)
+  api.nvim_buf_set_lines(self.prompt_buf, -1, -1, true, { "" })
+
+  local start_row = api.nvim_buf_line_count(self.prompt_buf)
+
+  -- Append file path and content to the chat
+  local lines = { "", "```" .. path }
+  vim.list_extend(lines, content)
+  table.insert(lines, "```")
+
+  buffer.insert_with_fold(self.target_buf, start_row, lines)
 end
 
 return EnlightenEdit

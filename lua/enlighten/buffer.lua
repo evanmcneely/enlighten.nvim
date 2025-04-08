@@ -2,11 +2,11 @@ local api = vim.api
 
 local M = {}
 
- ---@class SelectionRange
- ---@field col_start number
- ---@field row_start number
- ---@field col_end number
- ---@field row_end number
+---@class SelectionRange
+---@field col_start number
+---@field row_start number
+---@field col_end number
+---@field row_end number
 
 --- Get the selected range (start and end column and row) regardless of
 --- whether the user has text text selected. The users cursor position is
@@ -105,6 +105,15 @@ function M.get_content_with_line_numbers(buffer)
     lines[i] = i .. ": " .. line
   end
   return table.concat(lines, "\n")
+end
+
+function M.insert_with_fold(buffer, row, content)
+  api.nvim_buf_set_lines(buffer, row - 1, row - 1, false, content)
+
+  -- Create fold for the content
+  local fold_start = row + 1
+  local fold_end = row + #content - 1
+  vim.cmd(fold_start .. "," .. fold_end .. "fold")
 end
 
 return M
