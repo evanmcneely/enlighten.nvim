@@ -600,7 +600,7 @@ function EnlightenChat:ai_edit_target_buffer()
     Logger:log("ai_edit_target_buffer..on_done - lines", { json = json })
 
     local range = {
-      row_start = json.start_row,
+      row_start = json.start_row - 1,
       row_end = json.end_row,
       col_start = 0,
       col_end = 0,
