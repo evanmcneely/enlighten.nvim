@@ -13,20 +13,20 @@ describe("config", function()
         model = "gpt-4o",
         temperature = 0,
         tokens = 4096,
-        timeout = 60,
+        timeout = 120,
         edit = {
           provider = "openai",
           model = "gpt-4o",
           temperature = 0,
           tokens = 4096,
-          timeout = 60,
+          timeout = 120,
         },
         chat = {
           provider = "openai",
           model = "gpt-4o",
           temperature = 0,
           tokens = 4096,
-          timeout = 60,
+          timeout = 120,
         },
       },
       settings = {
