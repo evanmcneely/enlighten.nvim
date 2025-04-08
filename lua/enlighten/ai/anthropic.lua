@@ -65,7 +65,7 @@ local chat_system_prompt = [[
 
 -- Force raw JSON output that can be parsed
 local json_system_prompt = [[
-  You are not to respond with opening or closing ``` 
+  You are NOT to respond with opening or closing backticks (```). Return only the JSON blob.
 ]]
 -- luacheck: pop
 

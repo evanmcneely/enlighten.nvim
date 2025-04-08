@@ -525,7 +525,9 @@ function EnlightenChat._build_get_range_prompt(messages, buf)
     .. "return the `start_row` and `end_row` (inclusive) from the buffer that would "
     .. "need to be edited to make the changes discussed in the conversation a reality. "
     .. "Return your response as JSON. If the buffer should not be edited, return `-1` "
-    .. "for the value of `start_row`.\n\nConversation\n\n"
+    .. "for the value of `start_row`. You can only provide one start and end row, so make "
+    .. "sure your suggestion is wide enough to include all edits.\n\nExample:"
+    .. "\n{\n\"start_row\":5, \n\"end_row\":82\n}\n\nConversation:\n\n"
     .. messages
     .. "\n\n\nBuffer:\n"
     .. content
