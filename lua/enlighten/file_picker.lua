@@ -35,7 +35,7 @@ end
 ---@param absolute_path string
 ---@param project_root string
 function FilePicker:process_directory(absolute_path, project_root)
-  if not assert_plenary("scandir") then return "" end
+  if not assert_plenary("scandir") then return end
   -- Remove trailing slash from the directory path
   if absolute_path:sub(-1) == file_utils.path_separator() then
     absolute_path = absolute_path:sub(1, -2)
@@ -166,6 +166,11 @@ function FilePicker:add_selected_file(filepath)
 end
 
 function FilePicker:open()
+  if not ok_path or not ok_scan then
+    vim.notify("Plenary is not available – file picker is disabled", vim.log.levels.WARN)
+    return
+  end
+
   local function handler(selected_paths)
     self:handle_path_selection(selected_paths)
   end
@@ -203,6 +208,11 @@ end
 
 function FilePicker:native_ui(handler)
   local filepaths = self:get_filepaths()
+
+  if #filepaths == 0 then
+    vim.notify("No files available for selection", vim.log.levels.WARN)
+    return
+  end
 
   vim.ui.select(filepaths, {
     prompt = string.format("%s:", PROMPT_TITLE),
@@ -245,6 +255,8 @@ end
 ---@return nil
 function FilePicker:add_buffer(buf)
   local filepath = vim.api.nvim_buf_get_name(buf)
+
+  print(filepath)
 
   if filepath and filepath ~= "" and not has_scheme(filepath) then
     local root = file_utils.get_project_root()
