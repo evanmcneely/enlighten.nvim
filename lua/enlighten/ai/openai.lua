@@ -60,7 +60,7 @@ local edit_system_prompt = [[
 
   You are given:
   1. Context - Code surrounding the snippet (above and below).
-  2. Snippet - The specific block of code the user wants to edit in place in the buffer.
+  2. Snippet - The specific block of code the user wants to edit in place in the buffer. If the snippet is empty, your generated code will be inserted here and should not contain code from the surrounding context.
   3. Instructions - User provided instructions for editing the snippet.
 
   Your job is to rewrite the snippet following the users instructions. Your response will replace the snippet within the wider context.
