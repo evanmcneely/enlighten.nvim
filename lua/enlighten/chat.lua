@@ -551,7 +551,6 @@ function EnlightenChat._build_edit_prompt(messages, range, buf, context)
   local context_below = buffer.get_content(buf, snippet_finish + 1, context_finish)
   local snippet = buffer.get_content(buf, snippet_start, snippet_finish + 1)
 
-  -- Wrap the above and below context with backticks if they actually exist
   if vim.trim(context_above) ~= "" then
     context_above = "Context above:\n" .. context_above .. "\n\n"
   end
@@ -559,7 +558,7 @@ function EnlightenChat._build_edit_prompt(messages, range, buf, context)
     context_below = "Context below:\n" .. context_below .. "\n\n"
   end
 
-  return "File name of the file in the buffer is "
+  local prompt =  "File name of the file in the buffer is "
     .. file_name
     .. " with indentation (tabstop) of "
     .. indent
@@ -571,6 +570,8 @@ function EnlightenChat._build_edit_prompt(messages, range, buf, context)
     .. context_below
     .. "Instructions in the form of a chat conversation:\n"
     .. messages
+
+  return prompt
 end
 
 function EnlightenChat:ai_edit_target_buffer()

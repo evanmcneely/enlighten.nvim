@@ -401,17 +401,16 @@ function EnlightenEdit:_build_prompt()
   local context_below = buffer.get_content(buf, snippet_finish + 1, context_finish)
   local snippet = buffer.get_content(buf, snippet_start, snippet_finish + 1)
 
-  -- Wrap the above and below context with backticks if they actually exist
   if vim.trim(context_above) ~= "" then
     context_above = "Context above:\n" .. context_above .. "\n\n"
   end
   if vim.trim(context_below) ~= "" then
-    context_below = "Context below\n" .. context_below .. "\n\n"
+    context_below = "Context below:\n" .. context_below .. "\n\n"
   end
 
   self.prompt = user_prompt
 
-  return "File name of the file in the buffer is "
+  local prompt = "File name of the file in the buffer is "
     .. file_name
     .. " with indentation (tabstop) of "
     .. indent
@@ -423,6 +422,8 @@ function EnlightenEdit:_build_prompt()
     .. context_below
     .. "Instructions:\n"
     .. user_prompt
+
+  return prompt
 end
 
 --- Scroll back in history. This is mapped to a key on the prompt buffer.
