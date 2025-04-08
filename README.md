@@ -125,7 +125,11 @@ You can override the AI and Settings configurations for the edit or chat feature
     },
     settings = {
       edit = {
-        context = 100, -- save tokens for quick edits
+        -- use minimalist UI
+        height = 3,
+        showTitle = false,
+        showHelp = false,
+        border = "",
       },
       chat = {
         diff_mode = "off" -- turn diff highlights off when editing from chat
