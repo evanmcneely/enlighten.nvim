@@ -1,11 +1,7 @@
-local ok_path, Path = pcall(require, "plenary.path")
 local ok_scan, scan = pcall(require, "plenary.scandir")
 local file_utils = require("enlighten.file")
 
 local PROMPT_TITLE = "(Enlighten) Add a file"
-
---- @class FilePicker
-local FilePicker = {}
 
 ---@alias FileSelectorHandler fun(path:string, content:string[]): nil
 
@@ -14,28 +10,15 @@ local FilePicker = {}
 --- @field selected_filepaths string[]
 --- @field on_file_selected FileSelectorHandler
 
---- Checks whether the required Plenary module is available.
-local function assert_plenary(feature)
-  if feature == "path" and not ok_path then
-    vim.notify("Plenary.path is not available – file picker is disabled", vim.log.levels.WARN)
-    return false
-  elseif feature == "scandir" and not ok_scan then
-    vim.notify("Plenary.scandir is not available – file picker is disabled", vim.log.levels.WARN)
-    return false
-  end
-  return true
-end
-
--- Check if the path has a URI scheme (like http://, file://, etc.)
-local function has_scheme(path)
-  return path:find("^%w+://") ~= nil
-end
+--- @class FilePicker
+local FilePicker = {}
 
 --- Handles user selection of a directory from the file picker
 ---@param absolute_path string
 ---@param project_root string
 function FilePicker:process_directory(absolute_path, project_root)
-  if not assert_plenary("scandir") then return end
+  if not ok_scan then return end
+
   -- Remove trailing slash from the directory path
   if absolute_path:sub(-1) == file_utils.path_separator() then
     absolute_path = absolute_path:sub(1, -2)
@@ -73,8 +56,13 @@ function FilePicker:handle_path_selection(selected_paths)
   local project_root = file_utils.get_project_root()
 
   for _, selected_path in ipairs(selected_paths) do
-    if not assert_plenary("path") then return end
-    local absolute_path = Path:new(project_root):joinpath(selected_path):absolute()
+    local absolute_path
+    if selected_path:sub(1, 1) == "/" then
+      -- Absolute path
+      absolute_path = selected_path
+    else
+      absolute_path = vim.fn.fnamemodify(file_utils.join_paths(project_root, selected_path), ":p")
+    end
 
     local stat = vim.loop.fs_stat(absolute_path)
     if stat and stat.type == "directory" then
@@ -97,7 +85,8 @@ end
 --- Directory paths will have a trailing slash.
 ---@return string[]
 local function get_project_filepaths()
-  if not assert_plenary("scandir") then return {} end
+  if not ok_scan then return {} end
+
   local project_root = file_utils.get_project_root()
   local files = scan.scan_dir(project_root, {
     hidden = false,
@@ -106,22 +95,22 @@ local function get_project_filepaths()
     respect_gitignore = true,
   })
 
-  files = vim
-    .iter(files)
-    :map(function(filepath)
-      return file_utils.make_relative_path(filepath, project_root)
-    end)
-    :totable()
+  -- Make paths relative to the project root.
+  local rel_files = {}
+  for _, filepath in ipairs(files) do
+    table.insert(rel_files, file_utils.make_relative_path(filepath, project_root))
+  end
 
-  return vim.tbl_map(function(rel_path)
-    -- prepend a trailing slash for directories
-    local stat = vim.loop.fs_stat(rel_path)
+  -- Append trailing slash to directory names.
+  rel_files = vim.tbl_map(function(rel_path)
+    local stat = vim.loop.fs_stat(file_utils.join_paths(project_root, rel_path))
     if stat and stat.type == "directory" then
       rel_path = rel_path .. "/"
     end
-
     return rel_path
-  end, files)
+  end, rel_files)
+
+  return rel_files
 end
 
 function FilePicker:new(id, callback)
@@ -142,13 +131,17 @@ function FilePicker:add_selected_file(filepath)
     return
   end
 
-  if not assert_plenary("path") then return end
-  local absolute_path = filepath:sub(1, 1) == "/" and filepath
-    or Path:new(file_utils.get_project_root()):joinpath(filepath):absolute()
+  local project_root = file_utils.get_project_root()
+  local absolute_path
+  if filepath:sub(1, 1) == "/" then
+    absolute_path = filepath
+  else
+    absolute_path = vim.fn.fnamemodify(file_utils.join_paths(project_root, filepath), ":p")
+  end
   local stat = vim.loop.fs_stat(absolute_path)
 
   if stat and stat.type == "directory" then
-    self:process_directory(absolute_path, file_utils.get_project_root())
+    self:process_directory(absolute_path, project_root)
     return
   end
   local uniform_path = file_utils.uniform_path(filepath)
@@ -166,11 +159,6 @@ function FilePicker:add_selected_file(filepath)
 end
 
 function FilePicker:open()
-  if not ok_path or not ok_scan then
-    vim.notify("Plenary is not available – file picker is disabled", vim.log.levels.WARN)
-    return
-  end
-
   local function handler(selected_paths)
     self:handle_path_selection(selected_paths)
   end
@@ -215,7 +203,7 @@ function FilePicker:native_ui(handler)
   end
 
   vim.ui.select(filepaths, {
-    prompt = string.format("%s:", PROMPT_TITLE),
+    prompt = PROMPT_TITLE,
     format_item = function(item)
       return item
     end,
@@ -256,9 +244,8 @@ end
 function FilePicker:add_buffer(buf)
   local filepath = vim.api.nvim_buf_get_name(buf)
 
-  print(filepath)
-
-  if filepath and filepath ~= "" and not has_scheme(filepath) then
+  local has_scheme = filepath:find("^%w+://") ~= nil
+  if filepath and filepath ~= "" and not has_scheme then
     local root = file_utils.get_project_root()
     local relative_path = file_utils.make_relative_path(filepath, root)
     self:add_selected_file(relative_path)
