@@ -2,14 +2,15 @@ local api = vim.api
 local ai = require("enlighten.ai")
 local augroup = require("enlighten.autocmd")
 local buffer = require("enlighten.buffer")
+local utils = require("enlighten.utils")
+local diff_hl = require("enlighten.diff.highlights")
+local mentions = require("enlighten.mentions")
+local spinner = require("enlighten.spinner")
 local StreamWriter = require("enlighten.writer.stream")
 local SelfWriter = require("enlighten.writer.self")
 local DiffWriter = require("enlighten.writer.diff")
 local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
-local utils = require("enlighten.utils")
-local diff_hl = require("enlighten.diff.highlights")
-local mentions = require("enlighten.mentions")
 local FilePicker = require("enlighten.file_picker")
 
 ---@class EnlightenChat
@@ -276,6 +277,7 @@ function EnlightenChat:new(aiConfig, settings)
   context.has_generated = false
   context.files = {}
   context.writer = StreamWriter:new(chat_win.win_id, chat_win.bufnr, function()
+    spinner.hide()
     context.has_generated = true
     context:_add_user()
     context.messages = context:_build_messages()
@@ -311,6 +313,7 @@ function EnlightenChat:close()
     self.history:update(self.messages, self.files)
   end
 
+  spinner.hide()
   self:_close_chat_win()
   self:_close_title_win()
 
@@ -338,6 +341,7 @@ function EnlightenChat:_close_title_win()
 end
 
 function EnlightenChat:cleanup()
+  spinner.hide()
   delete_autocmds(self)
 end
 
@@ -355,6 +359,8 @@ function EnlightenChat:submit()
     Logger:log("chat:submit - messages", messages)
 
     self:_add_assistant()
+
+    spinner.show()
 
     local opts = {
       provider = self.aiConfig.provider,
@@ -489,6 +495,8 @@ end
 
 --- If text content is currently being written to the buffer... stop doing that
 function EnlightenChat:stop()
+  spinner.hide()
+
   if self.writer.active then
     self.writer:stop()
     self:_add_user()
@@ -527,7 +535,7 @@ function EnlightenChat._build_get_range_prompt(messages, buf)
     .. "Return your response as JSON. If the buffer should not be edited, return `-1` "
     .. "for the value of `start_row`. You can only provide one start and end row, so make "
     .. "sure your suggestion is wide enough to include all edits.\n\nExample:"
-    .. "\n{\n\"start_row\":5, \n\"end_row\":82\n}\n\nConversation:\n\n"
+    .. '\n{\n"start_row":5, \n"end_row":82\n}\n\nConversation:\n\n'
     .. messages
     .. "\n\n\nBuffer:\n"
     .. content
@@ -560,7 +568,7 @@ function EnlightenChat._build_edit_prompt(messages, range, buf, context)
     context_below = "Context below:\n" .. context_below .. "\n\n"
   end
 
-  local prompt =  "File name of the file in the buffer is "
+  local prompt = "File name of the file in the buffer is "
     .. file_name
     .. " with indentation (tabstop) of "
     .. indent
@@ -585,6 +593,7 @@ function EnlightenChat:ai_edit_target_buffer()
     -- Response should parse to { start_row = number, end_row = number }
     local success, json = pcall(vim.fn.json_decode, response)
     if not success then
+      spinner.hide()
       Logger:log(
         "ai_edit_target_buffer..on_done - failed to parse response",
         { ai_response = response }
@@ -594,6 +603,7 @@ function EnlightenChat:ai_edit_target_buffer()
     end
 
     if json.start_row == -1 then
+      spinner.hide()
       Logger:log("ai_edit_target_buffer..on_done - nothing to edit", { ai_response = response })
       vim.notify("There is nothing in the buffer to edit", vim.log.levels.INFO)
       return
@@ -622,10 +632,17 @@ function EnlightenChat:ai_edit_target_buffer()
     }
     ai.complete(
       self._build_edit_prompt(messages, range, self.target_buf, self.settings.context),
-      DiffWriter:new(self.target_buf, range, { mode = self.settings.diff_mode }),
+      DiffWriter:new(self.target_buf, range, {
+        mode = self.settings.diff_mode,
+        on_done = function()
+          spinner.hide()
+        end,
+      }),
       opts
     )
   end
+
+  spinner.show()
 
   local opts = {
     provider = self.aiConfig.provider,

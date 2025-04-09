@@ -188,6 +188,8 @@ While using either of the above features, type `@` to see a list of available co
 
 - [avante.nvim](https://github.com/yetone/avante.nvim) : A very different experience and ultimate goal, but with a lot of overlap in problems and implementation.
 
+- [spinner.nvim](https://github.com/jellydn/spinner.nvim) : used in this project.
+
 ### 🏎️ TODO
 
 - Persist history across Neovim sessions. ✅

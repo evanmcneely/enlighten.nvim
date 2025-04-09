@@ -2,6 +2,7 @@ local api = vim.api
 local ai = require("enlighten.ai")
 local buffer = require("enlighten.buffer")
 local augroup = require("enlighten.autocmd")
+local spinner = require("enlighten.spinner")
 local Writer = require("enlighten.writer.diff")
 local Logger = require("enlighten.logger")
 local History = require("enlighten.history")
@@ -277,6 +278,7 @@ function EnlightenEdit:new(aiConfig, settings)
     mode = settings.diff_mode,
     on_done = function()
       context.has_generated = true
+      spinner.hide()
     end,
   })
   context.file_picker = FilePicker:new(id, function(path, content)
@@ -334,6 +336,8 @@ function EnlightenEdit:cleanup()
   self.writer:stop()
   self.writer:reset()
 
+  spinner.hide()
+
   if api.nvim_buf_is_valid(self.target_buf) and self.prompt_ext_id then
     api.nvim_buf_del_extmark(self.target_buf, self.prompt_ns_id, self.prompt_ext_id)
   end
@@ -354,6 +358,8 @@ function EnlightenEdit:submit()
 
     self.writer:reset()
     local prompt = self:_build_prompt()
+
+    spinner.show()
 
     local opts = {
       provider = self.aiConfig.provider,
