@@ -123,8 +123,10 @@ function M.validate_environment()
     if not ok then
       return false
     end
+
     local curl_version = vim.version.parse(curl_result, { strict = false })
     local range = vim.version.range('*')
+    ---@diagnostic disable-next-line: need-check-nil, invisible
     local curl_exists = range:has(curl_version)
     return curl_exists
   end
