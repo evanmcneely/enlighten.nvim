@@ -17,7 +17,9 @@ local FilePicker = {}
 ---@param absolute_path string
 ---@param project_root string
 function FilePicker:process_directory(absolute_path, project_root)
-  if not ok_scan then return end
+  if not ok_scan then
+    return
+  end
 
   -- Remove trailing slash from the directory path
   if absolute_path:sub(-1) == file_utils.path_separator() then
@@ -85,7 +87,9 @@ end
 --- Directory paths will have a trailing slash.
 ---@return string[]
 local function get_project_filepaths()
-  if not ok_scan then return {} end
+  if not ok_scan then
+    return {}
+  end
 
   local project_root = file_utils.get_project_root()
   local files = scan.scan_dir(project_root, {

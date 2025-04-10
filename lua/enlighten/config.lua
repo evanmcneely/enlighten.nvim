@@ -119,13 +119,13 @@ M.config = M.get_default_config()
 ---@return boolean
 function M.validate_environment()
   local function is_curl_installed()
-    local ok, curl_result = pcall(vim.fn.system, { 'curl', '-V' })
+    local ok, curl_result = pcall(vim.fn.system, { "curl", "-V" })
     if not ok then
       return false
     end
 
     local curl_version = vim.version.parse(curl_result, { strict = false })
-    local range = vim.version.range('*')
+    local range = vim.version.range("*")
     ---@diagnostic disable-next-line: need-check-nil, invisible
     local curl_exists = range:has(curl_version)
     return curl_exists
