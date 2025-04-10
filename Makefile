@@ -7,7 +7,7 @@ lint:
 	luacheck lua/ tests/
 
 fmt:
-	stylua lua/ tests/ --config-path=.stylua.toml
+	stylua lua/ tests/ --config-path=.stylua.toml --glob '!lua/enlighten/spinner.lua'
 
 test:
 	bash ./scripts/test_runner.sh
