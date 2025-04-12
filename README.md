@@ -168,17 +168,32 @@ Open the chat window. You can optionally select code from the buffer to have it 
 
 Chat responses are streamed into the chat buffer.
 
-#### Mentions
+#### @Mentions
 > ⚠️  Experimental
 
 Dependant on [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [plenary.nvim](https://github.com/nvim-lua/plenary.nvim).
 
 While using either of the above features, type `@` to see a list of available completions.
 
-- `@files` - Uses `vim.ui.select` to open a file picker. Select file contents are added to the chat/prompt.
+- `@files` - Uses `vim.ui.select` to open a project file picker. Selected file contents are added to the chat/prompt.
 - `@target` - Adds the target buffer content (the buffer your cursor was in when the chat/prompt was initiated) to the chat/prompt.
 - `@buffers` - Adds all open buffers content to the chat/prompt.
 - `@quickfix` - Adds all buffer content from the quickfix list to the chat/prompt.
+- `@enlighten` - Uses `vim.ui.select` to open a picker with files from a `.enlighten/` directory in the project root and home directories. Selected file contents are added to the chat/prompt. This enables reusable custom prompts, instructions or documentation.
+
+If you have not configured `vim.ui.select`, try [snacks.nvim](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md) and this simple configuration to make life easy.
+
+```lua
+  {
+    "folke/snacks.nvim",
+    lazy=false,
+    opts = {
+      picker = {
+        ui_select = true, -- only use for vim.ui.select
+      },
+    },
+  },
+```
 
 ### 👍 Kudos
 

@@ -162,17 +162,19 @@ function FilePicker:add_selected_file(filepath)
   end
 end
 
-function FilePicker:open()
+function FilePicker:open_project_files()
   local function handler(selected_paths)
     self:handle_path_selection(selected_paths)
   end
 
+  local filepaths = self:get_project_filepaths()
+
   vim.schedule(function()
-    self:native_ui(handler)
+    self.pick(filepaths, handler)
   end)
 end
 
-function FilePicker:get_filepaths()
+function FilePicker:get_project_filepaths()
   local filepaths = get_project_filepaths()
 
   table.sort(filepaths, function(a, b)
@@ -198,9 +200,7 @@ function FilePicker:get_filepaths()
     :totable()
 end
 
-function FilePicker:native_ui(handler)
-  local filepaths = self:get_filepaths()
-
+function FilePicker.pick(filepaths, handler)
   if #filepaths == 0 then
     vim.notify("No files available for selection", vim.log.levels.WARN)
     return
@@ -280,6 +280,44 @@ function FilePicker:add_buffer_files()
       self:add_buffer(bufnr)
     end
   end
+end
+
+--- Opens a picker to select files from .enlighten directories
+function FilePicker:open_enlighten_files()
+  local files = {}
+  local search_paths = {
+    -- Current working directory
+    vim.fn.getcwd() .. "/.enlighten",
+
+    -- Root directory
+    -- TODO Windows??
+    vim.fn.expand("$HOME") .. "/.enlighten",
+  }
+
+  -- Collect files from all locations
+  for _, base_path in ipairs(search_paths) do
+    local stat = vim.loop.fs_stat(base_path)
+
+    if stat and stat.type == "directory" and ok_scan then
+      local path_files = scan.scan_dir(base_path, {
+        hidden = false,
+        depth = 1,
+        add_dirs = false,
+      })
+
+      for _, file_path in ipairs(path_files) do
+        table.insert(files, file_utils.make_relative_path(file_path, file_utils.get_project_root()))
+      end
+    end
+  end
+
+  local function handler(selected_paths)
+    self:handle_path_selection(selected_paths)
+  end
+
+  vim.schedule(function()
+    self.pick(files, handler)
+  end)
 end
 
 return FilePicker
