@@ -468,7 +468,7 @@ function EnlightenEdit:_add_file_path(path, content)
   vim.list_extend(lines, content)
   table.insert(lines, "```")
 
-  buffer.insert_with_fold(self.target_buf, start_row, lines)
+  buffer.insert_with_fold(self.prompt_buf, start_row, lines)
 end
 
 return EnlightenEdit
