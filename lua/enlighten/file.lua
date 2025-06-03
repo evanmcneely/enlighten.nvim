@@ -115,8 +115,53 @@ function M.join_paths(...)
 end
 
 function M.get_project_root()
-  -- Treat the cwd as the project root
-  -- TODO should correct this later
+  -- Try to find the project root using common methods
+  local methods = {
+    -- Try finding git directory
+    function()
+      local git_dir = vim.fn.finddir(".git", ".;")
+      if git_dir ~= "" then
+        return vim.fn.fnamemodify(git_dir, ":h")
+      end
+      return nil
+    end,
+
+    -- Try finding common project files
+    function()
+      for _, file in ipairs({
+        ".gitignore", -- Git
+        "Cargo.toml", -- Rust
+        "package.json", -- Node
+        "go.mod", -- Go
+        "Makefile", -- Make
+        "CMakeLists.txt", -- CMake
+        "pyproject.toml",
+        "setup.py", -- Python
+        "composer.json", -- PHP
+      }) do
+        local found = vim.fn.findfile(file, ".;")
+        if found ~= "" then
+          return vim.fn.fnamemodify(found, ":h")
+        end
+      end
+      return nil
+    end,
+
+    -- Fallback to cwd
+    function()
+      return vim.uv.cwd()
+    end,
+  }
+
+  -- Try each method in order
+  for _, method in ipairs(methods) do
+    local result = method()
+    if result then
+      return result
+    end
+  end
+
+  -- Final fallback
   return vim.uv.cwd()
 end
 
