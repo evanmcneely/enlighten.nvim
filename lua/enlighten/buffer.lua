@@ -112,7 +112,7 @@ function M.insert_with_fold(buffer, row, content)
 
   -- Create fold for the content
   local fold_start = row + 1
-  local fold_end = row + #content - 1
+  local fold_end = row + #content
   vim.cmd(fold_start .. "," .. fold_end .. "fold")
 end
 

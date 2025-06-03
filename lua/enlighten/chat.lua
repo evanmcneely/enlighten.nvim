@@ -465,9 +465,10 @@ function EnlightenChat:_add_file_path(path, content)
   insert_line(self.chat_buf, "")
 
   local start_row = api.nvim_buf_line_count(self.chat_buf)
+  local file_extension = vim.fn.fnamemodify(path, ":e")
 
   -- Append file path and content to the chat
-  local lines = { "", "```" .. path }
+  local lines = { "", path, "```" .. file_extension }
   vim.list_extend(lines, content)
   table.insert(lines, "```")
 
