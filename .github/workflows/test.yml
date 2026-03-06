@@ -13,6 +13,8 @@ jobs:
           - os: ubuntu-22.04
             rev: nightly/nvim-linux-x86_64.tar.gz
           - os: ubuntu-22.04
+            rev: v0.11.0/nvim-linux-x86_64.tar.gz
+          - os: ubuntu-22.04
             rev: v0.10.0/nvim-linux64.tar.gz
     steps:
       - uses: actions/checkout@v3
