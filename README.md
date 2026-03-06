@@ -12,11 +12,7 @@
 
 ### 🔦 Philosophy
 
-I like Neovim. I like writing the code. I also like _some_ AI editing features _sometimes_.
-
-This plugin does not strive to implement every feature in AI code editors (such as Cursor). It should have just enough power to get you unblocked or plow through some tedium - without leaving the terminal - so you can get on with your day. It should feel like a native Neovim experience.
-
-See **TODO**'s for a list of things I will eventually get to.
+There are lots of agentic solutions out there. This is not one of them. You still often need to make a change in the editor. This plugin will meet you where you are and then get out of the way.
 
 ### 🥖 Features
 
