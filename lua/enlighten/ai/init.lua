@@ -104,8 +104,9 @@ end
 
 ---@param writer Writer
 ---@param provider AiProvider
+---@param text_filter { process: fun(text: string): string, flush: fun(): string } | nil
 ---@return fun(chunk: string): nil
-local function create_streaming_chunk_handler(provider, writer)
+local function create_streaming_chunk_handler(provider, writer, text_filter)
   -- Chunks of text to be processed. Can be incomplete JSON strings mixed with "data:" prefixes.
   local buffered_chunks = ""
   -- A queue of JSON object strings to handle. Add to the end and take from the front.
@@ -131,6 +132,9 @@ local function create_streaming_chunk_handler(provider, writer)
         writer:on_complete(provider.get_error_message(json))
       elseif not provider.is_streaming_finished(json) then
         local text = provider.get_text(json)
+        if text_filter then
+          text = text_filter.process(text)
+        end
         if #text > 0 then
           writer:on_data(text)
         end
@@ -141,8 +145,9 @@ end
 
 ---@param writer Writer
 ---@param provider AiProvider
+---@param opts CompletionOptions
 ---@return fun(chunk: string): nil
-local function create_response_chunk_handler(provider, writer)
+local function create_response_chunk_handler(provider, writer, opts)
   return function(chunk)
     local success, json = pcall(vim.json.decode, chunk)
     if not success then
@@ -154,6 +159,9 @@ local function create_response_chunk_handler(provider, writer)
       writer:on_complete(provider.get_error_message(json))
     else
       local text = provider.get_text(json)
+      if provider.strip_code_block and (opts.feature == "edit" or opts.feature == "get_range") then
+        text = provider.strip_code_block(text)
+      end
       if #text > 0 then
         writer:on_data(text)
       end
@@ -270,12 +278,19 @@ function M.request(body, writer, provider, opts)
   writer:start()
 
   if opts.stream then
-    local on_stdout_chunk = create_streaming_chunk_handler(provider, writer)
+    local text_filter = provider.create_text_filter and provider.create_text_filter(opts.feature)
+    local on_stdout_chunk = create_streaming_chunk_handler(provider, writer, text_filter)
     M.exec("curl", curl_args, on_stdout_chunk, function(err)
+      if text_filter and not err then
+        local remaining = text_filter.flush()
+        if #remaining > 0 then
+          writer:on_data(remaining)
+        end
+      end
       writer:on_complete(err)
     end)
   else
-    local on_stdout_chunk = create_response_chunk_handler(provider, writer)
+    local on_stdout_chunk = create_response_chunk_handler(provider, writer, opts)
     M.exec("curl", curl_args, on_stdout_chunk, function(err)
       if err then
         writer:on_complete(err)

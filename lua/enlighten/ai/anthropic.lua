@@ -115,6 +115,81 @@ function M.get_text(body)
   return ""
 end
 
+--- Strip opening and closing code block fences from a complete text string.
+--- Used for non-streaming responses where the full text is available.
+---@param text string
+---@return string
+function M.strip_code_block(text)
+  text = text:gsub("^```%w*\n", "")
+  text = text:gsub("\n```%s*$", "")
+  return text
+end
+
+--- Create a stateful text filter for streaming responses that strips code block
+--- fences as text arrives in chunks. Returns nil for features that don't need
+--- filtering (e.g. chat).
+---@param feature string
+---@return { process: fun(text: string): string, flush: fun(): string } | nil
+function M.create_text_filter(feature)
+  if feature ~= "edit" and feature ~= "get_range" then
+    return nil
+  end
+
+  local first_line_checked = false
+  local pending = ""
+
+  return {
+    --- Process incoming text chunk. Returns text safe to forward to the writer.
+    --- Holds back incomplete lines that could be a closing fence.
+    ---@param text string
+    ---@return string
+    process = function(text)
+      pending = pending .. text
+
+      if not first_line_checked then
+        local newline_pos = pending:find("\n")
+        if not newline_pos then
+          return "" -- Still accumulating first line
+        end
+        local first_line = pending:sub(1, newline_pos - 1)
+        if first_line:match("^```") then
+          pending = pending:sub(newline_pos + 1)
+        end
+        first_line_checked = true
+      end
+
+      -- Find the last newline - hold back everything after it (potential closing fence)
+      local last_nl = nil
+      for i = #pending, 1, -1 do
+        if pending:sub(i, i) == "\n" then
+          last_nl = i
+          break
+        end
+      end
+
+      if last_nl then
+        local to_send = pending:sub(1, last_nl)
+        pending = pending:sub(last_nl + 1)
+        return to_send
+      end
+
+      return "" -- No complete line yet, keep buffering
+    end,
+
+    --- Called when streaming is complete. Returns any remaining text that
+    --- should be forwarded, unless it is a closing code fence.
+    ---@return string
+    flush = function()
+      local text = pending
+      pending = ""
+      if text:match("^```%s*$") then
+        return ""
+      end
+      return text
+    end,
+  }
+end
+
 ---@return string[]
 function M.build_headers()
   return { "-H", "x-api-key: " .. M.get_api_key(), "-H", "anthropic-version: 2023-06-01" }

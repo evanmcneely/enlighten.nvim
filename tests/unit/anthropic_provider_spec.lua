@@ -102,4 +102,120 @@ describe("provider anthropic", function()
     equals(opts.tokens, body.max_tokens)
     equals(true, body.stream)
   end)
+
+  describe("strip_code_block", function()
+    it("should strip opening and closing fences with language tag", function()
+      local input = "```python\nprint('hello')\nprint('world')\n```"
+      equals("print('hello')\nprint('world')", anthropic.strip_code_block(input))
+    end)
+
+    it("should strip fences with different language tags", function()
+      equals("local x = 1", anthropic.strip_code_block("```lua\nlocal x = 1\n```"))
+      equals("const x = 1", anthropic.strip_code_block("```javascript\nconst x = 1\n```"))
+    end)
+
+    it("should strip fences with no language tag", function()
+      equals("hello world", anthropic.strip_code_block("```\nhello world\n```"))
+    end)
+
+    it("should return text unchanged when no fences present", function()
+      local input = "print('hello')\nprint('world')"
+      equals(input, anthropic.strip_code_block(input))
+    end)
+
+    it("should preserve interior code fences", function()
+      local input = "```python\ncode with ``` inside\n```"
+      equals("code with ``` inside", anthropic.strip_code_block(input))
+    end)
+
+    it("should handle trailing whitespace on closing fence", function()
+      local input = "```python\nprint('hi')\n```  "
+      equals("print('hi')", anthropic.strip_code_block(input))
+    end)
+  end)
+
+  describe("create_text_filter", function()
+    it("should return nil for chat feature", function()
+      equals(nil, anthropic.create_text_filter("chat"))
+    end)
+
+    it("should return a filter for edit feature", function()
+      local filter = anthropic.create_text_filter("edit")
+      assert.is_not_nil(filter)
+      assert.is_not_nil(filter.process)
+      assert.is_not_nil(filter.flush)
+    end)
+
+    it("should return a filter for get_range feature", function()
+      local filter = anthropic.create_text_filter("get_range")
+      assert.is_not_nil(filter)
+    end)
+
+    it("should strip opening fence from streamed text", function()
+      local filter = anthropic.create_text_filter("edit")
+      -- First chunk contains opening fence and some code
+      local result = filter.process("```python\nprint('hello')\n")
+      equals("print('hello')\n", result)
+    end)
+
+    it("should handle opening fence split across chunks", function()
+      local filter = anthropic.create_text_filter("edit")
+      -- First chunk is incomplete (no newline yet)
+      equals("", filter.process("```py"))
+      -- Second chunk completes the first line
+      local result = filter.process("thon\nprint('hello')\n")
+      equals("print('hello')\n", result)
+    end)
+
+    it("should strip closing fence on flush", function()
+      local filter = anthropic.create_text_filter("edit")
+      filter.process("```python\nprint('hello')\n")
+      -- Last chunk is the closing fence
+      filter.process("```")
+      equals("", filter.flush())
+    end)
+
+    it("should strip closing fence with trailing whitespace", function()
+      local filter = anthropic.create_text_filter("edit")
+      filter.process("```python\nprint('hello')\n")
+      filter.process("```  ")
+      equals("", filter.flush())
+    end)
+
+    it("should pass through text without fences", function()
+      local filter = anthropic.create_text_filter("edit")
+      local result = filter.process("print('hello')\n")
+      -- First line is checked but not a fence, so it passes through
+      -- But the incomplete trailing content is held back
+      equals("print('hello')\n", result)
+      equals("", filter.flush())
+    end)
+
+    it("should flush remaining non-fence text", function()
+      local filter = anthropic.create_text_filter("edit")
+      filter.process("line1\n")
+      -- Partial last line that is not a fence
+      filter.process("line2")
+      equals("line2", filter.flush())
+    end)
+
+    it("should handle complete response in one chunk", function()
+      local filter = anthropic.create_text_filter("edit")
+      local result = filter.process("```python\nprint('hello')\nprint('world')\n")
+      equals("print('hello')\nprint('world')\n", result)
+      filter.process("```")
+      equals("", filter.flush())
+    end)
+
+    it("should handle text arriving character by character", function()
+      local filter = anthropic.create_text_filter("edit")
+      local input = "```python\nprint('hi')\n```"
+      local collected = ""
+      for i = 1, #input do
+        collected = collected .. filter.process(input:sub(i, i))
+      end
+      collected = collected .. filter.flush()
+      equals("print('hi')\n", collected)
+    end)
+  end)
 end)
