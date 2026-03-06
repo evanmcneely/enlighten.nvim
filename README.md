@@ -102,12 +102,10 @@ Example configuration to use Anthropic AI as the completion provider:
   {
     ai = {
       provider = "anthropic",
-      model = "claude-3-5-sonnet-20240620",
+      model = "claude-sonnet-4-6",
     },
   }
 ```
-
-At the moment, OpenAI's `gpt-4o` model is a fair bit better at generating code that respects the indentation and formatting of existing code in the buffer.
 
 #### Feature specific configuration
 
@@ -160,7 +158,7 @@ Open the chat window. You can optionally select code from the buffer to have it 
 
 - `<CR>` - submit the prompt for completion (normal mode)
 - `<C-CR>` - submit the prompt for completion (insert mode)
-- `<S-C-CR` - AI edit buffer with context from chat (⚠️  Experimental)
+- `<S-C-CR` - AI edit buffer with context from chat (⚠️ Experimental)
 - `q` - close the chat window
 - `<C-o>` - scroll back through past chat conversations
 - `<C-i>` - scroll forward through past chat conversations
@@ -169,7 +167,8 @@ Open the chat window. You can optionally select code from the buffer to have it 
 Chat responses are streamed into the chat buffer.
 
 #### @Mentions
-> ⚠️  Experimental
+
+> ⚠️ Experimental
 
 Dependant on [nvim-cmp](https://github.com/hrsh7th/nvim-cmp) and [plenary.nvim](https://github.com/nvim-lua/plenary.nvim).
 
@@ -204,14 +203,3 @@ If you have not configured `vim.ui.select`, try [snacks.nvim](https://github.com
 - [avante.nvim](https://github.com/yetone/avante.nvim) : A very different experience and ultimate goal, but with a lot of overlap in problems and implementation.
 
 - [spinner.nvim](https://github.com/jellydn/spinner.nvim) : used in this project.
-
-### 🏎️ TODO
-
-- Persist history across Neovim sessions. ✅
-- Approve/Reject generated chunks from file. ✅
-- Edit buffer with context from the chat. ✅
-- Use codebase as context (files, functions, classes, git history etc.).
-    - files ✅
-    - lsp
-    - git
-- Edit multiple buffers with context from chat.
