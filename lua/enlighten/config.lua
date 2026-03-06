@@ -64,6 +64,7 @@ local M = {}
 ---@field context? number Number of lines above and below selection to use as context in completion
 ---@field border string Character used as top and bottomm border in popup window
 ---@field diff_mode? diffmode Whether to show added/removed lines or only changes (diff or change)
+---@field auto_close boolean Whether to close the prompt on submit and auto-accept generated content
 
 ---@class EnlightenPartialEditSettings
 ---@field width? number
@@ -73,6 +74,7 @@ local M = {}
 ---@field context? number
 ---@field border? string
 ---@field diff_mode? diffmode
+---@field auto_close? boolean
 
 ---@class EnlightenChatSettings
 ---@field width number Chat pane width (number of columns)
@@ -105,6 +107,7 @@ function M.get_default_config()
         showTitle = true,
         showHelp = true,
         border = "═",
+        auto_close = false,
       },
       chat = {
         width = 80,

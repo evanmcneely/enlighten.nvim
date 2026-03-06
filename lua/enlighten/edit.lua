@@ -279,6 +279,9 @@ function EnlightenEdit:new(aiConfig, settings)
     on_done = function()
       context.has_generated = true
       spinner.hide()
+      if settings.auto_close and settings.diff_mode == "off" then
+        context.writer:keep()
+      end
     end,
   })
   context.file_picker = FilePicker:new(id, function(path, content)
@@ -345,6 +348,31 @@ function EnlightenEdit:cleanup()
   delete_autocmds(self)
 end
 
+--- Close only the prompt UI (window, buffer, extmarks, autocmds) without
+--- touching the writer. Used by auto_close mode so the writer can continue
+--- streaming content after the prompt is dismissed.
+function EnlightenEdit:_close_prompt()
+  Logger:log("edit:_close_prompt", { id = self.id })
+
+  self.history:update(build_messages(buffer.get_content(self.prompt_buf)), self.files)
+
+  -- Delete autocmds before closing the buffer to prevent BufHidden from
+  -- triggering cleanup() which would reset the writer.
+  delete_autocmds(self)
+
+  if api.nvim_win_is_valid(self.prompt_win) then
+    api.nvim_win_close(self.prompt_win, true)
+  end
+
+  if api.nvim_buf_is_valid(self.prompt_buf) then
+    api.nvim_buf_delete(self.prompt_buf, { force = true })
+  end
+
+  if api.nvim_buf_is_valid(self.target_buf) and self.prompt_ext_id then
+    api.nvim_buf_del_extmark(self.target_buf, self.prompt_ns_id, self.prompt_ext_id)
+  end
+end
+
 --- Submit the current prompt for generation. Any previously generated content
 --- will be cleared. This is mapped to a key on the prompt buffer.
 function EnlightenEdit:submit()
@@ -371,6 +399,10 @@ function EnlightenEdit:submit()
       stream = true,
     }
     ai.complete(prompt, self.writer, opts)
+
+    if self.settings.auto_close then
+      self:_close_prompt()
+    end
   end
 end
 

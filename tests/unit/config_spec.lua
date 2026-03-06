@@ -40,6 +40,7 @@ describe("config", function()
           border = "═",
           diff_mode = "diff",
           context = 500,
+          auto_close = false,
         },
         chat = {
           width = 80,

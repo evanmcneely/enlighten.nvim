@@ -34,7 +34,8 @@ function enlighten.setup(user_config)
   enlighten.setup_complete = true
 end
 
-function enlighten.edit()
+---@param opts EnlightenPartialEditSettings?
+function enlighten.edit(opts)
   if not enlighten.setup_complete then
     return
   end
@@ -66,7 +67,8 @@ function enlighten.edit()
     end
   end
 
-  Edit:new(enlighten.config.ai.edit, enlighten.config.settings.edit)
+  local settings = vim.tbl_deep_extend("force", enlighten.config.settings.edit, opts or {})
+  Edit:new(enlighten.config.ai.edit, settings)
 end
 
 function enlighten.chat()

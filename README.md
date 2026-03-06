@@ -82,7 +82,8 @@ This is the default configuration.
         height = 5, -- prompt window height
         showTitle = true, -- show the title in the prompt window
         showHelp = true, -- show the help footer in the prompt window
-        border = "═" -- top/bottom border character of prompt window
+        border = "═", -- top/bottom border character of prompt window
+        auto_close = false, -- close the prompt on submit and auto-accept generated content
       },
       chat = {
         width = 80, -- chat window width
@@ -151,6 +152,24 @@ Select the code you want to edit (from normal mode, the line under the cursor is
 - `<C-i>` - scroll forward through past prompts
 
 Generated code is diff'd against the initially selected code and highlighted as green (add) or red (remove) appropriately.
+
+#### Runtime options
+
+`enlighten.edit()` accepts an optional table to override edit settings at call time. This lets you set up different keybindings for different workflows:
+
+```lua
+-- Standard edit with diff review
+vim.keymap.set({ "n", "v" }, "<leader>ae", function() require("enlighten").edit() end)
+
+-- Fire and forget: prompt closes on submit, content streams in, changes auto-accepted
+vim.keymap.set({ "n", "v" }, "<leader>aE", function()
+  require("enlighten").edit({ diff_mode = "off", auto_close = true })
+end)
+```
+
+When `auto_close` is true, the prompt window closes immediately on submit. If `diff_mode` is `"off"`, changes are also auto-accepted. If `diff_mode` is `"diff"` or `"change"`, the prompt still closes but diff highlights remain in the buffer so you can review and accept or discard individual changes.
+
+Any edit setting (`diff_mode`, `auto_close`, `width`, `height`, etc.) can be overridden this way.
 
 #### Chat
 
