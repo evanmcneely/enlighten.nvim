@@ -217,5 +217,33 @@ describe("provider anthropic", function()
       collected = collected .. filter.flush()
       equals("print('hi')\n", collected)
     end)
+
+    it("should strip opening fence preceded by blank lines", function()
+      local filter = anthropic.create_text_filter("edit")
+      local collected = ""
+      collected = collected .. filter.process("\n\n```go\nfunc main() {\n")
+      collected = collected .. filter.process("}\n")
+      collected = collected .. filter.flush()
+      equals("func main() {\n}\n", collected)
+    end)
+
+    it("should strip opening fence preceded by blank lines across chunks", function()
+      local filter = anthropic.create_text_filter("edit")
+      local collected = ""
+      -- First chunk is just blank lines, no content line yet
+      collected = collected .. filter.process("\n\n")
+      -- Second chunk has the fence and code
+      collected = collected .. filter.process("```go\nfunc main() {\n}\n")
+      collected = collected .. filter.flush()
+      equals("func main() {\n}\n", collected)
+    end)
+
+    it("should strip opening fence preceded by whitespace-only lines", function()
+      local filter = anthropic.create_text_filter("edit")
+      local collected = ""
+      collected = collected .. filter.process("  \n\t\n```lua\nlocal x = 1\n")
+      collected = collected .. filter.flush()
+      equals("local x = 1\n", collected)
+    end)
   end)
 end)

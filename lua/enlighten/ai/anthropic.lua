@@ -147,15 +147,25 @@ function M.create_text_filter(feature)
       pending = pending .. text
 
       if not first_line_checked then
-        local newline_pos = pending:find("\n")
-        if not newline_pos then
-          return "" -- Still accumulating first line
+        -- Skip blank/whitespace-only lines to find the first line with content
+        while true do
+          local newline_pos = pending:find("\n")
+          if not newline_pos then
+            return "" -- Still accumulating a line
+          end
+          local line = pending:sub(1, newline_pos - 1)
+          if line:match("^%s*$") then
+            -- Blank line, discard and keep looking
+            pending = pending:sub(newline_pos + 1)
+          else
+            -- First line with content: check for code fence
+            if line:match("^```") then
+              pending = pending:sub(newline_pos + 1)
+            end
+            first_line_checked = true
+            break
+          end
         end
-        local first_line = pending:sub(1, newline_pos - 1)
-        if first_line:match("^```") then
-          pending = pending:sub(newline_pos + 1)
-        end
-        first_line_checked = true
       end
 
       -- Find the last newline - hold back everything after it (potential closing fence)
