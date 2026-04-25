@@ -245,5 +245,58 @@ describe("provider anthropic", function()
       collected = collected .. filter.flush()
       equals("local x = 1\n", collected)
     end)
+
+    it("should preserve blank lines after opening fence", function()
+      local filter = anthropic.create_text_filter("edit")
+      local collected = ""
+      collected = collected .. filter.process("```go\n\n\nfunc main() {\n}\n")
+      collected = collected .. filter.flush()
+      equals("\n\nfunc main() {\n}\n", collected)
+    end)
+
+    it("should strip closing fence and trailing blank lines", function()
+      local filter = anthropic.create_text_filter("edit")
+      local collected = ""
+      collected = collected .. filter.process("```go\nfunc main() {\n}\n```\n\n")
+      collected = collected .. filter.flush()
+      equals("func main() {\n}\n", collected)
+    end)
+
+    it("should strip closing fence and trailing blank lines across chunks", function()
+      local filter = anthropic.create_text_filter("edit")
+      local collected = ""
+      collected = collected .. filter.process("```go\nfunc main() {\n}\n```\n")
+      collected = collected .. filter.process("\n")
+      collected = collected .. filter.process("\n")
+      collected = collected .. filter.flush()
+      equals("func main() {\n}\n", collected)
+    end)
+
+    it("should strip closing fence arriving as its own chunk", function()
+      local filter = anthropic.create_text_filter("edit")
+      local collected = ""
+      collected = collected .. filter.process("```go\nfunc main() {\n}\n")
+      collected = collected .. filter.process("```\n")
+      collected = collected .. filter.flush()
+      equals("func main() {\n}\n", collected)
+    end)
+
+    it("should strip closing fence split across chunks", function()
+      local filter = anthropic.create_text_filter("edit")
+      local collected = ""
+      collected = collected .. filter.process("```go\nfunc main() {\n}\n")
+      collected = collected .. filter.process("``")
+      collected = collected .. filter.process("`\n")
+      collected = collected .. filter.flush()
+      equals("func main() {\n}\n", collected)
+    end)
+
+    it("should preserve inline backticks in code content", function()
+      local filter = anthropic.create_text_filter("edit")
+      local collected = ""
+      collected = collected .. filter.process('```lua\nlocal s = "```"\nprint(s)\n')
+      collected = collected .. filter.flush()
+      equals('local s = "```"\nprint(s)\n', collected)
+    end)
   end)
 end)

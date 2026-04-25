@@ -136,6 +136,7 @@ function M.create_text_filter(feature)
   end
 
   local first_line_checked = false
+  local closing_fence_seen = false
   local pending = ""
 
   return {
@@ -145,6 +146,12 @@ function M.create_text_filter(feature)
     ---@return string
     process = function(text)
       pending = pending .. text
+
+      -- After a closing fence has been seen, discard everything (trailing blanks)
+      if closing_fence_seen then
+        pending = ""
+        return ""
+      end
 
       if not first_line_checked then
         -- Skip blank/whitespace-only lines to find the first line with content
@@ -180,6 +187,17 @@ function M.create_text_filter(feature)
       if last_nl then
         local to_send = pending:sub(1, last_nl)
         pending = pending:sub(last_nl + 1)
+
+        -- Strip trailing closing fence and any subsequent blank lines
+        local fence_start = to_send:find("\n```%w*[ \t]*\n[%s]*$")
+        if fence_start then
+          to_send = to_send:sub(1, fence_start)
+          closing_fence_seen = true
+        elseif to_send:match("^```%w*[ \t]*\n[%s]*$") then
+          to_send = ""
+          closing_fence_seen = true
+        end
+
         return to_send
       end
 
@@ -190,6 +208,10 @@ function M.create_text_filter(feature)
     --- should be forwarded, unless it is a closing code fence.
     ---@return string
     flush = function()
+      if closing_fence_seen then
+        pending = ""
+        return ""
+      end
       local text = pending
       pending = ""
       if text:match("^```%s*$") then
